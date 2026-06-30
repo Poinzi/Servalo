@@ -1142,7 +1142,7 @@ function bulkExport(){const sel=db.devices.filter(d=>selected.has(d.id));
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="valitut-laitteet-"+today()+".json";a.click();
   document.getElementById("bulkMenu").classList.remove("show");}
 function bulkDelete(){if(!confirm(`Poistetaanko ${selected.size} laitetta?`))return;
-  db.devices.forEach(d=>{if(selected.has(d.id))d.deleted=true;});save();
+  db.devices.forEach(d=>{if(selected.has(d.id)){d.deleted=true;d.delDate=today();d.delReason=d.delReason||"Joukkopoisto";d.delComment=d.delComment||"";}});save();
   selected.clear();document.getElementById("bulkMenu").classList.remove("show");renderList();renderSummary();}
 document.addEventListener("click",()=>{const m=document.getElementById("bulkMenu");if(m)m.classList.remove("show");});
 
@@ -1318,7 +1318,7 @@ function saveLink(){
 }
 /* ---------- NFC SKANNAUKSET -välilehti ---------- */
 function devNfcTab(d){
-  d.nfcTag=d.nfcTag||("NFC-"+String(d.idr||"").replace(/[^0-9A-Za-z]/g,"").slice(-6).toUpperCase());
+  if(!d.nfcTag){d.nfcTag="NFC-"+String(d.idr||"").replace(/[^0-9A-Za-z]/g,"").slice(-6).toUpperCase();save();}
   const rows=d.nfcScans||[];
   const tr=rows.length?rows.map(s=>`<tr><td style="white-space:nowrap">${esc(s.datetime)}</td><td>${esc(s.by)}</td><td>${esc(s.type)}</td><td>${esc(s.comment||"")}</td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei skannauksia</td></tr>';
@@ -1524,8 +1524,10 @@ function editDevice(id){
   csel.innerHTML='<option value="">– ei valittu –</option>'+db.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
   csel.value=d?(d.customerId||""):"";
   const asel=document.getElementById("dAssignee");
-  asel.innerHTML='<option value="">– Ei osoitettu –</option>'+db.users.filter(u=>u.role==="worker"&&u.active).map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join("");
-  asel.value=d?(d.assignedTo||""):"";
+  const curAssignee=d?(d.assignedTo||""):"";
+  const wlist=db.users.filter(u=>u.role==="worker"&&(u.active||u.id===curAssignee));
+  asel.innerHTML='<option value="">– Ei osoitettu –</option>'+wlist.map(u=>`<option value="${u.id}">${esc(u.name)}${u.active?"":" (pois käytöstä)"}</option>`).join("");
+  asel.value=curAssignee;
   const set=(f,v)=>document.getElementById(f).value=v||"";
   set("dIdr",d?.idr);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);
   lsel.value=d?d.locId:(selLoc&&locById(selLoc)?.type==="site"?selLoc:lsel.value);
@@ -1615,7 +1617,22 @@ function renderRepSub(){const def=reportDefs[currentReport];const el=document.ge
 function reportRows(){
   const def=reportDefs[currentReport];if(!def)return[];
   const q=document.getElementById("repSearch").value.toLowerCase();
-  let rows=def.rows().filter(r=>activeFilters.every(f=>true));
+  const strip=s=>String(s).replace(/<[^>]+>/g,"").toLowerCase();
+  let rows=def.rows().filter(r=>{
+    const cells=r.map(strip);
+    return activeFilters.every(f=>{
+      const val=String(f.value||"").toLowerCase();
+      if(!val)return true;
+      if(f.op==="equals")return cells.some(c=>c===val);
+      if(f.op==="before"||f.op==="after"){
+        const m=cells.join(" ").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+        if(!m)return false;
+        const iso=m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");
+        return f.op==="before"?iso<val:iso>val;
+      }
+      return cells.some(c=>c.includes(val));
+    });
+  });
   if(q)rows=rows.filter(r=>r.join(" ").replace(/<[^>]+>/g,"").toLowerCase().includes(q));
   return rows;
 }
@@ -2022,7 +2039,7 @@ const PORTAL_REPORTS={
     rows:devs=>devs.filter(d=>d.next).sort((a,b)=>a.next.localeCompare(b.next)).map(d=>[d.idr,d.target,fmt(d.next),d.make,siteName(d.locId)])},
   tarkastukset:{name:"tulevat-tarkastukset",title:"Tulevat tarkastukset",
     head:["Laitetunnus","Seuraava tarkastuspäivä","Valmistaja/Malli/Tyyppi","Toimipiste"],
-    rows:devs=>devs.filter(d=>d.next).sort((a,b)=>a.next.localeCompare(b.next)).map(d=>[d.idr,fmt(d.next),d.make,siteName(d.locId)])},
+    rows:devs=>devs.map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id).sort((a,b)=>a.id.localeCompare(b.id)).map(({d,id})=>[d.idr,fmt(id),d.make,siteName(d.locId)])},
   pyynnot:{name:"huoltopyynnot",title:"Huoltopyynnöt",
     head:["Laitetunnus","Pyyntöpäivä","Tehty","Syy","Kommentti","Tila","Toimipiste"],
     rows:devs=>{const out=[];devs.forEach(d=>(d.requests||[]).forEach(r=>out.push([d.idr,fmt(r.requested),r.done?fmt(r.done):"–",r.reason||"",r.comment||"",r.status==="done"?"Valmis":"Käsittelyssä",siteName(d.locId)])));return out;}},
@@ -2108,6 +2125,7 @@ function applyRole(){
   show("navDispatch", can("dispatch"));
   show("navAdmin", role()==="admin");
   show("navPortal", cust);
+  show("navCalendar", !cust);
   // asiakkaalle piilotetaan sivupalkki (laitepuu) ja sisäiset napit
   const sb=document.getElementById("sidebar");if(sb)sb.style.display=cust?"none":"";
   const st=document.getElementById("sideToggle");if(st)st.style.display=cust?"none":"";
@@ -2118,14 +2136,19 @@ function applyRole(){
 /* ========== OMAT TYÖT (asentaja) ========== */
 function addInterval(iso,interval){
   const dt=new Date(iso);const s=(interval||"1 vuosi").toLowerCase();
-  const n=(s.match(/\d+/)||[1])[0]*1||1;
-  if(s.includes("kk")||s.includes("kuukau"))dt.setMonth(dt.getMonth()+n);
-  else dt.setFullYear(dt.getFullYear()+n);
+  const isMonth=s.includes("kk")||s.includes("kuukau");
+  const m=s.match(/\d+(?:[.,]\d+)?/);
+  let n=m?parseFloat(m[0].replace(",",".")):(s.includes("puoli")?0.5:1);
+  if(!n||n<=0)n=1;
+  if(isMonth)dt.setMonth(dt.getMonth()+Math.round(n));
+  else{const whole=Math.floor(n);const frac=n-whole;dt.setFullYear(dt.getFullYear()+whole);if(frac)dt.setMonth(dt.getMonth()+Math.round(frac*12));}
   return dt.toISOString().slice(0,10);
 }
 function calEvents(){
   const ev=[];
-  devicesInScope().filter(d=>!d.deleted).forEach(d=>{
+  const cid=role()==="customer"?(currentUser&&currentUser.customerId):null;
+  const base=cid?db.devices.filter(d=>d.customerId===cid):devicesInScope();
+  base.filter(d=>!d.deleted).forEach(d=>{
     if(d.next)ev.push({date:d.next,type:"huolto",d});
     if(d.inspNext)ev.push({date:d.inspNext,type:"tarkastus",d});
   });
@@ -2169,6 +2192,8 @@ function workItems(userId){
     (d.requests||[]).forEach((r,idx)=>{if(r.status!=="done")items.push({type:"req",d,r,idx,sort:r.requested||"0"});});
     const n=daysFromToday(d.next);
     if(n!==null&&n<=30)items.push({type:n<0?"late":"soon",d,days:n,sort:d.next||"9999"});
+    const ni=daysFromToday(d.inspNext);
+    if(ni!==null&&ni<=30)items.push({type:ni<0?"late":"soon",insp:true,d,days:ni,sort:d.inspNext||"9999"});
   });
   items.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));
   return items;
@@ -2192,6 +2217,14 @@ function renderMywork(){
           <button class="bigbtn ghost2" onclick="openDevice('${d.id}')">Avaa laite</button></div></div>`;
     }
     const cls=it.type==="late"?"late":"soon";
+    if(it.insp){
+      const wi=it.days<0?`Myöhässä ${Math.abs(it.days)} pv (${fmt(d.inspNext)})`:`${it.days} pv kuluttua (${fmt(d.inspNext)})`;
+      return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🔍"} Tarkastus · ${esc(d.idr)}</h4>
+        <div class="wmeta">${esc(d.target)} — ${site}<br><b>Eräpäivä:</b> ${wi}<br>${loc}</div>
+        <div class="wact">
+          <button class="bigbtn green" onclick="logInspection('${d.id}')">✔ Kuittaa tarkastus tehdyksi</button>
+          <button class="bigbtn ghost2" onclick="openDevice('${d.id}')">Avaa laite</button></div></div>`;
+    }
     const when=it.days<0?`Myöhässä ${Math.abs(it.days)} pv (${fmt(d.next)})`:`${it.days} pv kuluttua (${fmt(d.next)})`;
     return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🗓"} Määräaikaishuolto · ${esc(d.idr)}</h4>
       <div class="wmeta">${esc(d.target)} — ${site}<br><b>Eräpäivä:</b> ${when}<br>${loc}</div>
@@ -2219,9 +2252,11 @@ function completeRequest(devId,idx){
 function logInspection(devId){
   const d=db.devices.find(x=>x.id===devId);if(!d)return;
   if(!confirm("Kirjataanko tarkastus tehdyksi tänään?"))return;
+  const iso=today();
   d.inspections=d.inspections||[];
-  d.inspections.unshift({date:today(),by:currentUser?currentUser.name:"",comment:"Tarkastus kuitattu"});
-  d.updated=today();save();renderMywork();
+  d.inspections.unshift({date:iso,by:currentUser?currentUser.name:"",comment:"Tarkastus kuitattu"});
+  d.inspLast=iso;d.inspNext=addInterval(iso,d.inspInterval||d.interval);
+  d.updated=iso;save();renderMywork();renderList();renderSummary();
 }
 
 /* ========== TYÖNJAKO (työnjohtaja) ========== */
