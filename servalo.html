@@ -698,6 +698,7 @@
       <div class="field"><label>Valitse pohja</label><select class="f" id="enTemplate"></select></div>
       <div class="field" id="enNameField" style="display:none"><label>Henkilö</label><input class="f" id="enName" placeholder="esim. Matti Meikäläinen"></div>
       <div class="field"><label>Tapahtumapäivä</label><input class="f" id="enDate" type="date"></div>
+      <div class="field" id="enIntervalField" style="display:none"><label>Väli (sykli)</label><input class="f" id="enInterval" placeholder="esim. 1 vuosi"><p class="hint" style="margin-top:4px">Asettaa laitteelle huolto-/tarkastusvälin ja laskee seuraavan eräpäivän tästä päivästä.</p></div>
       <div class="field"><label>Kommentti</label><textarea class="f" id="enComment" rows="3" placeholder="Lisätieto, pöytäkirjan sisältö…"></textarea></div>
       <div class="field"><label>Tiedosto (raportti / pöytäkirja)</label><input class="f" id="enFile" type="file"></div>
       <p class="hint">Voit liittää PDF:n tai kuvan. Suuret tiedostot (yli ~4 MB) eivät tallennu selainmuistiin.</p>
@@ -1477,6 +1478,10 @@ function openEntry(devId,type){
   document.getElementById("enName").value="";
   document.getElementById("enFile").value="";
   document.getElementById("enNameField").style.display=cfg.person?"":"none";
+  const dev=db.devices.find(x=>x.id===devId);
+  const isCycle=(type==="maintenances"||type==="inspections");
+  document.getElementById("enIntervalField").style.display=isCycle?"":"none";
+  document.getElementById("enInterval").value=isCycle?(type==="inspections"?((dev&&(dev.inspInterval||dev.interval))||""):((dev&&dev.interval)||"")):"";
   show("entryOverlay");
 }
 function saveEntry(){
@@ -1488,11 +1493,12 @@ function saveEntry(){
     pohja:document.getElementById("enTemplate").value,
     comment:document.getElementById("enComment").value.trim()};
   if(cfg.person)entry.name=document.getElementById("enName").value.trim();
+  const iv=(document.getElementById("enInterval").value||"").trim();
   const finalize=()=>{
     d[type]=d[type]||[];
     d[type].unshift(entry);
-    if(type==="maintenances"){d.last=entry.date;d.next=addInterval(entry.date,d.interval);}
-    if(type==="inspections"){d.inspLast=entry.date;d.inspNext=addInterval(entry.date,d.inspInterval||d.interval);}
+    if(type==="maintenances"){if(iv)d.interval=iv;d.last=entry.date;d.next=addInterval(entry.date,d.interval);}
+    if(type==="inspections"){if(iv)d.inspInterval=iv;d.inspLast=entry.date;d.inspNext=addInterval(entry.date,d.inspInterval||d.interval);}
     if(type==="repairsLog"){d.repairs=(d.repairs||0)+1;}
     d.updated=today();save();closeOverlay("entryOverlay");renderDevTab();
   };
