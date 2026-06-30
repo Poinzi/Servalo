@@ -1275,19 +1275,52 @@ function renderDevTab(){
 }
 /* ---------- TIEDOSTOT-välilehti ---------- */
 function deviceFiles(d){
-  const out=(d.files||[]).map(f=>({name:f.name,cat:f.category||"Muu",date:f.date,by:f.by||"",data:f.data}));
-  const pull=(arr,label)=>(arr||[]).forEach(e=>{if(e.file&&e.file.data)out.push({name:e.file.name,cat:label+(e.pohja?" – "+e.pohja:""),date:e.date,by:e.name||"",data:e.file.data});});
-  pull(d.maintenances,"Huolto");pull(d.inspections,"Tarkastus");pull(d.repairsLog,"Korjaus");pull(d.notesLog,"Lisätieto");
+  const out=[];
+  (d.files||[]).forEach((f,i)=>out.push({name:f.name,cat:f.category||"Muu",date:f.date,by:f.by||"",data:f.data,src:"files",idx:i}));
+  const pull=(key,label)=>(d[key]||[]).forEach((e,i)=>{if(e.file&&e.file.data)out.push({name:e.file.name,cat:label+(e.pohja?" – "+e.pohja:""),date:e.date,by:e.name||"",data:e.file.data,src:key,idx:i});});
+  pull("maintenances","Huolto");pull("inspections","Tarkastus");pull("repairsLog","Korjaus");pull("notesLog","Lisätieto");
   return out;
 }
 function devFilesTab(d){
   const rows=deviceFiles(d);
-  const tr=rows.length?rows.map(f=>`<tr><td>${f.data?`<a href="${f.data}" download="${esc(f.name)}">📎 ${esc(f.name)}</a>`:`📎 ${esc(f.name)}`}</td><td>${esc(f.cat)}</td><td style="white-space:nowrap">${fmt(f.date)}</td><td>${esc(f.by)}</td></tr>`).join("")
-    :'<tr><td colspan="4" class="empty">Ei tiedostoja</td></tr>';
+  const ed=can("devices_edit");
+  const tr=rows.length?rows.map(f=>{
+    const act=ed?`<td style="white-space:nowrap">
+      <button class="iconbtn" style="width:34px;height:34px;font-size:13px" title="Muuta nimeä" onclick="renameFileEntry('${d.id}','${f.src}',${f.idx})">✎</button>
+      <button class="iconbtn" style="width:34px;height:34px;font-size:13px;background:var(--red)" title="Poista" onclick="deleteFileEntry('${d.id}','${f.src}',${f.idx})">🗑</button>
+    </td>`:"";
+    return `<tr><td>${f.data?`<a href="${f.data}" download="${esc(f.name)}">📎 ${esc(f.name)}</a>`:`📎 ${esc(f.name)}`}</td><td>${esc(f.cat)}</td><td style="white-space:nowrap">${fmt(f.date)}</td><td>${esc(f.by)}</td>${act}</tr>`;}).join("")
+    :`<tr><td colspan="${ed?5:4}" class="empty">Ei tiedostoja</td></tr>`;
   return `<div class="panel"><div class="panel-h">Tiedostot</div><div class="panel-b" style="padding:0">
-    <table><thead><tr><th>Tiedosto</th><th>Kategoria / lähde</th><th>Päivämäärä</th><th>Lisääjä</th></tr></thead><tbody>${tr}</tbody></table>
-    ${can("devices_edit")?`<div style="padding:10px"><button class="btn ghost sm" onclick="openFile('${d.id}')">＋ Lisää tiedosto</button></div>`:""}
+    <table><thead><tr><th>Tiedosto</th><th>Kategoria / lähde</th><th>Päivämäärä</th><th>Lisääjä</th>${ed?"<th>Toiminnot</th>":""}</tr></thead><tbody>${tr}</tbody></table>
+    ${ed?`<div style="padding:10px"><button class="btn ghost sm" onclick="openFile('${d.id}')">＋ Lisää tiedosto</button></div>`:""}
   </div></div>`;
+}
+function fileObjOf(d,src,idx){return src==="files"?(d.files||[])[idx]:(((d[src]||[])[idx])||{}).file;}
+function renameFileEntry(devId,src,idx){
+  if(!can("devices_edit"))return;
+  const d=db.devices.find(x=>x.id===devId);if(!d)return;
+  const obj=fileObjOf(d,src,idx);if(!obj)return;
+  const old=obj.name||"";
+  const nn=prompt("Tiedoston/raportin uusi nimi:",old);
+  if(nn==null)return;const name=nn.trim();if(!name)return;
+  obj.name=name;
+  if(typeof logHist==="function")logHist("Raportti nimetty",d,[{f:"Tiedosto",from:old||"–",to:name}]);
+  save();renderDevTab();
+}
+function deleteFileEntry(devId,src,idx){
+  if(!can("devices_edit"))return;
+  const d=db.devices.find(x=>x.id===devId);if(!d)return;
+  if(src==="files"){const f=(d.files||[])[idx];if(!f)return;
+    if(!confirm("Poistetaanko tiedosto \""+(f.name||"")+"\"? Tätä ei voi perua."))return;
+    const nm=f.name;d.files.splice(idx,1);
+    if(typeof logHist==="function")logHist("Raportti poistettu",d,[{f:"Tiedosto",from:nm||"–",to:"poistettu"}]);
+  }else{const e=(d[src]||[])[idx];if(!e||!e.file)return;
+    if(!confirm("Poistetaanko raportti \""+(e.file.name||"")+"\" kirjauksesta? Kirjausmerkintä jää, vain tiedosto irrotetaan."))return;
+    const nm=e.file.name;delete e.file;
+    if(typeof logHist==="function")logHist("Raportti poistettu",d,[{f:"Tiedosto",from:nm||"–",to:"poistettu"}]);
+  }
+  save();renderDevTab();
 }
 function openFile(devId){
   if(!can("devices_edit"))return;
