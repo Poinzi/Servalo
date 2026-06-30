@@ -576,6 +576,9 @@
         <div class="field"><label>Toimituspäivä</label><input class="f" id="dDelivery" type="date"></div>
         <div class="field"><label>Viimeisin määräaikaishuolto</label><input class="f" id="dLast" type="date"></div>
         <div class="field"><label>Seuraava määräaikaishuolto</label><input class="f" id="dNext" type="date"></div>
+        <div class="field"><label>Tarkastusväli</label><input class="f" id="dInspInterval" placeholder="esim. 1 vuosi"></div>
+        <div class="field"><label>Viimeisin tarkastus</label><input class="f" id="dInspLast" type="date"></div>
+        <div class="field"><label>Seuraava tarkastus</label><input class="f" id="dInspNext" type="date"></div>
         <div class="field"><label>Avoimia huoltopyyntöjä</label><input class="f" id="dReq" type="number" value="0"></div>
         <div class="field"><label>Korjauksia (kpl)</label><input class="f" id="dRepairs" type="number" value="0"></div>
       </div>
@@ -1522,6 +1525,7 @@ function editDevice(id){
   lsel.value=d?d.locId:(selLoc&&locById(selLoc)?.type==="site"?selLoc:lsel.value);
   set("dValue",d?.value);set("dInterval",d?.interval);set("dDelivery",d?.delivery);
   set("dLast",d?.last);set("dNext",d?.next);set("dReq",d?d.req:0);set("dRepairs",d?d.repairs:0);set("dNotes",d?.notes);
+  set("dInspInterval",d?(d.inspInterval||d.interval):"");set("dInspLast",d?.inspLast);set("dInspNext",d?.inspNext);
   document.getElementById("devOverlay").classList.add("show");
 }
 function saveDevice(){
@@ -1529,7 +1533,7 @@ function saveDevice(){
   const g=f=>document.getElementById(f).value;
   const data={idr:g("dIdr").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",
     locId:g("dLoc"),customerId:g("dCustomer")||null,assignedTo:g("dAssignee")||null,value:+g("dValue")||0,interval:g("dInterval").trim(),delivery:g("dDelivery"),
-    last:g("dLast"),next:g("dNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,notes:g("dNotes").trim(),updated:today()};
+    last:g("dLast"),next:g("dNext"),inspInterval:g("dInspInterval").trim(),inspLast:g("dInspLast"),inspNext:g("dInspNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,notes:g("dNotes").trim(),updated:today()};
   if(!data.idr){alert("Anna Laitetunnus.");return;}
   if(id){Object.assign(db.devices.find(x=>x.id===id),data);}
   else{db.devices.unshift({id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
