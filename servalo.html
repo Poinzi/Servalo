@@ -242,6 +242,22 @@
   .bigbtn.blue{background:#1d4ed8;color:#fff}
   .bigbtn.ghost2{background:#eef2f1;color:var(--ink)}
   .assignsel{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+  .calbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .calmonth{font-size:18px;font-weight:800;min-width:160px}
+  .callegend{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-left:auto}
+  .callegend .dot{width:11px;height:11px;border-radius:50%;display:inline-block;margin-left:8px}
+  .calhead{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .calhead div{text-align:center;font-weight:700;font-size:12px;color:var(--muted)}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .calcell{min-height:96px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px;display:flex;flex-direction:column;gap:3px}
+  .calcell.empty{background:transparent;border:0}
+  .calcell.today{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .cald{font-size:12px;font-weight:700;color:var(--muted)}
+  .calchip{border:0;border-radius:6px;padding:3px 5px;font-size:11px;font-weight:700;cursor:pointer;text-align:left;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calchip.late,.dot.late{background:#dc2626}
+  .calchip.soon,.dot.soon{background:#d97706}
+  .calchip.future,.dot.future{background:#0d9488}
+  @media(max-width:760px){.calcell{min-height:64px}.calgrid,.calhead{gap:3px}.callegend{display:none}}
   @media(max-width:760px){.hide-sm{display:none}.userchip .ucol{display:none}}
 </style>
 </head>
@@ -254,6 +270,7 @@
     <button class="navlink" id="navPortal" data-go="portal" style="display:none"><span>🏠</span> Oma kohde</button>
     <button class="navlink" id="navMywork" data-go="mywork"><span>🧰</span> Omat työt</button>
     <button class="navlink" id="navCustomers" data-go="customers"><span>👥</span> Asiakkaat</button>
+    <button class="navlink" id="navCalendar" data-go="calendar"><span>🗓</span> Kalenteri</button>
     <div class="dd" id="navReports">
       <button class="navlink" id="reportsBtn">☰ Raportit ▾</button>
       <div class="menu" id="reportsMenu">
@@ -494,6 +511,12 @@
     <!-- ===== ASIAKASPORTAALI ===== -->
     <section id="view-portal" class="view">
       <div id="portalBody"></div>
+    </section>
+
+    <!-- ===== KALENTERI ===== -->
+    <section id="view-calendar" class="view">
+      <div class="topbar"><h2 style="margin:0">Huolto- ja tarkastuskalenteri</h2></div>
+      <div id="calendarBody"></div>
     </section>
   </main>
 </div>
@@ -744,6 +767,7 @@ const KEY="servalo_v3";
 const UKEY="servalo_user_v3";
 let db=loadDB();
 let currentDeviceId=null, currentReport=null, mode="list", selLoc=null, devTab="laite", currentCustomerId=null;
+const calState={y:new Date().getFullYear(),m:new Date().getMonth()};
 const treeOpen=new Set();  // pysyvät auki-tilat (sijaintipuun solmut, joiden lapset näytetään)
 
 function loadDB(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.devices)return d;}catch(e){}return null;}
@@ -858,6 +882,10 @@ function seed(){
     const rep=(i%7===0)?( (i%14===0)?3:1):0;
     const req=(i%11===0)?1:0;
     dev.push(mkDev(idr,target,make,g,loc,value,"1 vuosi",last,next,req,rep,""));i++;});
+  // ----- tarkastussyklit: oma väli + seuraava tarkastuspäivä (esimerkit) -----
+  dev.forEach((d,k)=>{ d.inspInterval=d.interval;
+    if(k%2===0&&d.next){ const t=new Date(d.next);t.setMonth(t.getMonth()+6);d.inspNext=t.toISOString().slice(0,10);
+      const l=new Date(d.inspNext);l.setFullYear(l.getFullYear()-1);d.inspLast=l.toISOString().slice(0,10); } });
   // ----- esimerkkitiedot raportteja varten -----
   const byIdr=n=>dev.find(d=>d.idr===n);
   const t1=byIdr("601678"),t2=byIdr("601671");
@@ -1037,7 +1065,8 @@ function routeRender(v){
   else if(v==="mywork")renderMywork();
   else if(v==="dispatch")renderDispatch();
   else if(v==="admin")renderAdmin();
-  else if(v==="portal")renderPortal();}
+  else if(v==="portal")renderPortal();
+  else if(v==="calendar")renderCalendar();}
 document.getElementById("sideToggle").onclick=()=>document.getElementById("sidebar").classList.toggle("collapsed");
 document.getElementById("reportsBtn").onclick=e=>{e.stopPropagation();document.getElementById("reportsMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("reportsMenu").classList.remove("show"));
@@ -1459,7 +1488,8 @@ function saveEntry(){
   const finalize=()=>{
     d[type]=d[type]||[];
     d[type].unshift(entry);
-    if(type==="maintenances"){d.last=entry.date;}
+    if(type==="maintenances"){d.last=entry.date;d.next=addInterval(entry.date,d.interval);}
+    if(type==="inspections"){d.inspLast=entry.date;d.inspNext=addInterval(entry.date,d.inspInterval||d.interval);}
     if(type==="repairsLog"){d.repairs=(d.repairs||0)+1;}
     d.updated=today();save();closeOverlay("entryOverlay");renderDevTab();
   };
@@ -1530,8 +1560,8 @@ const reportDefs={
       .map(d=>[d.idr,d.target,dateBadge(d.next),d.make,locPath(d.locId),statCell(d.next),openBtn(d.id)])},
   tarkastukset:{title:"Tulevat tarkastukset",desc:"Näytetään laitteet joilla on tarkastusväli sekä toimituspäivä tai vähintään yksi tarkastus",
     cols:["Laitetunnus","Seuraava tarkastuspäivä ↑","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
-    rows:()=>devicesInScope().filter(d=>d.next&&inDateRange(d.next)).sort((a,b)=>a.next.localeCompare(b.next))
-      .map(d=>[d.idr,dateBadge(d.next),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),statCell(d.next),openBtn(d.id)])},
+    rows:()=>devicesInScope().map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id&&inDateRange(x.id)).sort((a,b)=>a.id.localeCompare(b.id))
+      .map(({d,id})=>[d.idr,dateBadge(id),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),statCell(id),openBtn(d.id)])},
   pyynnot:{title:()=>repSub==="valmiit"?"Valmiit huoltopyynnöt":"Odottavat huoltopyynnöt",
     desc:()=>repSub==="valmiit"?"Näytetään huoltopyynnöt, jotka on merkitty tehdyiksi.":"Näytetään huoltopyynnöt, joita ei ole vielä merkitty tehdyiksi.",
     sub:true,
@@ -2083,6 +2113,46 @@ function addInterval(iso,interval){
   else dt.setFullYear(dt.getFullYear()+n);
   return dt.toISOString().slice(0,10);
 }
+function calEvents(){
+  const ev=[];
+  devicesInScope().filter(d=>!d.deleted).forEach(d=>{
+    if(d.next)ev.push({date:d.next,type:"huolto",d});
+    if(d.inspNext)ev.push({date:d.inspNext,type:"tarkastus",d});
+  });
+  return ev;
+}
+function calStatus(iso){const n=daysFromToday(iso);if(n===null)return"future";return n<0?"late":(n<=30?"soon":"future");}
+function renderCalendar(){
+  const body=document.getElementById("calendarBody");if(!body)return;
+  const y=calState.y,m=calState.m;
+  const monthNames=["Tammikuu","Helmikuu","Maaliskuu","Huhtikuu","Toukokuu","Kesäkuu","Heinäkuu","Elokuu","Syyskuu","Lokakuu","Marraskuu","Joulukuu"];
+  const ev=calEvents().filter(e=>{const dt=new Date(e.date);return dt.getFullYear()===y&&dt.getMonth()===m;});
+  const byDay={};ev.forEach(e=>{const day=new Date(e.date).getDate();(byDay[day]=byDay[day]||[]).push(e);});
+  const first=new Date(y,m,1);const startDow=(first.getDay()+6)%7;
+  const days=new Date(y,m+1,0).getDate();
+  const dows=["Ma","Ti","Ke","To","Pe","La","Su"];
+  const todayStr=today();
+  let cells="";
+  for(let i=0;i<startDow;i++)cells+='<div class="calcell empty"></div>';
+  for(let day=1;day<=days;day++){
+    const iso=y+"-"+String(m+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+    const items=byDay[day]||[];
+    const chips=items.map(e=>'<button class="calchip '+calStatus(e.date)+'" title="'+esc(e.d.idr)+' – '+esc(e.d.make)+' ('+esc(siteName(e.d.locId))+')" onclick="openDevice(\''+e.d.id+'\')">'+(e.type==="huolto"?"🛠":"🔍")+" "+esc(e.d.idr)+"</button>").join("");
+    cells+='<div class="calcell'+(iso===todayStr?" today":"")+'"><div class="cald">'+day+"</div>"+chips+"</div>";
+  }
+  body.innerHTML=
+    '<div class="calbar">'+
+      '<button class="btn ghost sm" onclick="calNav(-1)">‹ Edellinen</button>'+
+      '<div class="calmonth">'+monthNames[m]+" "+y+"</div>"+
+      '<button class="btn ghost sm" onclick="calNav(1)">Seuraava ›</button>'+
+      '<button class="btn ghost sm" onclick="calToday()">Tänään</button>'+
+      '<span class="callegend"><span class="dot late"></span>Myöhässä<span class="dot soon"></span>30 pv<span class="dot future"></span>Myöhemmin</span>'+
+    "</div>"+
+    '<div class="calhead">'+dows.map(d=>"<div>"+d+"</div>").join("")+"</div>"+
+    '<div class="calgrid">'+cells+"</div>";
+}
+function calNav(delta){let m=calState.m+delta,y=calState.y;if(m<0){m=11;y--;}if(m>11){m=0;y++;}calState.m=m;calState.y=y;renderCalendar();}
+function calToday(){calState.y=new Date().getFullYear();calState.m=new Date().getMonth();renderCalendar();}
 function workItems(userId){
   const items=[];
   db.devices.filter(d=>!d.deleted&&d.assignedTo===userId).forEach(d=>{
