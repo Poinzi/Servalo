@@ -18,6 +18,28 @@ const TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  // YTJ-proxy (PRH avoin data) – haetaan yritystiedot palvelimen puolelta,
+  // jotta selaimen CORS-rajoitus ei estä kutsua.
+  if (req.url.startsWith("/api/ytj")) {
+    const u = new URL(req.url, "http://localhost");
+    const bid = (u.searchParams.get("businessId") || "").trim();
+    if (!/^\d{7}-\d$/.test(bid)) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ error: "Virheellinen Y-tunnus" }));
+    }
+    const api = "https://avoindata.prh.fi/opendata-ytj-api/v3/companies?businessId=" + encodeURIComponent(bid);
+    fetch(api, { headers: { Accept: "application/json" } })
+      .then((r) => r.text().then((body) => {
+        res.writeHead(r.status, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(body);
+      }))
+      .catch((err) => {
+        res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: "YTJ-haku epäonnistui", detail: String(err) }));
+      });
+    return;
+  }
+
   // Estä polkuhyökkäykset
   let urlPath = decodeURIComponent(req.url.split("?")[0]);
   if (urlPath === "/") urlPath = "/servalo.html";

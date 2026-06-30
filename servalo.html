@@ -627,7 +627,12 @@
       <input type="hidden" id="cuId">
       <div class="grid2">
         <div class="field"><label>Nimi / organisaatio *</label><input class="f" id="cuName" placeholder="esim. As Oy Esimerkki"></div>
-        <div class="field"><label>Y-tunnus</label><input class="f" id="cuBiz" placeholder="0000000-0"></div>
+        <div class="field"><label>Y-tunnus</label>
+          <div style="display:flex;gap:6px">
+            <input class="f" id="cuBiz" placeholder="0000000-0" style="flex:1">
+            <button type="button" class="btn ghost sm" id="ytjBtn" onclick="fetchYtj()" title="Hae perustiedot YTJ:stä (PRH avoin data)" style="white-space:nowrap">Hae YTJ:stä</button>
+          </div>
+        </div>
       </div>
       <div class="field"><label>Yhteyshenkilö</label><input class="f" id="cuContact" placeholder="Etunimi Sukunimi"></div>
       <div class="grid2">
@@ -1698,6 +1703,50 @@ function renderCustomers(){
     </div>`;}).join("");
 }
 function openCustomer(id){currentCustomerId=id;go("customer");renderCustomerDetail();}
+async function fetchYtj(){
+  const raw=document.getElementById("cuBiz").value.trim();
+  if(!raw){alert("Syötä Y-tunnus ensin.");return;}
+  const id=raw.replace(/\s/g,"");
+  if(!/^\d{7}-\d$/.test(id)){alert("Y-tunnus muodossa 1234567-8.");return;}
+  const btn=document.getElementById("ytjBtn");const label=btn.textContent;
+  btn.textContent="Haetaan…";btn.disabled=true;
+  try{
+    const r=await fetch("/api/ytj?businessId="+encodeURIComponent(id));
+    if(!r.ok)throw new Error("palvelin vastasi "+r.status);
+    const data=await r.json();
+    const c=(data.companies||[])[0];
+    if(!c){alert("Yritystä ei löytynyt YTJ:stä tällä Y-tunnuksella.");return;}
+    // Nimi (voimassa oleva, muuten ensimmäinen)
+    const names=c.names||[];
+    const nm=names.find(n=>!n.endDate)||names[0];
+    const nameEl=document.getElementById("cuName");
+    if(nm&&nm.name&&!nameEl.value)nameEl.value=nm.name;
+    // Osoite: suosi käyntiosoitetta (type 1), muuten postiosoite (type 2)
+    const addrs=c.addresses||[];
+    const a=addrs.find(x=>x.type==1)||addrs.find(x=>x.type==2)||addrs[0];
+    if(a){
+      const po=(a.postOffices||[]);
+      const city=(po.find(p=>p.languageCode=="1")||po[0]||{}).city||"";
+      const line1=[a.street,a.buildingNumber].filter(Boolean).join(" ");
+      const line2=[a.postCode,city].filter(Boolean).join(" ");
+      const addr=[line1,line2].filter(Boolean).join(", ");
+      if(addr)document.getElementById("cuAddress").value=addr;
+    }
+    // Toimiala -> muistiinpanot (jos tyhjä)
+    const ml=c.mainBusinessLine;
+    const tol=ml&&(ml.descriptions||[]).find(d=>d.languageCode=="1");
+    const notes=document.getElementById("cuNotes");
+    if(tol&&tol.description&&!notes.value)notes.value="Toimiala: "+tol.description;
+    btn.textContent="Haettu ✓";
+    setTimeout(()=>{btn.textContent=label;},1500);
+    return;
+  }catch(e){
+    alert("YTJ-haku epäonnistui: "+e.message);
+  }finally{
+    btn.disabled=false;
+    if(btn.textContent==="Haetaan…")btn.textContent=label;
+  }
+}
 function renderCustomerDetail(){
   const c=custById(currentCustomerId);if(!c){go("customers");return;}
   const tg=CUST_TAG[c.status]||CUST_TAG.active;
@@ -1783,6 +1832,7 @@ function removeContactRow(i){draftContacts.splice(i,1);renderContactRows();}
 function editCustomer(id){
   const c=id?custById(id):null;
   document.getElementById("custModalTitle").textContent=c?"Muokkaa asiakasta":"Uusi asiakas";
+  {const yb=document.getElementById("ytjBtn");if(yb){yb.textContent="Hae YTJ:stä";yb.disabled=false;}}
   const set=(f,v)=>document.getElementById(f).value=v||"";
   document.getElementById("cuId").value=c?c.id:"";
   set("cuName",c?.name);set("cuBiz",c?.biz);set("cuContact",c?.contact);set("cuEmail",c?.email);
