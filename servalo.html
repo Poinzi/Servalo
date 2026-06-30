@@ -1,0 +1,1656 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Servalo – Huoltohallinta</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --orange:#0d9488;
+  --orange-d:#0b7a70;
+  --orange-l:#d6efeb;
+  --navy:#0f2b30;
+  --navy-2:#173a40;
+  --bg:#eef2f1;
+  --card:#ffffff;
+  --line:#dde6e3;
+  --text:#0f2b30;
+  --muted:#5b7177;
+  --red:#e2574c;
+  --red-l:#fde8e6;
+  --green:#16a06b;
+  --green-l:#e1f5ec;
+  --yellow:#f6c343;
+  --shadow:0 6px 20px rgba(15,43,48,.07);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:var(--orange);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--text)}
+.hidden{display:none !important}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;background:var(--navy);color:#fff;display:flex;align-items:center;gap:18px;padding:10px 18px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{width:34px;height:34px}
+.brand .name{font-weight:800;letter-spacing:.5px;font-size:18px}
+.brand .tag{font-size:10px;letter-spacing:2px;color:#a9c3c1;display:block;margin-top:-2px}
+.nav{display:flex;gap:4px;margin-left:18px;flex-wrap:wrap}
+.nav button{background:transparent;border:0;color:#cfdedb;padding:8px 12px;border-radius:8px;font-weight:600;font-size:13px}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.active{background:var(--orange);color:#fff}
+.spacer{flex:1}
+.userchip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:30px}
+.userchip .avatar{width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.userchip .who{font-size:12px;line-height:1.1}
+.userchip .who small{display:block;color:#a9c3c1;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.userchip button{background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 8px;border-radius:6px;font-size:11px}
+.userchip button:hover{background:rgba(255,255,255,.1)}
+.menu-toggle{display:none;background:transparent;border:0;color:#fff;font-size:22px;padding:4px 8px}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 56px)}
+.sidebar{background:#fff;border-right:1px solid var(--line);padding:14px;overflow-y:auto}
+.sidebar h4{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.sidebar .search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:12px}
+.tree{font-size:13px}
+.tree .node{padding:4px 4px 4px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.tree .node:hover{background:#f1f6f5}
+.tree .node.active{background:var(--orange-l);color:var(--orange-d);font-weight:700}
+.tree .node .count{background:#eef2f1;color:var(--muted);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+.tree .lvl-1{padding-left:10px;font-weight:700;color:var(--navy)}
+.tree .lvl-2{padding-left:22px}
+.tree .lvl-3{padding-left:36px;color:var(--muted)}
+.main{padding:18px;overflow-x:hidden}
+
+/* Cards & panels */
+.card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:16px;margin-bottom:16px;border-left:4px solid var(--orange)}
+.panel{background:var(--card);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;border-left:4px solid var(--orange)}
+.panel .head{background:var(--orange-l);color:var(--orange-d);font-weight:700;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.panel .head .actions{display:flex;gap:6px}
+.panel .body{padding:14px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;border:0;padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none}
+.btn:hover{background:var(--orange-d)}
+.btn.ghost{background:#fff;color:var(--orange-d);border:1px solid var(--orange)}
+.btn.ghost:hover{background:var(--orange-l)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.danger{background:var(--red)}
+.btn.danger:hover{background:#c64438}
+.btn.muted{background:#eaf0ee;color:var(--text)}
+.btn.muted:hover{background:#dde7e4}
+
+/* Forms */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.one{grid-template-columns:1fr}
+.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;font-weight:700}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.field textarea{min-height:70px;resize:vertical}
+
+/* Stat cards */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat{background:#fff;border-radius:12px;padding:14px;box-shadow:var(--shadow);border-left:4px solid var(--orange)}
+.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.stat .val{font-size:24px;font-weight:800;color:var(--navy);margin-top:6px}
+.stat.red{border-color:var(--red)} .stat.red .val{color:var(--red)}
+.stat.green{border-color:var(--green)} .stat.green .val{color:var(--green)}
+.stat.yellow{border-color:var(--yellow)} .stat.yellow .val{color:#9a7a14}
+
+/* Tables */
+table.tbl{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+table.tbl th{background:#f4f8f7;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--line)}
+table.tbl td{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+table.tbl tr:hover{background:#f7fbfa}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#eef2f1;color:var(--muted)}
+.tag.red{background:var(--red-l);color:var(--red)}
+.tag.green{background:var(--green-l);color:var(--green)}
+.tag.yellow{background:#fdf3d4;color:#9a7a14}
+.tag.blue{background:#e2eef6;color:#23618c}
+
+/* Toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar input.search{border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:220px}
+.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff}
+.toolbar .seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.toolbar .seg button{background:transparent;border:0;padding:7px 12px;font-weight:600;color:var(--muted)}
+.toolbar .seg button.active{background:var(--orange);color:#fff}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{background:transparent;border:0;padding:9px 14px;color:var(--muted);font-weight:700;font-size:13px;border-bottom:3px solid transparent}
+.tabs button.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* KV grid */
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.kv .row{display:grid;grid-template-columns:180px 1fr;padding:7px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.kv .row b{color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.kv .row span{color:var(--text)}
+
+/* Alert banner */
+.alert{background:var(--red-l);color:var(--red);border-left:4px solid var(--red);padding:10px 14px;border-radius:10px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:10px}
+.alert.green{background:var(--green-l);color:var(--green);border-color:var(--green)}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;background:rgba(15,43,48,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-back.open{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{margin:0 0 12px;color:var(--navy)}
+.modal .close{float:right;background:transparent;border:0;font-size:22px;color:var(--muted)}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy),#1c4147);padding:24px}
+.login{background:#fff;border-radius:18px;padding:30px;max-width:520px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,.35)}
+.login .head{text-align:center;margin-bottom:18px}
+.login .head .logo{width:54px;height:54px}
+.login .head h1{margin:8px 0 0;color:var(--navy)}
+.login .head small{color:var(--muted);letter-spacing:3px;font-weight:700}
+.user-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.user-card:hover{border-color:var(--orange);background:#f7fbfa}
+.user-card .avatar{width:42px;height:42px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.user-card .meta{flex:1}
+.user-card .meta b{display:block;color:var(--navy)}
+.user-card .meta small{color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:11px}
+
+/* Donut chart */
+.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut{position:relative;width:180px;height:180px}
+.donut .label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut .label b{font-size:22px;color:var(--navy)}
+.donut .label small{color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:10px}
+.legend{flex:1;min-width:180px}
+.legend .item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.legend .sw{width:12px;height:12px;border-radius:3px}
+
+/* Task / device cards */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.mini-card{background:#fff;border-radius:12px;padding:14px;box-shadow:var(--shadow);border-left:4px solid var(--orange)}
+.mini-card h4{margin:0 0 6px;color:var(--navy)}
+.mini-card .row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:3px 0}
+.mini-card .row b{color:var(--text);font-weight:600}
+.mini-card.red{border-color:var(--red)}
+.mini-card.green{border-color:var(--green)}
+.mini-card.yellow{border-color:var(--yellow)}
+.mini-card .actions{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+
+/* Customer cards */
+.cust-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.cust-card{background:#fff;border-radius:12px;box-shadow:var(--shadow);overflow:hidden;border-left:4px solid var(--orange);cursor:pointer}
+.cust-card .hd{padding:14px;border-bottom:1px solid var(--line)}
+.cust-card .hd b{display:block;color:var(--navy);font-size:15px}
+.cust-card .hd small{color:var(--muted)}
+.cust-card .bd{padding:10px 14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+
+/* Print styles handled in window.open */
+@media (max-width: 880px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none;position:fixed;inset:56px 0 0 0;width:100%;z-index:40}
+  .sidebar.open{display:block}
+  .menu-toggle{display:inline-block}
+  .nav{display:none}
+  .nav.open{display:flex;position:absolute;top:56px;left:0;right:0;background:var(--navy);padding:8px;flex-direction:column;z-index:30}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row.three{grid-template-columns:1fr}
+  .kv{grid-template-columns:1fr}
+  .kv .row{grid-template-columns:1fr;gap:2px}
+}
+</style>
+</head>
+<body>
+
+<!-- =========== LOGIN VIEW =========== -->
+<div id="view-login" class="view login-wrap hidden">
+  <div class="login">
+    <div class="head">
+      <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 4 L58 14 V32 C58 48 46 58 32 62 C18 58 6 48 6 32 V14 Z" fill="#0d9488"/>
+        <path d="M32 8 L54 16 V32 C54 46 44 54 32 58 C20 54 10 46 10 32 V16 Z" fill="#0f2b30"/>
+        <path d="M22 32 L29 39 L43 24" stroke="#0d9488" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>Servalo</h1>
+      <small>HUOLTOHALLINTA</small>
+    </div>
+    <p style="text-align:center;color:var(--muted);margin-bottom:18px">Valitse käyttäjä jatkaaksesi (demo-kirjautuminen)</p>
+    <div id="login-users"></div>
+  </div>
+</div>
+
+<!-- =========== APP =========== -->
+<div id="app" class="hidden">
+
+<div class="topbar">
+  <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open');document.getElementById('mainnav').classList.toggle('open')">≡</button>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 4 L58 14 V32 C58 48 46 58 32 62 C18 58 6 48 6 32 V14 Z" fill="#0d9488"/>
+      <path d="M32 8 L54 16 V32 C54 46 44 54 32 58 C20 54 10 46 10 32 V16 Z" fill="#173a40"/>
+      <path d="M22 32 L29 39 L43 24" stroke="#0d9488" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <span class="name">Servalo</span>
+      <span class="tag">HUOLTOHALLINTA</span>
+    </div>
+  </div>
+  <div class="nav" id="mainnav">
+    <button data-nav="devices" onclick="go('devices')">Laitteet</button>
+    <button data-nav="reports" onclick="go('reports')">Raportit</button>
+    <button data-nav="assignment" onclick="go('assignment')">Työnjako</button>
+    <button data-nav="customers" onclick="go('customers')">Asiakkaat</button>
+    <button data-nav="mywork" onclick="go('mywork')">Omat työt</button>
+    <button data-nav="admin" onclick="go('admin')">Hallinta</button>
+    <button data-nav="portal" onclick="go('portal')">Oma kohde</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="userchip" id="userchip"></div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <h4>Haku</h4>
+    <input id="treeSearch" class="search" placeholder="Hae sijainti tai laite..." oninput="renderTree()" />
+    <h4>Sijainnit</h4>
+    <div id="tree" class="tree"></div>
+  </aside>
+
+  <main class="main">
+    <!-- DEVICES -->
+    <section id="view-devices" class="view hidden">
+      <div class="toolbar">
+        <div class="seg">
+          <button id="seg-list" class="active" onclick="setDevicesMode('list')">Laitteet</button>
+          <button id="seg-sum" onclick="setDevicesMode('sum')">Yhteenveto</button>
+        </div>
+        <input id="devSearch" class="search" placeholder="Hae laite, tunnus, valmistaja..." oninput="renderDevices()" />
+        <select id="devGroup" onchange="renderDevices()"><option value="">Kaikki tuoteryhmät</option></select>
+        <select id="devStatus" onchange="renderDevices()">
+          <option value="">Kaikki tilat</option>
+          <option value="late">Myöhässä</option>
+          <option value="soon">Pian (90pv)</option>
+          <option value="ok">Kunnossa</option>
+        </select>
+        <select id="devView" onchange="applySavedView()">
+          <option value="">Tallennetut näkymät</option>
+        </select>
+        <button class="btn ghost sm" onclick="saveCurrentView()">+ Tallenna näkymä</button>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn" onclick="openDeviceForm()">+ Uusi laite</button>
+      </div>
+      <div id="devices-content"></div>
+    </section>
+
+    <!-- DEVICE DETAIL -->
+    <section id="view-device" class="view hidden">
+      <button class="btn ghost sm" onclick="go('devices')">← Takaisin laitelistaan</button>
+      <div id="device-detail"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="view-reports" class="view hidden">
+      <h2 style="color:var(--navy);margin:6px 0 14px">Raportit</h2>
+      <div class="grid-cards" id="reports-menu"></div>
+      <div id="report-content"></div>
+    </section>
+
+    <!-- CUSTOMERS -->
+    <section id="view-customers" class="view hidden">
+      <div class="toolbar">
+        <input id="cusSearch" class="search" placeholder="Hae asiakas..." oninput="renderCustomers()" />
+        <select id="cusStatus" onchange="renderCustomers()">
+          <option value="">Kaikki tilat</option>
+          <option value="active">Aktiivinen</option>
+          <option value="lead">Liidi</option>
+          <option value="inactive">Ei aktiivinen</option>
+        </select>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn" onclick="openCustomerForm()">+ Uusi asiakas</button>
+      </div>
+      <div id="customers-content"></div>
+    </section>
+
+    <!-- CUSTOMER DETAIL -->
+    <section id="view-customer" class="view hidden">
+      <button class="btn ghost sm" onclick="go('customers')">← Takaisin asiakaslistaan</button>
+      <div id="customer-detail"></div>
+    </section>
+
+    <!-- MY WORK -->
+    <section id="view-mywork" class="view hidden">
+      <h2 style="color:var(--navy);margin:6px 0 14px">Omat työt</h2>
+      <div id="mywork-content"></div>
+    </section>
+
+    <!-- ASSIGNMENT -->
+    <section id="view-assignment" class="view hidden">
+      <h2 style="color:var(--navy);margin:6px 0 14px">Työnjako</h2>
+      <div id="assignment-content"></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="view-admin" class="view hidden">
+      <h2 style="color:var(--navy);margin:6px 0 14px">Hallinta</h2>
+      <div id="admin-content"></div>
+    </section>
+
+    <!-- CUSTOMER PORTAL -->
+    <section id="view-portal" class="view hidden">
+      <div id="portal-content"></div>
+    </section>
+  </main>
+</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-back" id="modal-back">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
+const KEY = 'servalo_v3';
+const UKEY = 'servalo_user_v3';
+
+function loadData(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ return null; }
+}
+function saveData(){ localStorage.setItem(KEY, JSON.stringify(DB)); }
+function loadUser(){ return localStorage.getItem(UKEY); }
+function setUser(id){ if(id){ localStorage.setItem(UKEY,id); } else { localStorage.removeItem(UKEY); } }
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+const esc = (s) => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = (id) => document.getElementById(id);
+const uid = (p='id') => p+'-'+Math.random().toString(36).slice(2,9);
+const fmtDate = (d) => { if(!d) return '–'; const x = new Date(d); if(isNaN(x)) return '–'; return x.toLocaleDateString('fi-FI'); };
+const fmtEur = (n) => (n==null||isNaN(n))?'–':new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+const daysBetween = (a,b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+const todayISO = () => new Date().toISOString().slice(0,10);
+const within = (d, days) => { const diff = daysBetween(todayISO(), d); return diff>=0 && diff<=days; };
+const isLate = (d) => d && new Date(d) < new Date(todayISO());
+
+/* =========================================================
+   SEED DATA
+   ========================================================= */
+function seed(){
+  const today = new Date();
+  const off = (n)=>{ const x=new Date(today); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+
+  const customers = [
+    {id:'cu1', name:'As Oy Niittyranta', biz:'2345678-1', contact:'Pekka Niittylä', email:'isannointi@niittyranta.fi', phone:'040 1234567', address:'Niittytie 5, 00800 Helsinki', status:'active', notes:'Hallitus pyytää huoltoraportin neljännesvuosittain.', created:off(-420),
+      contacts:[
+        {id:'co1', nimi:'Pekka Niittylä', titteli:'Isännöitsijä', email:'pekka@niittyranta.fi', phone:'040 1234567', invited:true, userId:'u4'},
+        {id:'co2', nimi:'Tiina Salmi', titteli:'Hallituksen pj', email:'tiina@niittyranta.fi', phone:'050 7654321', invited:false, userId:null}
+      ]},
+    {id:'cu2', name:'Hoivakoti-säätiö sr', biz:'1928374-5', contact:'Marjatta Halonen', email:'tekninen@hoivakotisaatio.fi', phone:'09 555 8800', address:'Hoivakatu 12, 02600 Espoo', status:'active', notes:'24/7 toimintaa, ilmoita huolloista 2 vk etukäteen.', created:off(-700),
+      contacts:[
+        {id:'co3', nimi:'Marjatta Halonen', titteli:'Tekninen päällikkö', email:'marjatta@hoivakotisaatio.fi', phone:'050 1112233', invited:false, userId:null}
+      ]},
+    {id:'cu3', name:'Varastokeskus Oyj', biz:'3344556-7', contact:'Jari Kuusisto', email:'kiinteisto@varastokeskus.fi', phone:'020 333 4400', address:'Logistiikkatie 88, 01530 Vantaa', status:'active', notes:'', created:off(-180),
+      contacts:[
+        {id:'co4', nimi:'Jari Kuusisto', titteli:'Kiinteistöpäällikkö', email:'jari@varastokeskus.fi', phone:'040 9876543', invited:false, userId:null}
+      ]},
+    {id:'cu4', name:'Kiinteistö Oy Helsingin Kongressihotelli', biz:'8877665-4', contact:'Anne Virtanen', email:'tekniikka@kongressihotelli.fi', phone:'09 7000 1000', address:'Kongressikatu 1, 00100 Helsinki', status:'active', notes:'Hotellin yöhuollot kello 02–05.', created:off(-90),
+      contacts:[
+        {id:'co5', nimi:'Anne Virtanen', titteli:'Hotellin tekniikkapäällikkö', email:'anne@kongressihotelli.fi', phone:'040 5550000', invited:false, userId:null}
+      ]},
+    {id:'cu5', name:'Pienoismaa Oy', biz:'5566778-2', contact:'Heikki Ruusu', email:'heikki@pienoismaa.fi', phone:'050 1119999', address:'Konepajakatu 4, 33100 Tampere', status:'lead', notes:'Kiinnostunut sopimustarjouksesta.', created:off(-30), contacts:[]}
+  ];
+
+  const locs = [
+    {id:'l1', name:'Servalo Oy', level:1, parent:null, address:''},
+      {id:'l2', name:'As Oy Niittyranta', level:2, parent:'l1', customerId:'cu1', address:'Niittytie 5, Helsinki'},
+        {id:'l3', name:'Päärakennus', level:3, parent:'l2', customerId:'cu1', address:'Niittytie 5, 00800 Helsinki'},
+        {id:'l4', name:'Autohalli', level:3, parent:'l2', customerId:'cu1', address:'Niittytie 5 B, 00800 Helsinki'},
+      {id:'l5', name:'Hoivakoti-säätiö', level:2, parent:'l1', customerId:'cu2', address:'Espoo'},
+        {id:'l6', name:'Hoivakoti Aalto', level:3, parent:'l5', customerId:'cu2', address:'Hoivakatu 12, 02600 Espoo'},
+        {id:'l7', name:'Palvelutalo Lehmus', level:3, parent:'l5', customerId:'cu2', address:'Lehmuskatu 3, 02600 Espoo'},
+      {id:'l8', name:'Varastokeskus', level:2, parent:'l1', customerId:'cu3', address:'Vantaa'},
+        {id:'l9', name:'Varasto A', level:3, parent:'l8', customerId:'cu3', address:'Logistiikkatie 88 A, 01530 Vantaa'},
+        {id:'l10', name:'Varasto B', level:3, parent:'l8', customerId:'cu3', address:'Logistiikkatie 88 B, 01530 Vantaa'},
+      {id:'l11', name:'Kiinteistö Oy Kongressihotelli', level:2, parent:'l1', customerId:'cu4', address:'Helsinki'},
+        {id:'l12', name:'Hotellin A-siipi', level:3, parent:'l11', customerId:'cu4', address:'Kongressikatu 1, 00100 Helsinki'},
+        {id:'l13', name:'Konferenssikeskus', level:3, parent:'l11', customerId:'cu4', address:'Kongressikatu 1 C, 00100 Helsinki'}
+  ];
+
+  const makeDev = (over) => {
+    const id = uid('dev');
+    return Object.assign({
+      idr:'', target:'Laite', make:'', group:'', locId:'', customerId:'', assignedTo:'',
+      value:0, interval:12, delivery:off(-365), last:off(-180), next:off(180),
+      req:0, repairs:0, notes:'', created:off(-365), updated:off(-30), deleted:false,
+      ecom:'', expert:'', manager:'',
+      maintenances:[], inspections:[], repairsLog:[], trained:[], requests:[], files:[],
+      rental:false
+    }, over, {id});
+  };
+
+  const devices = [
+    makeDev({idr:'SAM-1001', target:'Laite', make:'Presto / Käsisammutin / 6kg jauhe', group:'Käsisammutin', locId:'l3', customerId:'cu1', assignedTo:'u3', value:120, interval:12, last:off(-380), next:off(-15), req:1, ecom:'EC-1001', expert:'Mikko Mäkelä', manager:'Anna Pääkkönen',
+      maintenances:[{id:uid('m'),date:off(-380),by:'Jukka Jokinen',note:'Vaihdettu sinetti.'}],
+      inspections:[{id:uid('i'),date:off(-380),by:'Jukka Jokinen',result:'OK'}],
+      trained:[{id:uid('t'),nimi:'Pekka Niittylä',date:off(-200)}]}),
+    makeDev({idr:'SAM-1002', target:'Laite', make:'Housegard / Käsisammutin / 2kg jauhe', group:'Käsisammutin', locId:'l3', customerId:'cu1', assignedTo:'u3', value:75, interval:12, last:off(-200), next:off(165), ecom:'EC-1002'}),
+    makeDev({idr:'PAL-2001', target:'Laite', make:'Esser / Paloilmoitin / 8000C', group:'Paloilmoitinjärjestelmä', locId:'l3', customerId:'cu1', assignedTo:'u3', value:4500, interval:6, last:off(-110), next:off(70), repairs:1, ecom:'EC-2001'}),
+    makeDev({idr:'PEI-3001', target:'Laite', make:'Hagor / Sammutuspeitto / 1.2x1.8m', group:'Sammutuspeitto', locId:'l4', customerId:'cu1', assignedTo:'u3', value:45, interval:24, last:off(-700), next:off(-30), req:0, ecom:'EC-3001'}),
+
+    makeDev({idr:'SAM-2110', target:'Laite', make:'Presto / Käsisammutin / 6kg jauhe', group:'Käsisammutin', locId:'l6', customerId:'cu2', assignedTo:'u3', value:120, interval:12, last:off(-300), next:off(60), ecom:'EC-2110'}),
+    makeDev({idr:'HAT-2120', target:'Laite', make:'Teknoware / Hätävalo / TKT', group:'Hätävalo', locId:'l6', customerId:'cu2', assignedTo:'u3', value:230, interval:12, last:off(-50), next:off(315), ecom:'EC-2120'}),
+    makeDev({idr:'SPR-2130', target:'Laite', make:'Tyco / Sprinkleri-keskus / SVC', group:'Sprinkleri', locId:'l7', customerId:'cu2', assignedTo:'u3', value:18500, interval:12, last:off(-365), next:off(-2), req:2, repairs:2, ecom:'EC-2130'}),
+
+    makeDev({idr:'SOP-9001', target:'Sopimustiedot', isContract:true, make:'—', group:'Sopimus', locId:'l9', customerId:'cu3', assignedTo:'u2', value:0, interval:12, last:off(-200), next:off(160), ecom:'EC-9001',
+      contract:{type:'Huoltosopimus (laaja)', hoitaja:'Mikko Mäkelä', commercial:{nimi:'Jari Kuusisto',phone:'040 9876543',email:'jari@varastokeskus.fi'}, technical:{nimi:'Esa Korhonen',phone:'050 333 1212',email:'esa@varastokeskus.fi'}, hatakeskus:'112', linjavianvalvonta:'Securitas Hälytyskeskus', vartiointi:'Securitas Oy', valvomo:'Vantaan päävalvomo', extra1:'Sopimuksen alku 01.01.2024', extra2:'Päivystysnumero 24/7', extra3:''}}),
+    makeDev({idr:'PAL-3001', target:'Laite', make:'Esser / Paloilmoitinkeskus / 8000M', group:'Paloilmoitinjärjestelmä', locId:'l9', customerId:'cu3', assignedTo:'u2', value:9800, interval:6, last:off(-95), next:off(85), ecom:'EC-3001'}),
+    makeDev({idr:'SAV-3002', target:'Laite', make:'Caverion / Savunpoistolaite / SP-200', group:'Savunpoistolaite', locId:'l10', customerId:'cu3', assignedTo:'u3', value:5400, interval:12, last:off(-360), next:off(5), req:1, ecom:'EC-3002', rental:true, rentalStart:off(-360), rentalMonths:24, rentalMonthly:185, rentalEnd:off(360), rentalBuyout:1200}),
+
+    makeDev({idr:'SAM-4001', target:'Laite', make:'Presto / Käsisammutin / 6kg jauhe', group:'Käsisammutin', locId:'l12', customerId:'cu4', assignedTo:'u3', value:120, interval:12, last:off(-180), next:off(180), ecom:'EC-4001'}),
+    makeDev({idr:'PAL-4002', target:'Laite', make:'Esser / Paloilmoitin / IQ8', group:'Paloilmoitinjärjestelmä', locId:'l12', customerId:'cu4', assignedTo:'u3', value:7600, interval:6, last:off(-30), next:off(150), ecom:'EC-4002'}),
+    makeDev({idr:'HAT-4003', target:'Laite', make:'Teknoware / Hätävalo / TKT-L', group:'Hätävalo', locId:'l13', customerId:'cu4', assignedTo:'u3', value:260, interval:12, last:off(-410), next:off(-45), req:1, repairs:3, ecom:'EC-4003'}),
+    makeDev({idr:'SPR-4004', target:'Laite', make:'Tyco / Sprinkleri / SK-200', group:'Sprinkleri', locId:'l13', customerId:'cu4', assignedTo:'u3', value:15000, interval:12, last:off(-100), next:off(265), ecom:'EC-4004'}),
+    makeDev({idr:'SAM-4005', target:'Laite', make:'Housegard / Käsisammutin / 6kg jauhe', group:'Käsisammutin', locId:'l13', customerId:'cu4', assignedTo:'u3', value:135, interval:12, last:off(-200), next:off(165), ecom:'EC-4005'}),
+    makeDev({idr:'PEI-4006', target:'Laite', make:'Hagor / Sammutuspeitto / 1.2x1.8m', group:'Sammutuspeitto', locId:'l12', customerId:'cu4', assignedTo:'u3', value:45, interval:24, last:off(-500), next:off(225), deleted:true, ecom:'EC-4006'})
+  ];
+
+  // attach last maintenances/inspections summary where missing
+  devices.forEach(d => {
+    if(!d.isContract && d.maintenances.length===0){
+      d.maintenances.push({id:uid('m'), date:d.last, by:'Jukka Jokinen', note:'Määräaikaishuolto suoritettu.'});
+    }
+    if(!d.isContract && d.inspections.length===0){
+      d.inspections.push({id:uid('i'), date:d.last, by:'Jukka Jokinen', result:'OK'});
+    }
+    if(d.req>0 && d.requests.length===0){
+      d.requests.push({id:uid('r'), date:todayISO(), by:'Asiakas', subject:'Tarkistuspyyntö', details:'Laite vaatii tarkastuksen.', status:'open'});
+    }
+    if(d.repairs>0 && d.repairsLog.length===0){
+      for(let i=0;i<d.repairs;i++){
+        d.repairsLog.push({id:uid('rp'),date:off(-30-i*60),by:'Jukka Jokinen',cost:120+i*40,note:'Korjaus tehty.'});
+      }
+    }
+  });
+
+  const tasks = [
+    {id:uid('tk'), customerId:'cu1', title:'Soita isännöitsijälle Q3-raportista', due:off(7), done:false, created:off(-2)},
+    {id:uid('tk'), customerId:'cu2', title:'Tarjous savunpoistolaitteen uusinnasta', due:off(14), done:false, created:off(-5)},
+    {id:uid('tk'), customerId:'cu5', title:'Sopimustarjous Pienoismaalle', due:off(3), done:false, created:off(-1)}
+  ];
+
+  const users = [
+    {id:'u1', name:'Anna Pääkkönen', role:'admin', email:'anna@servalo.fi', active:true},
+    {id:'u2', name:'Mikko Mäkelä', role:'supervisor', email:'mikko@servalo.fi', active:true},
+    {id:'u3', name:'Jukka Jokinen', role:'worker', email:'jukka@servalo.fi', active:true},
+    {id:'u4', name:'Pekka Niittylä', role:'customer', email:'pekka@niittyranta.fi', active:true, customerId:'cu1'}
+  ];
+
+  const settings = {
+    company:{ name:'Servalo Oy', email:'huolto@servalo.fi', phone:'020 123 4567', web:'servalo.fi' },
+    groups:['Käsisammutin','Paloilmoitinjärjestelmä','Sprinkleri','Savunpoistolaite','Hätävalo','Sammutuspeitto','Sopimus'],
+    intervals:[6,12,24,36],
+    savedViews:[]
+  };
+
+  return { customers, locs, devices, tasks, users, settings };
+}
+
+/* =========================================================
+   APP STATE
+   ========================================================= */
+let DB = loadData();
+if(!DB){ DB = seed(); saveData(); }
+
+let STATE = {
+  currentUser: null,
+  view: 'devices',
+  devicesMode: 'list',
+  selectedLoc: null,
+  selectedDevice: null,
+  selectedCustomer: null,
+  deviceTab: 'laite',
+  currentReport: null,
+  selectedDeviceIds: new Set()
+};
+
+/* =========================================================
+   AUTH / ROLES
+   ========================================================= */
+function renderLogin(){
+  const c = $('login-users');
+  c.innerHTML = DB.users.filter(u=>u.active).map(u => `
+    <div class="user-card" onclick="login('${u.id}')">
+      <div class="avatar">${esc(u.name.split(' ').map(x=>x[0]).slice(0,2).join(''))}</div>
+      <div class="meta">
+        <b>${esc(u.name)}</b>
+        <small>${esc(roleLabel(u.role))}${u.customerId?(' · '+esc(custName(u.customerId))):''}</small>
+      </div>
+      <span class="tag ${u.role==='admin'?'green':u.role==='customer'?'blue':''}">${esc(roleLabel(u.role))}</span>
+    </div>
+  `).join('');
+}
+function roleLabel(r){
+  return {admin:'Pääkäyttäjä', supervisor:'Työnjohtaja', worker:'Asentaja', customer:'Asiakas'}[r] || r;
+}
+function login(uid){
+  setUser(uid);
+  STATE.currentUser = DB.users.find(u=>u.id===uid);
+  bootApp();
+}
+function logout(){
+  setUser(null);
+  STATE.currentUser = null;
+  $('app').classList.add('hidden');
+  $('view-login').classList.remove('hidden');
+  renderLogin();
+}
+function applyRole(){
+  const u = STATE.currentUser; if(!u) return;
+  const role = u.role;
+  const show = (n, ok) => { const b = document.querySelector(`button[data-nav="${n}"]`); if(b) b.style.display = ok ? '' : 'none'; };
+  // hide all nav initially
+  ['devices','reports','assignment','customers','mywork','admin','portal'].forEach(n=>show(n,false));
+  if(role==='admin'){
+    show('devices',true); show('reports',true); show('assignment',true); show('customers',true); show('mywork',true); show('admin',true);
+    $('sidebar').style.display='';
+  } else if(role==='supervisor'){
+    show('devices',true); show('reports',true); show('assignment',true); show('customers',true); show('mywork',true);
+    $('sidebar').style.display='';
+  } else if(role==='worker'){
+    show('mywork',true); show('devices',true);
+    $('sidebar').style.display='';
+  } else if(role==='customer'){
+    show('portal',true);
+    $('sidebar').style.display='none';
+  }
+}
+function canRole(...roles){ return STATE.currentUser && roles.includes(STATE.currentUser.role); }
+
+/* =========================================================
+   USER CHIP
+   ========================================================= */
+function renderUserChip(){
+  const u = STATE.currentUser;
+  $('userchip').innerHTML = `
+    <div class="avatar">${esc((u.name||'?').split(' ').map(x=>x[0]).slice(0,2).join(''))}</div>
+    <div class="who"><b>${esc(u.name)}</b><small>${esc(roleLabel(u.role))}</small></div>
+    <button onclick="logout()">Vaihda käyttäjää</button>
+  `;
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+function go(name){
+  STATE.view = name;
+  document.querySelectorAll('#app .view').forEach(v => v.classList.add('hidden'));
+  document.querySelectorAll('#mainnav button').forEach(b => b.classList.remove('active'));
+  const v = $('view-'+name); if(v) v.classList.remove('hidden');
+  const nb = document.querySelector(`button[data-nav="${name}"]`); if(nb) nb.classList.add('active');
+  // close mobile nav
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mainnav').classList.remove('open');
+  switch(name){
+    case 'devices': renderDevices(); break;
+    case 'reports': renderReportsMenu(); break;
+    case 'customers': renderCustomers(); break;
+    case 'mywork': renderMyWork(); break;
+    case 'assignment': renderAssignment(); break;
+    case 'admin': renderAdmin(); break;
+    case 'portal': renderPortal(); break;
+  }
+}
+
+/* =========================================================
+   SIDEBAR / TREE
+   ========================================================= */
+function renderTree(){
+  const q = ($('treeSearch')?.value || '').toLowerCase();
+  const c = $('tree');
+  const all = [{id:'',name:'Kaikki sijainnit',level:0,parent:null}].concat(DB.locs);
+  const counts = {};
+  DB.devices.filter(d=>!d.deleted).forEach(d => {
+    let cur = DB.locs.find(l=>l.id===d.locId);
+    while(cur){ counts[cur.id]=(counts[cur.id]||0)+1; cur = DB.locs.find(l=>l.id===cur.parent); }
+    counts['']=(counts['']||0)+1;
+  });
+  const matched = q ? all.filter(l => (l.name||'').toLowerCase().includes(q)) : all;
+  c.innerHTML = matched.map(l => `
+    <div class="node lvl-${l.level} ${STATE.selectedLoc===(l.id||null)?'active':''}" onclick="selectLoc('${l.id}')">
+      <span>${l.level===1?'🏢 ':l.level===2?'📍 ':l.level===3?'🗺 ':''}${esc(l.name)}</span>
+      <span class="count">${counts[l.id||'']||0}</span>
+    </div>
+  `).join('');
+}
+function selectLoc(id){
+  STATE.selectedLoc = id || null;
+  renderTree();
+  if(STATE.view==='devices') renderDevices();
+}
+
+function descendantsOf(locId){
+  const out = new Set();
+  if(!locId){ DB.locs.forEach(l => out.add(l.id)); return out; }
+  out.add(locId);
+  const stack = [locId];
+  while(stack.length){
+    const cur = stack.pop();
+    DB.locs.filter(l => l.parent===cur).forEach(l => { out.add(l.id); stack.push(l.id); });
+  }
+  return out;
+}
+
+/* =========================================================
+   DEVICES VIEW
+   ========================================================= */
+function setDevicesMode(m){
+  STATE.devicesMode = m;
+  $('seg-list').classList.toggle('active', m==='list');
+  $('seg-sum').classList.toggle('active', m==='sum');
+  renderDevices();
+}
+
+function fillDeviceFilters(){
+  const g = $('devGroup');
+  if(g && g.options.length<=1){
+    DB.settings.groups.forEach(x => { const o=document.createElement('option'); o.value=x; o.textContent=x; g.appendChild(o); });
+  }
+  const v = $('devView');
+  if(v){
+    v.innerHTML = '<option value="">Tallennetut näkymät</option>' + DB.settings.savedViews.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  }
+}
+function saveCurrentView(){
+  const name = prompt('Näkymän nimi:'); if(!name) return;
+  DB.settings.savedViews.push({id:uid('v'), name, q:$('devSearch').value, group:$('devGroup').value, status:$('devStatus').value, loc:STATE.selectedLoc||''});
+  saveData(); fillDeviceFilters();
+}
+function applySavedView(){
+  const id = $('devView').value;
+  const v = DB.settings.savedViews.find(x=>x.id===id);
+  if(!v) return;
+  $('devSearch').value = v.q||''; $('devGroup').value = v.group||''; $('devStatus').value = v.status||'';
+  STATE.selectedLoc = v.loc||null;
+  renderTree(); renderDevices();
+}
+
+function filteredDevices(){
+  const q = ($('devSearch')?.value||'').toLowerCase();
+  const grp = $('devGroup')?.value||'';
+  const st = $('devStatus')?.value||'';
+  const locs = descendantsOf(STATE.selectedLoc);
+  return DB.devices.filter(d => {
+    if(d.deleted) return false;
+    if(STATE.selectedLoc && !locs.has(d.locId)) return false;
+    if(grp && d.group !== grp) return false;
+    if(st==='late' && !isLate(d.next)) return false;
+    if(st==='soon' && !within(d.next,90)) return false;
+    if(st==='ok' && (isLate(d.next)||within(d.next,90))) return false;
+    if(q){
+      const hay = (d.idr+' '+d.make+' '+d.group+' '+locName(d.locId)+' '+custName(d.customerId)).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderDevices(){
+  fillDeviceFilters();
+  const c = $('devices-content');
+  if(STATE.devicesMode==='sum'){ c.innerHTML = renderDeviceSummary(); return; }
+  const list = filteredDevices();
+  c.innerHTML = `
+    <div class="panel">
+      <div class="head">Laitteet (${list.length})
+        <div class="actions">
+          ${STATE.selectedDeviceIds.size?`<button class="btn ghost sm" onclick="bulkAssign()">Aseta vastuuhenkilö (${STATE.selectedDeviceIds.size})</button>`:''}
+          <button class="btn ghost sm" onclick="exportDevicesCSV()">Vie CSV</button>
+        </div>
+      </div>
+      <div class="body" style="padding:0">
+        <table class="tbl">
+          <thead><tr>
+            <th><input type="checkbox" onchange="toggleAllDevices(this.checked)"/></th>
+            <th>Tunnus</th><th>Valmistaja/Malli</th><th>Tuoteryhmä</th><th>Sijainti</th><th>Asiakas</th><th>Seur. huolto</th><th>Tila</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${list.map(d => `
+              <tr>
+                <td><input type="checkbox" ${STATE.selectedDeviceIds.has(d.id)?'checked':''} onchange="toggleDeviceSel('${d.id}',this.checked)"/></td>
+                <td><b>${esc(d.idr)}</b></td>
+                <td>${esc(d.make)}</td>
+                <td>${esc(d.group)}</td>
+                <td>${esc(locPath(d.locId))}</td>
+                <td>${esc(custName(d.customerId))}</td>
+                <td>${esc(fmtDate(d.next))}</td>
+                <td>${statusTag(d)}</td>
+                <td><button class="btn ghost sm" onclick="openDevice('${d.id}')">Avaa</button></td>
+              </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Ei laitteita valituilla suodattimilla.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function toggleDeviceSel(id, on){ if(on) STATE.selectedDeviceIds.add(id); else STATE.selectedDeviceIds.delete(id); renderDevices(); }
+function toggleAllDevices(on){ STATE.selectedDeviceIds = new Set(on ? filteredDevices().map(d=>d.id) : []); renderDevices(); }
+function bulkAssign(){
+  const workers = DB.users.filter(u=>u.role==='worker'||u.role==='supervisor');
+  const opts = workers.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('');
+  openModal('Aseta vastuuhenkilö', `
+    <div class="field"><label>Vastuuhenkilö</label><select id="bulk-assignee">${opts}</select></div>
+    <button class="btn" onclick="doBulkAssign()">Aseta valituille (${STATE.selectedDeviceIds.size})</button>
+  `);
+}
+function doBulkAssign(){
+  const id = $('bulk-assignee').value;
+  DB.devices.forEach(d => { if(STATE.selectedDeviceIds.has(d.id)){ d.assignedTo = id; d.updated = todayISO(); }});
+  STATE.selectedDeviceIds = new Set();
+  saveData(); closeModal(); renderDevices();
+}
+function statusTag(d){
+  if(isLate(d.next)) return '<span class="tag red">Myöhässä</span>';
+  if(within(d.next,90)) return '<span class="tag yellow">Pian</span>';
+  return '<span class="tag green">Kunnossa</span>';
+}
+
+function renderDeviceSummary(){
+  const list = filteredDevices();
+  const sumValue = list.reduce((s,d)=>s+(+d.value||0),0);
+  const openReq = list.reduce((s,d)=>s+(d.requests||[]).filter(r=>r.status==='open').length,0);
+  const late = list.filter(d=>isLate(d.next)).length;
+  const soon = list.filter(d=>within(d.next,90)).length;
+  // donut by group
+  const byGroup = {};
+  list.forEach(d => byGroup[d.group||'Muu'] = (byGroup[d.group||'Muu']||0)+1);
+  const colors = ['#0d9488','#0f2b30','#16a06b','#e2574c','#f6c343','#23618c','#8b5cf6','#fb923c'];
+  let acc=0, total=list.length||1;
+  const segs = Object.entries(byGroup).map(([k,v],i) => {
+    const start=acc/total*360, end=(acc+v)/total*360; acc+=v;
+    return {k,v,color:colors[i%colors.length],start,end};
+  });
+  const conic = segs.map(s => `${s.color} ${s.start}deg ${s.end}deg`).join(', ');
+
+  return `
+    <div class="stats">
+      <div class="stat"><div class="lbl">Laitteet yhteensä</div><div class="val">${list.length}</div></div>
+      <div class="stat"><div class="lbl">Hankinta-arvo</div><div class="val">${fmtEur(sumValue)}</div></div>
+      <div class="stat yellow"><div class="lbl">Avoimet pyynnöt</div><div class="val">${openReq}</div></div>
+      <div class="stat red"><div class="lbl">Myöhässä / pian</div><div class="val">${late} / ${soon}</div></div>
+    </div>
+    <div class="panel">
+      <div class="head">Laitteet tuoteryhmittäin</div>
+      <div class="body">
+        <div class="donut-wrap">
+          <div class="donut" style="background:conic-gradient(${conic||'#eee 0 360deg'});border-radius:50%">
+            <div style="position:absolute;inset:30px;background:#fff;border-radius:50%"></div>
+            <div class="label"><b>${list.length}</b><small>Laitetta</small></div>
+          </div>
+          <div class="legend">
+            ${segs.map(s => `<div class="item"><span class="sw" style="background:${s.color}"></span>${esc(s.k)} <b style="margin-left:auto">${s.v}</b></div>`).join('') || '<small>Ei dataa.</small>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function exportDevicesCSV(){
+  const rows = [['Tunnus','Valmistaja','Tuoteryhmä','Sijainti','Asiakas','Edellinen huolto','Seuraava huolto','Hankinta-arvo','Avoimet pyynnöt']];
+  filteredDevices().forEach(d => rows.push([d.idr,d.make,d.group,locPath(d.locId),custName(d.customerId),fmtDate(d.last),fmtDate(d.next),d.value,(d.requests||[]).filter(r=>r.status==='open').length]));
+  downloadCSV('laitteet.csv', rows);
+}
+
+/* =========================================================
+   DEVICE DETAIL
+   ========================================================= */
+function openDevice(id){
+  STATE.selectedDevice = id;
+  STATE.deviceTab = 'laite';
+  go('device');
+  renderDeviceDetail();
+}
+function renderDeviceDetail(){
+  const d = DB.devices.find(x=>x.id===STATE.selectedDevice); if(!d) return;
+  const c = $('device-detail');
+  const tabs = [
+    {k:'laite', label:'Laite'},
+    {k:'files', label:'Tiedostot'},
+    {k:'links', label:'Linkitykset'},
+    {k:'req', label:'Huoltopyynnöt'},
+    {k:'hist', label:'Historiatiedot'},
+    {k:'nfc', label:'NFC skannaukset'},
+    {k:'cost', label:'Kustannukset'}
+  ];
+  let body = '';
+  if(STATE.deviceTab==='laite'){ body = renderDeviceLaite(d); }
+  else if(STATE.deviceTab==='files'){ body = renderDeviceFiles(d); }
+  else if(STATE.deviceTab==='links'){ body = renderDeviceLinks(d); }
+  else if(STATE.deviceTab==='req'){ body = renderDeviceReq(d); }
+  else if(STATE.deviceTab==='hist'){ body = renderDeviceHist(d); }
+  else if(STATE.deviceTab==='nfc'){ body = renderDeviceNFC(d); }
+  else if(STATE.deviceTab==='cost'){ body = renderDeviceCost(d); }
+
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0">
+      <div>
+        <h2 style="margin:0;color:var(--navy)">${esc(d.idr)} <span style="color:var(--muted);font-weight:500">${esc(d.make)}</span></h2>
+        <small style="color:var(--muted)">${esc(locPath(d.locId))} · ${esc(custName(d.customerId))}</small>
+      </div>
+      <div>
+        ${canRole('admin','supervisor')?`<button class="btn ghost sm" onclick="openDeviceForm('${d.id}')">Muokkaa</button>`:''}
+        ${canRole('admin')?`<button class="btn danger sm" onclick="deleteDevice('${d.id}')">Poista</button>`:''}
+      </div>
+    </div>
+    ${isLate(d.next) && !d.isContract ? `<div class="alert">⚠ Määräaikaishuolto on myöhässä: ${esc(fmtDate(d.next))}.</div>` : ''}
+    <div class="tabs">${tabs.map(t => `<button class="${STATE.deviceTab===t.k?'active':''}" onclick="STATE.deviceTab='${t.k}';renderDeviceDetail()">${esc(t.label)}</button>`).join('')}</div>
+    ${body}
+  `;
+}
+
+function renderDeviceLaite(d){
+  const cust = DB.customers.find(x=>x.id===d.customerId);
+  const locBox = `
+    <div class="panel">
+      <div class="head">Sijainti</div>
+      <div class="body">
+        <div class="kv">
+          <div class="row"><b>Asiakas</b><span>${esc(cust?.name||'–')}</span></div>
+          <div class="row"><b>Yhteyshenkilö</b><span>${esc(cust?.contact||'–')}</span></div>
+          <div class="row"><b>Puhelin</b><span>${esc(cust?.phone||'–')}</span></div>
+          <div class="row"><b>Sähköposti</b><span>${esc(cust?.email||'–')}</span></div>
+          <div class="row"><b>Ecom ID</b><span>${esc(d.ecom||'–')}</span></div>
+          <div class="row"><b>Asiantuntija</b><span>${esc(d.expert||'–')}</span></div>
+          <div class="row"><b>Huoltopäällikkö</b><span>${esc(d.manager||'–')}</span></div>
+          <div class="row"><b>Vastuuasentaja</b><span>${esc(userName(d.assignedTo))}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if(d.isContract){
+    const k = d.contract || {};
+    return `
+      ${locBox}
+      <div class="panel">
+        <div class="head">Laitetiedot (sopimus)</div>
+        <div class="body">
+          <div class="kv">
+            <div class="row"><b>Sopimuksen tyyppi</b><span>${esc(k.type||'–')}</span></div>
+            <div class="row"><b>Ecom ID</b><span>${esc(d.ecom||'–')}</span></div>
+            <div class="row"><b>Laitteen hoitaja</b><span>${esc(k.hoitaja||'–')}</span></div>
+            <div class="row"><b>Kaupallinen yhteyshenkilö</b><span>${esc(k.commercial?.nimi||'–')} · ${esc(k.commercial?.phone||'')} · ${esc(k.commercial?.email||'')}</span></div>
+            <div class="row"><b>Tekninen yhteyshenkilö</b><span>${esc(k.technical?.nimi||'–')} · ${esc(k.technical?.phone||'')} · ${esc(k.technical?.email||'')}</span></div>
+            <div class="row"><b>Hätäkeskus</b><span>${esc(k.hatakeskus||'–')}</span></div>
+            <div class="row"><b>Linjavianvalvonta</b><span>${esc(k.linjavianvalvonta||'–')}</span></div>
+            <div class="row"><b>Vartiointiliike</b><span>${esc(k.vartiointi||'–')}</span></div>
+            <div class="row"><b>Valvomot</b><span>${esc(k.valvomo||'–')}</span></div>
+            <div class="row"><b>Sopimuslisätiedot 1</b><span>${esc(k.extra1||'–')}</span></div>
+            <div class="row"><b>Sopimuslisätiedot 2</b><span>${esc(k.extra2||'–')}</span></div>
+            <div class="row"><b>Sopimuslisätiedot 3</b><span>${esc(k.extra3||'–')}</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    ${locBox}
+    <div class="panel">
+      <div class="head">Laitetiedot</div>
+      <div class="body">
+        <div class="kv">
+          <div class="row"><b>Laitetunnus</b><span>${esc(d.idr)}</span></div>
+          <div class="row"><b>Huoltosopimuskohde</b><span>${esc(d.target)}</span></div>
+          <div class="row"><b>Valmistaja / Malli / Tyyppi</b><span>${esc(d.make)}</span></div>
+          <div class="row"><b>Tuoteryhmä</b><span>${esc(d.group)}</span></div>
+          <div class="row"><b>Hankinta-arvo</b><span>${esc(fmtEur(d.value))}</span></div>
+          <div class="row"><b>Huoltoväli (kk)</b><span>${esc(d.interval)}</span></div>
+          <div class="row"><b>Toimituspäivä</b><span>${esc(fmtDate(d.delivery))}</span></div>
+          <div class="row"><b>Edellinen huolto</b><span>${esc(fmtDate(d.last))}</span></div>
+          <div class="row"><b>Seuraava huolto</b><span>${esc(fmtDate(d.next))}</span></div>
+          <div class="row"><b>Avoimet pyynnöt</b><span>${(d.requests||[]).filter(r=>r.status==='open').length}</span></div>
+          <div class="row"><b>Korjauksia</b><span>${(d.repairsLog||[]).length}</span></div>
+          <div class="row"><b>Vuokralaite</b><span>${d.rental?'Kyllä':'Ei'}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-cards">
+      ${miniBox('Huoltoyhtiö', `<div class="row"><span>${esc(DB.settings.company.name)}</span></div><div class="row"><span>${esc(DB.settings.company.phone)}</span></div><div class="row"><span>${esc(DB.settings.company.email)}</span></div>`)}
+      ${miniListBox('Määräaikaishuollot', d.maintenances, m => `${fmtDate(m.date)} – ${esc(m.by)} <div style="color:var(--muted)">${esc(m.note||'')}</div>`, `addMaintenance('${d.id}')`)}
+      ${miniListBox('Tarkastukset', d.inspections, m => `${fmtDate(m.date)} – ${esc(m.by)} <span class="tag green">${esc(m.result||'OK')}</span>`, `addInspection('${d.id}')`)}
+      ${miniListBox('Korjaukset', d.repairsLog, m => `${fmtDate(m.date)} – ${esc(m.by)} (${fmtEur(m.cost)}) <div style="color:var(--muted)">${esc(m.note||'')}</div>`, `addRepair('${d.id}')`)}
+      ${miniBox('Lisätiedot', `<div>${esc(d.notes||'Ei lisätietoja.')}</div>`)}
+      ${miniListBox('Käyttökoulutetut henkilöt', d.trained, m => `${esc(m.nimi)} – ${fmtDate(m.date)}`, `addTrained('${d.id}')`)}
+    </div>
+    ${d.rental ? `
+      <div class="panel"><div class="head">Vuokratiedot</div><div class="body"><div class="kv">
+        <div class="row"><b>Vuokrauksen alku</b><span>${fmtDate(d.rentalStart)}</span></div>
+        <div class="row"><b>Vuokrakausi</b><span>${esc(d.rentalMonths)} kk</span></div>
+        <div class="row"><b>Kuukausivuokra</b><span>${fmtEur(d.rentalMonthly)}</span></div>
+        <div class="row"><b>Vuokrauksen päättyminen</b><span>${fmtDate(d.rentalEnd)}</span></div>
+        <div class="row"><b>Lunastushinta</b><span>${fmtEur(d.rentalBuyout)}</span></div>
+      </div></div></div>` : ''}
+  `;
+}
+function miniBox(title, html){
+  return `<div class="mini-card"><h4>${esc(title)}</h4>${html}</div>`;
+}
+function miniListBox(title, list, fmt, onAddCode){
+  return `<div class="mini-card">
+    <h4>${esc(title)} <button class="btn ghost sm" style="float:right" onclick="${onAddCode}">+</button></h4>
+    ${(list||[]).slice().reverse().slice(0,5).map(x => `<div class="row" style="display:block;padding:6px 0;border-bottom:1px solid var(--line)">${fmt(x)}</div>`).join('') || '<div style="color:var(--muted)">Ei merkintöjä.</div>'}
+  </div>`;
+}
+
+function addMaintenance(id){
+  openModal('Lisää määräaikaishuolto', `
+    <div class="field"><label>Päivämäärä</label><input type="date" id="mm-date" value="${todayISO()}"/></div>
+    <div class="field"><label>Suorittaja</label><input id="mm-by" value="${esc(STATE.currentUser.name)}"/></div>
+    <div class="field"><label>Huomiot</label><textarea id="mm-note"></textarea></div>
+    <button class="btn" onclick="saveMaintenance('${id}')">Tallenna</button>
+  `);
+}
+function saveMaintenance(id){
+  const d = DB.devices.find(x=>x.id===id);
+  const date = $('mm-date').value, by = $('mm-by').value, note = $('mm-note').value;
+  d.maintenances.push({id:uid('m'),date,by,note});
+  d.last = date;
+  d.next = addDays(date, (d.interval||12)*30);
+  d.updated = todayISO();
+  saveData(); closeModal(); renderDeviceDetail();
+}
+function addInspection(id){
+  openModal('Lisää tarkastus', `
+    <div class="field"><label>Päivämäärä</label><input type="date" id="ii-date" value="${todayISO()}"/></div>
+    <div class="field"><label>Tarkastaja</label><input id="ii-by" value="${esc(STATE.currentUser.name)}"/></div>
+    <div class="field"><label>Tulos</label><select id="ii-res"><option>OK</option><option>Huomioita</option><option>Hylätty</option></select></div>
+    <button class="btn" onclick="saveInspection('${id}')">Tallenna</button>
+  `);
+}
+function saveInspection(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.inspections.push({id:uid('i'),date:$('ii-date').value,by:$('ii-by').value,result:$('ii-res').value});
+  d.updated = todayISO(); saveData(); closeModal(); renderDeviceDetail();
+}
+function addRepair(id){
+  openModal('Lisää korjaus', `
+    <div class="field"><label>Päivämäärä</label><input type="date" id="rp-date" value="${todayISO()}"/></div>
+    <div class="field"><label>Suorittaja</label><input id="rp-by" value="${esc(STATE.currentUser.name)}"/></div>
+    <div class="field"><label>Kustannus (€)</label><input type="number" id="rp-cost" value="0"/></div>
+    <div class="field"><label>Kuvaus</label><textarea id="rp-note"></textarea></div>
+    <button class="btn" onclick="saveRepair('${id}')">Tallenna</button>
+  `);
+}
+function saveRepair(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.repairsLog.push({id:uid('rp'),date:$('rp-date').value,by:$('rp-by').value,cost:+$('rp-cost').value,note:$('rp-note').value});
+  d.repairs = (d.repairsLog||[]).length;
+  d.updated = todayISO(); saveData(); closeModal(); renderDeviceDetail();
+}
+function addTrained(id){
+  openModal('Lisää käyttökoulutettu henkilö', `
+    <div class="field"><label>Nimi</label><input id="tr-nimi"/></div>
+    <div class="field"><label>Päivämäärä</label><input type="date" id="tr-date" value="${todayISO()}"/></div>
+    <button class="btn" onclick="saveTrained('${id}')">Tallenna</button>
+  `);
+}
+function saveTrained(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.trained.push({id:uid('t'),nimi:$('tr-nimi').value,date:$('tr-date').value});
+  d.updated = todayISO(); saveData(); closeModal(); renderDeviceDetail();
+}
+
+function renderDeviceFiles(d){
+  return `<div class="panel"><div class="head">Tiedostot <button class="btn ghost sm" onclick="addFile('${d.id}')">+ Lisää</button></div><div class="body">
+    ${(d.files||[]).length? d.files.map(f => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><span>📎 ${esc(f.name)}</span><small style="color:var(--muted)">${fmtDate(f.date)}</small></div>`).join('') : '<div style="color:var(--muted)">Ei tiedostoja.</div>'}
+  </div></div>`;
+}
+function addFile(id){
+  const name = prompt('Tiedoston nimi:'); if(!name) return;
+  const d = DB.devices.find(x=>x.id===id);
+  d.files.push({id:uid('f'),name,date:todayISO()});
+  d.updated=todayISO(); saveData(); renderDeviceDetail();
+}
+function renderDeviceLinks(d){
+  const sibs = DB.devices.filter(x=>x.locId===d.locId && x.id!==d.id && !x.deleted);
+  return `<div class="panel"><div class="head">Sijainnin muut laitteet</div><div class="body">
+    ${sibs.length? sibs.map(s => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><span><b>${esc(s.idr)}</b> ${esc(s.make)}</span><button class="btn ghost sm" onclick="openDevice('${s.id}')">Avaa</button></div>`).join('') : '<div style="color:var(--muted)">Ei muita laitteita samassa toimipisteessä.</div>'}
+  </div></div>`;
+}
+function renderDeviceReq(d){
+  return `<div class="panel"><div class="head">Huoltopyynnöt <button class="btn ghost sm" onclick="addRequest('${d.id}')">+ Uusi pyyntö</button></div><div class="body">
+    <table class="tbl"><thead><tr><th>PVM</th><th>Tekijä</th><th>Aihe</th><th>Tila</th><th></th></tr></thead><tbody>
+      ${(d.requests||[]).slice().reverse().map(r => `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.by)}</td><td>${esc(r.subject)}<div style="color:var(--muted);font-size:12px">${esc(r.details||'')}</div></td><td>${r.status==='open'?'<span class="tag yellow">Avoin</span>':'<span class="tag green">Hoidettu</span>'}</td><td>${r.status==='open'?`<button class="btn ghost sm" onclick="closeRequest('${d.id}','${r.id}')">Merkitse hoidetuksi</button>`:''}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">Ei pyyntöjä.</td></tr>'}
+    </tbody></table>
+  </div></div>`;
+}
+function addRequest(id){
+  openModal('Uusi huoltopyyntö', `
+    <div class="field"><label>Aihe</label><input id="rq-subj"/></div>
+    <div class="field"><label>Lisätieto</label><textarea id="rq-det"></textarea></div>
+    <button class="btn" onclick="saveRequest('${id}')">Tallenna</button>
+  `);
+}
+function saveRequest(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.requests.push({id:uid('r'),date:todayISO(),by:STATE.currentUser.name,subject:$('rq-subj').value,details:$('rq-det').value,status:'open'});
+  d.req = (d.requests||[]).filter(r=>r.status==='open').length;
+  d.updated=todayISO(); saveData(); closeModal(); renderDeviceDetail();
+}
+function closeRequest(did,rid){
+  const d = DB.devices.find(x=>x.id===did); const r = d.requests.find(x=>x.id===rid); r.status='done'; r.closedAt=todayISO();
+  d.req = (d.requests||[]).filter(r=>r.status==='open').length;
+  d.updated=todayISO(); saveData(); renderDeviceDetail();
+}
+function renderDeviceHist(d){
+  const all = []
+    .concat((d.maintenances||[]).map(x=>({date:x.date,type:'Määräaikaishuolto',by:x.by,note:x.note||''})))
+    .concat((d.inspections||[]).map(x=>({date:x.date,type:'Tarkastus',by:x.by,note:x.result||''})))
+    .concat((d.repairsLog||[]).map(x=>({date:x.date,type:'Korjaus',by:x.by,note:(x.note||'')+' '+fmtEur(x.cost)})))
+    .concat((d.requests||[]).map(x=>({date:x.date,type:'Pyyntö',by:x.by,note:x.subject+' ('+x.status+')'})))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return `<div class="panel"><div class="head">Historia</div><div class="body">
+    <table class="tbl"><thead><tr><th>PVM</th><th>Tapahtuma</th><th>Tekijä</th><th>Huomio</th></tr></thead><tbody>
+      ${all.map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.type)}</td><td>${esc(x.by||'')}</td><td>${esc(x.note)}</td></tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">Ei historiamerkintöjä.</td></tr>'}
+    </tbody></table>
+  </div></div>`;
+}
+function renderDeviceNFC(d){
+  return `<div class="panel"><div class="head">NFC-skannaukset</div><div class="body"><div style="color:var(--muted)">Ei skannauksia. Aseta NFC-tarra laitteeseen ja skannaa mobiilisovelluksella.</div></div></div>`;
+}
+function renderDeviceCost(d){
+  const repairCost = (d.repairsLog||[]).reduce((s,x)=>s+(+x.cost||0),0);
+  const rental = d.rental ? (d.rentalMonths||0)*(d.rentalMonthly||0) : 0;
+  return `<div class="panel"><div class="head">Kustannukset</div><div class="body">
+    <div class="stats">
+      <div class="stat"><div class="lbl">Hankinta-arvo</div><div class="val">${fmtEur(d.value)}</div></div>
+      <div class="stat red"><div class="lbl">Korjaukset</div><div class="val">${fmtEur(repairCost)}</div></div>
+      <div class="stat"><div class="lbl">Vuokrasitoumus</div><div class="val">${fmtEur(rental)}</div></div>
+      <div class="stat green"><div class="lbl">Yhteensä</div><div class="val">${fmtEur((+d.value||0)+repairCost+rental)}</div></div>
+    </div>
+  </div></div>`;
+}
+
+/* =========================================================
+   DEVICE FORM
+   ========================================================= */
+function openDeviceForm(id){
+  const d = id ? DB.devices.find(x=>x.id===id) : {idr:'',target:'Laite',make:'',group:DB.settings.groups[0],locId:DB.locs.find(l=>l.level===3)?.id,customerId:'',assignedTo:'',value:0,interval:12,delivery:todayISO(),last:todayISO(),next:addDays(todayISO(),365),notes:''};
+  const locOpts = DB.locs.filter(l=>l.level===3).map(l => `<option value="${l.id}" ${d.locId===l.id?'selected':''}>${esc(locPath(l.id))}</option>`).join('');
+  const grpOpts = DB.settings.groups.map(g => `<option ${d.group===g?'selected':''}>${esc(g)}</option>`).join('');
+  const intOpts = DB.settings.intervals.map(n => `<option ${d.interval==n?'selected':''}>${n}</option>`).join('');
+  const workers = DB.users.filter(u=>u.role==='worker'||u.role==='supervisor').map(u => `<option value="${u.id}" ${d.assignedTo===u.id?'selected':''}>${esc(u.name)}</option>`).join('');
+  openModal(id?'Muokkaa laitetta':'Uusi laite', `
+    <div class="form-row">
+      <div class="field"><label>Laitetunnus</label><input id="fd-idr" value="${esc(d.idr)}"/></div>
+      <div class="field"><label>Huoltosopimuskohde</label><select id="fd-target"><option ${d.target==='Laite'?'selected':''}>Laite</option><option ${d.target==='Sopimustiedot'?'selected':''}>Sopimustiedot</option></select></div>
+    </div>
+    <div class="form-row one"><div class="field"><label>Valmistaja / Malli / Tyyppi</label><input id="fd-make" value="${esc(d.make)}"/></div></div>
+    <div class="form-row">
+      <div class="field"><label>Tuoteryhmä</label><select id="fd-group">${grpOpts}</select></div>
+      <div class="field"><label>Sijainti</label><select id="fd-loc">${locOpts}</select></div>
+    </div>
+    <div class="form-row three">
+      <div class="field"><label>Hankinta-arvo €</label><input type="number" id="fd-val" value="${+d.value||0}"/></div>
+      <div class="field"><label>Huoltoväli (kk)</label><select id="fd-int">${intOpts}</select></div>
+      <div class="field"><label>Vastuuasentaja</label><select id="fd-ass"><option value="">–</option>${workers}</select></div>
+    </div>
+    <div class="form-row three">
+      <div class="field"><label>Toimituspäivä</label><input type="date" id="fd-del" value="${d.delivery||''}"/></div>
+      <div class="field"><label>Edellinen huolto</label><input type="date" id="fd-last" value="${d.last||''}"/></div>
+      <div class="field"><label>Seuraava huolto</label><input type="date" id="fd-next" value="${d.next||''}"/></div>
+    </div>
+    <div class="form-row"><div class="field"><label>Ecom ID</label><input id="fd-ecom" value="${esc(d.ecom||'')}"/></div>
+      <div class="field"><label>Asiantuntija</label><input id="fd-exp" value="${esc(d.expert||'')}"/></div></div>
+    <div class="form-row one"><div class="field"><label>Lisätiedot</label><textarea id="fd-notes">${esc(d.notes||'')}</textarea></div></div>
+    <button class="btn" onclick="saveDevice('${id||''}')">Tallenna</button>
+  `);
+}
+function saveDevice(id){
+  let d;
+  if(id){ d = DB.devices.find(x=>x.id===id); }
+  else { d = { id:uid('dev'), maintenances:[],inspections:[],repairsLog:[],trained:[],requests:[],files:[],created:todayISO(),deleted:false }; DB.devices.push(d); }
+  d.idr=$('fd-idr').value; d.target=$('fd-target').value; d.make=$('fd-make').value;
+  d.group=$('fd-group').value; d.locId=$('fd-loc').value;
+  d.value=+$('fd-val').value; d.interval=+$('fd-int').value; d.assignedTo=$('fd-ass').value;
+  d.delivery=$('fd-del').value; d.last=$('fd-last').value; d.next=$('fd-next').value;
+  d.ecom=$('fd-ecom').value; d.expert=$('fd-exp').value; d.notes=$('fd-notes').value;
+  const loc = DB.locs.find(l=>l.id===d.locId); d.customerId = loc?.customerId || '';
+  d.updated = todayISO();
+  saveData(); closeModal();
+  if(STATE.view==='device') renderDeviceDetail(); else renderDevices();
+}
+function deleteDevice(id){
+  if(!confirm('Poista laite (siirretään poistettuihin)?')) return;
+  const d = DB.devices.find(x=>x.id===id); d.deleted=true; d.updated=todayISO(); saveData(); go('devices');
+}
+
+/* =========================================================
+   REPORTS
+   ========================================================= */
+const REPORTS = [
+  {k:'upcoming', name:'Tulevat määräaikaishuollot', icon:'🛠'},
+  {k:'inspections', name:'Tulevat tarkastukset', icon:'🔍'},
+  {k:'req-open', name:'Avoimet huoltopyynnöt', icon:'📨'},
+  {k:'req-done', name:'Valmiit huoltopyynnöt', icon:'✅'},
+  {k:'trained', name:'Käyttökoulutetut henkilöt', icon:'👥'},
+  {k:'rental', name:'Vuokralaitteet', icon:'📦'},
+  {k:'repairs', name:'Eniten korjatut laitteet', icon:'🔧'},
+  {k:'deleted', name:'Poistetut laitteet', icon:'🗑'}
+];
+function renderReportsMenu(){
+  $('reports-menu').innerHTML = REPORTS.map(r => `<div class="mini-card" style="cursor:pointer" onclick="openReport('${r.k}')"><h4>${r.icon} ${esc(r.name)}</h4><div style="color:var(--muted);font-size:12px">Avaa raportti</div></div>`).join('');
+  $('report-content').innerHTML = '';
+}
+function openReport(k){
+  STATE.currentReport = k;
+  const r = REPORTS.find(x=>x.k===k);
+  const c = $('report-content');
+  const today = todayISO();
+  const next90 = addDays(today,90);
+  let rows = [], head = [];
+  if(k==='upcoming'){
+    head = ['Tunnus','Valmistaja','Sijainti','Asiakas','Seuraava huolto','Tila'];
+    rows = DB.devices.filter(d=>!d.deleted && !d.isContract).sort((a,b)=>new Date(a.next)-new Date(b.next)).map(d => [d.idr,d.make,locPath(d.locId),custName(d.customerId),fmtDate(d.next), isLate(d.next)?'Myöhässä':within(d.next,90)?'Pian':'Kunnossa']);
+  } else if(k==='inspections'){
+    head = ['Tunnus','Valmistaja','Sijainti','Asiakas','Viimeisin tarkastus','Tulos'];
+    rows = DB.devices.filter(d=>!d.deleted).map(d => { const last=(d.inspections||[]).slice(-1)[0]; return [d.idr,d.make,locPath(d.locId),custName(d.customerId),fmtDate(last?.date),last?.result||'–']; });
+  } else if(k==='req-open'){
+    head = ['Tunnus','Asiakas','Aihe','Pvm'];
+    DB.devices.forEach(d => (d.requests||[]).filter(r=>r.status==='open').forEach(r => rows.push([d.idr,custName(d.customerId),r.subject,fmtDate(r.date)])));
+  } else if(k==='req-done'){
+    head = ['Tunnus','Asiakas','Aihe','Pvm','Hoidettu'];
+    DB.devices.forEach(d => (d.requests||[]).filter(r=>r.status!=='open').forEach(r => rows.push([d.idr,custName(d.customerId),r.subject,fmtDate(r.date),fmtDate(r.closedAt)])));
+  } else if(k==='trained'){
+    head = ['Tunnus','Sijainti','Henkilö','Pvm'];
+    DB.devices.forEach(d => (d.trained||[]).forEach(t => rows.push([d.idr,locPath(d.locId),t.nimi,fmtDate(t.date)])));
+  } else if(k==='rental'){
+    head = ['Tunnus','Asiakas','Vuokra/kk','Alkupvm','Loppupvm','Kk','Yhteensä'];
+    rows = DB.devices.filter(d=>d.rental).map(d => [d.idr,custName(d.customerId),fmtEur(d.rentalMonthly),fmtDate(d.rentalStart),fmtDate(d.rentalEnd),d.rentalMonths,fmtEur((d.rentalMonthly||0)*(d.rentalMonths||0))]);
+  } else if(k==='repairs'){
+    head = ['Tunnus','Sijainti','Asiakas','Korjauksia','Korjauskulut yhteensä'];
+    rows = DB.devices.filter(d=>(d.repairsLog||[]).length>0).sort((a,b)=>(b.repairsLog||[]).length-(a.repairsLog||[]).length).map(d => [d.idr,locPath(d.locId),custName(d.customerId),(d.repairsLog||[]).length,fmtEur((d.repairsLog||[]).reduce((s,x)=>s+(+x.cost||0),0))]);
+  } else if(k==='deleted'){
+    head = ['Tunnus','Valmistaja','Sijainti','Asiakas','Päivitetty'];
+    rows = DB.devices.filter(d=>d.deleted).map(d => [d.idr,d.make,locPath(d.locId),custName(d.customerId),fmtDate(d.updated)]);
+  }
+  c.innerHTML = `
+    <div class="panel">
+      <div class="head">${esc(r.name)} <div class="actions">
+        <button class="btn ghost sm" onclick="downloadCSV('${r.k}.csv',${JSON.stringify([head]).replaceAll('"','&quot;')}.concat(${JSON.stringify(rows).replaceAll('"','&quot;')}))">Vie CSV</button>
+      </div></div>
+      <div class="body" style="padding:0">
+        <table class="tbl"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${head.length}" style="color:var(--muted);text-align:center;padding:18px">Ei rivejä.</td></tr>`}</tbody></table>
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   CUSTOMERS
+   ========================================================= */
+function renderCustomers(){
+  const q = ($('cusSearch')?.value||'').toLowerCase();
+  const st = $('cusStatus')?.value||'';
+  const list = DB.customers.filter(c => (!st||c.status===st) && (!q || (c.name+' '+c.biz+' '+(c.contact||'')).toLowerCase().includes(q)));
+  const stTag = s => s==='active'?'<span class="tag green">Aktiivinen</span>':s==='lead'?'<span class="tag yellow">Liidi</span>':'<span class="tag">Ei aktiivinen</span>';
+  $('customers-content').innerHTML = `<div class="cust-grid">${list.map(c => `
+    <div class="cust-card" onclick="openCustomer('${c.id}')">
+      <div class="hd"><b>${esc(c.name)}</b><small>${esc(c.biz||'')} · ${esc(c.contact||'')}</small></div>
+      <div class="bd"><span>${esc(c.email||'')}</span>${stTag(c.status)}</div>
+    </div>`).join('') || '<div style="color:var(--muted)">Ei asiakkaita.</div>'}</div>`;
+}
+function openCustomer(id){
+  STATE.selectedCustomer = id; go('customer'); renderCustomerDetail();
+}
+function renderCustomerDetail(){
+  const c = DB.customers.find(x=>x.id===STATE.selectedCustomer); if(!c) return;
+  const devs = DB.devices.filter(d=>d.customerId===c.id && !d.deleted);
+  const reqs = devs.flatMap(d => (d.requests||[]).filter(r=>r.status==='open').map(r => ({d, r})));
+  const tasks = DB.tasks.filter(t => t.customerId===c.id);
+  $('customer-detail').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0;flex-wrap:wrap;gap:8px">
+      <div><h2 style="margin:0;color:var(--navy)">${esc(c.name)}</h2><small style="color:var(--muted)">${esc(c.biz||'')} · ${esc(c.address||'')}</small></div>
+      <div><button class="btn ghost sm" onclick="openCustomerForm('${c.id}')">Muokkaa</button></div>
+    </div>
+    <div class="panel"><div class="head">Asiakastiedot</div><div class="body"><div class="kv">
+      <div class="row"><b>Yhteyshenkilö</b><span>${esc(c.contact||'–')}</span></div>
+      <div class="row"><b>Sähköposti</b><span>${esc(c.email||'–')}</span></div>
+      <div class="row"><b>Puhelin</b><span>${esc(c.phone||'–')}</span></div>
+      <div class="row"><b>Osoite</b><span>${esc(c.address||'–')}</span></div>
+      <div class="row"><b>Tila</b><span>${esc(c.status||'–')}</span></div>
+      <div class="row"><b>Lisätiedot</b><span>${esc(c.notes||'–')}</span></div>
+    </div></div></div>
+
+    <div class="panel"><div class="head">Tehtävät <button class="btn ghost sm" onclick="addTask('${c.id}')">+ Lisää tehtävä</button></div><div class="body">
+      ${tasks.length? `<table class="tbl"><thead><tr><th></th><th>Tehtävä</th><th>Eräpvm</th></tr></thead><tbody>
+        ${tasks.map(t => `<tr><td><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}',this.checked)"/></td><td style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.title)}</td><td>${fmtDate(t.due)}</td></tr>`).join('')}
+      </tbody></table>` : '<div style="color:var(--muted)">Ei tehtäviä.</div>'}
+    </div></div>
+
+    <div class="panel"><div class="head">Yhteyshenkilöt + portaalikutsut <button class="btn ghost sm" onclick="addContact('${c.id}')">+ Lisää yhteyshenkilö</button></div><div class="body">
+      <table class="tbl"><thead><tr><th>Nimi</th><th>Titteli</th><th>Sähköposti</th><th>Puhelin</th><th>Portaali</th><th></th></tr></thead><tbody>
+        ${(c.contacts||[]).map(co => `<tr><td>${esc(co.nimi)}</td><td>${esc(co.titteli||'')}</td><td>${esc(co.email||'')}</td><td>${esc(co.phone||'')}</td>
+          <td>${co.invited?'<span class="tag green">Kutsuttu</span>':'<span class="tag">Ei kutsua</span>'}</td>
+          <td>${co.invited?`<button class="btn ghost sm" onclick="revokeInvite('${c.id}','${co.id}')">Poista oikeus</button>`:`<button class="btn ghost sm" onclick="inviteContact('${c.id}','${co.id}')">Kutsu portaaliin</button>`}</td></tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted)">Ei yhteyshenkilöitä.</td></tr>'}
+      </tbody></table>
+    </div></div>
+
+    <div class="panel"><div class="head">Laitteet (${devs.length})</div><div class="body" style="padding:0">
+      <table class="tbl"><thead><tr><th>Tunnus</th><th>Valmistaja</th><th>Sijainti</th><th>Seuraava huolto</th><th></th></tr></thead><tbody>
+        ${devs.map(d => `<tr><td><b>${esc(d.idr)}</b></td><td>${esc(d.make)}</td><td>${esc(locPath(d.locId))}</td><td>${fmtDate(d.next)} ${statusTag(d)}</td><td><button class="btn ghost sm" onclick="openDevice('${d.id}')">Avaa</button></td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">Ei laitteita.</td></tr>'}
+      </tbody></table>
+    </div></div>
+
+    <div class="panel"><div class="head">Avoimet huoltopyynnöt (${reqs.length})</div><div class="body">
+      ${reqs.length? reqs.map(({d,r}) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><span><b>${esc(d.idr)}</b> – ${esc(r.subject)} <small style="color:var(--muted)">${fmtDate(r.date)}</small></span><button class="btn ghost sm" onclick="openDevice('${d.id}')">Avaa</button></div>`).join('') : '<div style="color:var(--muted)">Ei avoimia pyyntöjä.</div>'}
+    </div></div>
+  `;
+}
+function addTask(cid){
+  openModal('Uusi tehtävä', `
+    <div class="field"><label>Tehtävä</label><input id="tk-title"/></div>
+    <div class="field"><label>Eräpvm</label><input type="date" id="tk-due" value="${addDays(todayISO(),7)}"/></div>
+    <button class="btn" onclick="saveTask('${cid}')">Tallenna</button>`);
+}
+function saveTask(cid){ DB.tasks.push({id:uid('tk'),customerId:cid,title:$('tk-title').value,due:$('tk-due').value,done:false,created:todayISO()}); saveData(); closeModal(); renderCustomerDetail(); }
+function toggleTask(id, on){ const t = DB.tasks.find(x=>x.id===id); t.done = on; saveData(); renderCustomerDetail(); }
+
+function addContact(cid){
+  openModal('Uusi yhteyshenkilö', `
+    <div class="form-row"><div class="field"><label>Nimi</label><input id="co-nimi"/></div><div class="field"><label>Titteli</label><input id="co-tit"/></div></div>
+    <div class="form-row"><div class="field"><label>Sähköposti</label><input id="co-email"/></div><div class="field"><label>Puhelin</label><input id="co-phone"/></div></div>
+    <button class="btn" onclick="saveContact('${cid}')">Tallenna</button>`);
+}
+function saveContact(cid){
+  const c = DB.customers.find(x=>x.id===cid);
+  c.contacts = c.contacts||[];
+  c.contacts.push({id:uid('co'),nimi:$('co-nimi').value,titteli:$('co-tit').value,email:$('co-email').value,phone:$('co-phone').value,invited:false,userId:null});
+  saveData(); closeModal(); renderCustomerDetail();
+}
+function inviteContact(cid, coid){
+  const c = DB.customers.find(x=>x.id===cid); const co = c.contacts.find(x=>x.id===coid);
+  if(!co.email){ alert('Sähköposti puuttuu.'); return; }
+  const u = {id:uid('u'),name:co.nimi,role:'customer',email:co.email,active:true,customerId:cid};
+  DB.users.push(u); co.invited=true; co.userId=u.id; saveData(); renderCustomerDetail();
+  alert('Kutsu lähetetty (demo). Käyttäjä näkyy kirjautumisruudussa.');
+}
+function revokeInvite(cid, coid){
+  const c = DB.customers.find(x=>x.id===cid); const co = c.contacts.find(x=>x.id===coid);
+  const u = DB.users.find(x=>x.id===co.userId); if(u) u.active=false;
+  co.invited=false; saveData(); renderCustomerDetail();
+}
+
+function openCustomerForm(id){
+  const c = id ? DB.customers.find(x=>x.id===id) : {id:'',name:'',biz:'',contact:'',email:'',phone:'',address:'',status:'active',notes:'',contacts:[]};
+  let contactsHtml = (c.contacts||[]).map((co,i) => contactFormRow(co,i)).join('');
+  if(!contactsHtml) contactsHtml = contactFormRow({nimi:'',titteli:'',email:'',phone:''},0);
+  openModal(id?'Muokkaa asiakasta':'Uusi asiakas', `
+    <div class="form-row"><div class="field"><label>Nimi</label><input id="cf-name" value="${esc(c.name)}"/></div><div class="field"><label>Y-tunnus</label><input id="cf-biz" value="${esc(c.biz||'')}"/></div></div>
+    <div class="form-row"><div class="field"><label>Yhteyshenkilö</label><input id="cf-contact" value="${esc(c.contact||'')}"/></div><div class="field"><label>Sähköposti</label><input id="cf-email" value="${esc(c.email||'')}"/></div></div>
+    <div class="form-row"><div class="field"><label>Puhelin</label><input id="cf-phone" value="${esc(c.phone||'')}"/></div><div class="field"><label>Tila</label><select id="cf-status"><option value="active" ${c.status==='active'?'selected':''}>Aktiivinen</option><option value="lead" ${c.status==='lead'?'selected':''}>Liidi</option><option value="inactive" ${c.status==='inactive'?'selected':''}>Ei aktiivinen</option></select></div></div>
+    <div class="field"><label>Osoite</label><input id="cf-address" value="${esc(c.address||'')}"/></div>
+    <div class="field"><label>Lisätiedot</label><textarea id="cf-notes">${esc(c.notes||'')}</textarea></div>
+    <h4 style="margin:18px 0 8px;color:var(--navy)">Yhteyshenkilöt</h4>
+    <div id="cf-contacts">${contactsHtml}</div>
+    <button class="btn ghost sm" onclick="addContactRow()" style="margin-bottom:12px">+ Lisää yhteyshenkilö</button><br/>
+    <button class="btn" onclick="saveCustomer('${id||''}')">Tallenna</button>
+  `);
+}
+function contactFormRow(co, i){
+  return `<div class="form-row" data-contact>
+    <div class="field"><label>Nimi</label><input data-co="nimi" value="${esc(co.nimi||'')}"/></div>
+    <div class="field"><label>Titteli</label><input data-co="titteli" value="${esc(co.titteli||'')}"/></div>
+    <div class="field"><label>Sähköposti</label><input data-co="email" value="${esc(co.email||'')}"/></div>
+    <div class="field"><label>Puhelin</label><input data-co="phone" value="${esc(co.phone||'')}"/></div>
+  </div>`;
+}
+function addContactRow(){
+  const w = document.createElement('div'); w.innerHTML = contactFormRow({},0).trim();
+  $('cf-contacts').appendChild(w.firstChild);
+}
+function saveCustomer(id){
+  let c;
+  if(id){ c = DB.customers.find(x=>x.id===id); }
+  else { c = {id:uid('cu'),contacts:[],created:todayISO()}; DB.customers.push(c); }
+  c.name=$('cf-name').value; c.biz=$('cf-biz').value; c.contact=$('cf-contact').value;
+  c.email=$('cf-email').value; c.phone=$('cf-phone').value; c.status=$('cf-status').value;
+  c.address=$('cf-address').value; c.notes=$('cf-notes').value;
+  const existing = c.contacts||[];
+  const rows = $('cf-contacts').querySelectorAll('[data-contact]');
+  const newList = [];
+  rows.forEach((r,i) => {
+    const data = {};
+    r.querySelectorAll('[data-co]').forEach(inp => data[inp.dataset.co] = inp.value);
+    if(!data.nimi) return;
+    const e = existing[i];
+    newList.push(Object.assign({id:e?.id||uid('co'),invited:e?.invited||false,userId:e?.userId||null}, data));
+  });
+  c.contacts = newList;
+  saveData(); closeModal(); renderCustomers(); if(STATE.view==='customer') renderCustomerDetail();
+}
+
+/* =========================================================
+   MY WORK (worker)
+   ========================================================= */
+function renderMyWork(){
+  const u = STATE.currentUser;
+  const myDevs = DB.devices.filter(d => !d.deleted && (d.assignedTo===u.id || u.role==='admin'));
+  const late = myDevs.filter(d=>isLate(d.next));
+  const soon = myDevs.filter(d=>within(d.next,90) && !isLate(d.next));
+  const reqs = [];
+  myDevs.forEach(d => (d.requests||[]).filter(r=>r.status==='open').forEach(r => reqs.push({d,r})));
+  $('mywork-content').innerHTML = `
+    <div class="stats">
+      <div class="stat red"><div class="lbl">Myöhässä</div><div class="val">${late.length}</div></div>
+      <div class="stat yellow"><div class="lbl">Tulossa 90 pv</div><div class="val">${soon.length}</div></div>
+      <div class="stat"><div class="lbl">Avoimet pyynnöt</div><div class="val">${reqs.length}</div></div>
+    </div>
+    <h3 style="margin:14px 0 6px;color:var(--navy)">Myöhässä</h3>
+    <div class="grid-cards">${late.map(d => workCard(d,'red')).join('') || '<div style="color:var(--muted)">Ei myöhässä olevia.</div>'}</div>
+    <h3 style="margin:14px 0 6px;color:var(--navy)">Tulossa</h3>
+    <div class="grid-cards">${soon.map(d => workCard(d,'yellow')).join('') || '<div style="color:var(--muted)">Ei tulevia.</div>'}</div>
+    <h3 style="margin:14px 0 6px;color:var(--navy)">Avoimet huoltopyynnöt</h3>
+    <div class="grid-cards">${reqs.map(({d,r}) => `<div class="mini-card"><h4>${esc(r.subject)}</h4><div class="row"><span>Laite</span><b>${esc(d.idr)}</b></div><div class="row"><span>Asiakas</span><b>${esc(custName(d.customerId))}</b></div><div class="row"><span>Pvm</span><b>${fmtDate(r.date)}</b></div><div class="actions"><button class="btn sm" onclick="quickCloseRequest('${d.id}','${r.id}')">Merkitse hoidetuksi</button><button class="btn ghost sm" onclick="openDevice('${d.id}')">Avaa laite</button></div></div>`).join('') || '<div style="color:var(--muted)">Ei avoimia pyyntöjä.</div>'}</div>
+  `;
+}
+function workCard(d,color){
+  return `<div class="mini-card ${color}">
+    <h4>${esc(d.idr)}</h4>
+    <div class="row"><span>Laite</span><b>${esc(d.make)}</b></div>
+    <div class="row"><span>Sijainti</span><b>${esc(locPath(d.locId))}</b></div>
+    <div class="row"><span>Asiakas</span><b>${esc(custName(d.customerId))}</b></div>
+    <div class="row"><span>Seuraava huolto</span><b>${fmtDate(d.next)}</b></div>
+    <div class="actions"><button class="btn sm" onclick="quickMaint('${d.id}')">Kuittaa huolto</button><button class="btn ghost sm" onclick="quickInsp('${d.id}')">Kirjaa tarkastus</button><button class="btn ghost sm" onclick="openDevice('${d.id}')">Avaa</button></div>
+  </div>`;
+}
+function quickMaint(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.maintenances.push({id:uid('m'),date:todayISO(),by:STATE.currentUser.name,note:'Huolto suoritettu mobiililla.'});
+  d.last = todayISO(); d.next = addDays(todayISO(),(d.interval||12)*30); d.updated = todayISO();
+  saveData(); renderMyWork();
+}
+function quickInsp(id){
+  const d = DB.devices.find(x=>x.id===id);
+  d.inspections.push({id:uid('i'),date:todayISO(),by:STATE.currentUser.name,result:'OK'});
+  d.updated = todayISO(); saveData(); renderMyWork();
+}
+function quickCloseRequest(did,rid){
+  closeRequest(did,rid); renderMyWork();
+}
+
+/* =========================================================
+   ASSIGNMENT (supervisor)
+   ========================================================= */
+function renderAssignment(){
+  const workers = DB.users.filter(u=>u.role==='worker' || u.role==='supervisor');
+  const load = {};
+  workers.forEach(w => load[w.id] = DB.devices.filter(d=>!d.deleted && d.assignedTo===w.id));
+  $('assignment-content').innerHTML = `
+    <div class="stats">${workers.map(w => `<div class="stat"><div class="lbl">${esc(w.name)}</div><div class="val">${load[w.id].length}</div><small style="color:var(--muted)">${load[w.id].filter(d=>isLate(d.next)).length} myöhässä</small></div>`).join('')}</div>
+    <div class="panel"><div class="head">Työnjako</div><div class="body" style="padding:0">
+      <table class="tbl"><thead><tr><th>Tunnus</th><th>Sijainti</th><th>Asiakas</th><th>Seur. huolto</th><th>Vastuuhenkilö</th></tr></thead><tbody>
+        ${DB.devices.filter(d=>!d.deleted).map(d => `<tr><td><b>${esc(d.idr)}</b></td><td>${esc(locPath(d.locId))}</td><td>${esc(custName(d.customerId))}</td><td>${fmtDate(d.next)} ${statusTag(d)}</td>
+          <td><select onchange="assignDevice('${d.id}',this.value)">${['',...workers.map(w=>w.id)].map(id => `<option value="${id}" ${d.assignedTo===id?'selected':''}>${id?esc(workers.find(w=>w.id===id).name):'– ei valittu –'}</option>`).join('')}</select></td></tr>`).join('')}
+      </tbody></table>
+    </div></div>
+  `;
+}
+function assignDevice(did, uid){
+  const d = DB.devices.find(x=>x.id===did); d.assignedTo = uid; d.updated = todayISO(); saveData();
+}
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
+function renderAdmin(){
+  const s = DB.settings;
+  $('admin-content').innerHTML = `
+    <div class="panel"><div class="head">Käyttäjät <button class="btn ghost sm" onclick="addUser()">+ Uusi käyttäjä</button></div><div class="body" style="padding:0">
+      <table class="tbl"><thead><tr><th>Nimi</th><th>Rooli</th><th>Sähköposti</th><th>Aktiivinen</th><th></th></tr></thead><tbody>
+        ${DB.users.map(u => `<tr><td>${esc(u.name)}${u.customerId?` <small style="color:var(--muted)">(${esc(custName(u.customerId))})</small>`:''}</td>
+          <td><select onchange="updateUser('${u.id}','role',this.value)"><option value="admin" ${u.role==='admin'?'selected':''}>Pääkäyttäjä</option><option value="supervisor" ${u.role==='supervisor'?'selected':''}>Työnjohtaja</option><option value="worker" ${u.role==='worker'?'selected':''}>Asentaja</option><option value="customer" ${u.role==='customer'?'selected':''}>Asiakas</option></select></td>
+          <td>${esc(u.email||'')}</td>
+          <td><input type="checkbox" ${u.active?'checked':''} onchange="updateUser('${u.id}','active',this.checked)"/></td>
+          <td><button class="btn danger sm" onclick="removeUser('${u.id}')">Poista</button></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div></div>
+
+    <div class="panel"><div class="head">Yritysasetukset</div><div class="body">
+      <div class="form-row"><div class="field"><label>Yrityksen nimi</label><input value="${esc(s.company.name)}" onchange="s_company('name',this.value)"/></div>
+        <div class="field"><label>Sähköposti</label><input value="${esc(s.company.email)}" onchange="s_company('email',this.value)"/></div></div>
+      <div class="form-row"><div class="field"><label>Puhelin</label><input value="${esc(s.company.phone)}" onchange="s_company('phone',this.value)"/></div>
+        <div class="field"><label>Verkkosivut</label><input value="${esc(s.company.web)}" onchange="s_company('web',this.value)"/></div></div>
+    </div></div>
+
+    <div class="panel"><div class="head">Tuoteryhmät</div><div class="body">
+      ${s.groups.map((g,i) => `<span class="tag" style="margin:3px;padding:6px 12px">${esc(g)} <button onclick="removeGroup(${i})" style="background:none;border:0;color:var(--red);cursor:pointer;margin-left:6px">✕</button></span>`).join('')}
+      <div class="form-row" style="margin-top:10px"><div class="field"><label>Lisää tuoteryhmä</label><input id="ng-name"/></div><div class="field" style="display:flex;align-items:flex-end"><button class="btn sm" onclick="addGroup()">Lisää</button></div></div>
+    </div></div>
+
+    <div class="panel"><div class="head">Huoltovälit (kk)</div><div class="body">
+      ${s.intervals.map((n,i) => `<span class="tag" style="margin:3px;padding:6px 12px">${n} kk <button onclick="removeInterval(${i})" style="background:none;border:0;color:var(--red);cursor:pointer;margin-left:6px">✕</button></span>`).join('')}
+      <div class="form-row" style="margin-top:10px"><div class="field"><label>Lisää huoltoväli</label><input id="ni-n" type="number" min="1"/></div><div class="field" style="display:flex;align-items:flex-end"><button class="btn sm" onclick="addInterval()">Lisää</button></div></div>
+    </div></div>
+  `;
+}
+function s_company(k,v){ DB.settings.company[k]=v; saveData(); }
+function addGroup(){ const v=$('ng-name').value.trim(); if(v){ DB.settings.groups.push(v); saveData(); renderAdmin(); } }
+function removeGroup(i){ DB.settings.groups.splice(i,1); saveData(); renderAdmin(); }
+function addInterval(){ const v=+$('ni-n').value; if(v>0){ DB.settings.intervals.push(v); DB.settings.intervals.sort((a,b)=>a-b); saveData(); renderAdmin(); } }
+function removeInterval(i){ DB.settings.intervals.splice(i,1); saveData(); renderAdmin(); }
+function updateUser(id,k,v){ const u = DB.users.find(x=>x.id===id); u[k]=v; saveData(); }
+function removeUser(id){ if(!confirm('Poista käyttäjä?')) return; DB.users = DB.users.filter(u=>u.id!==id); saveData(); renderAdmin(); }
+function addUser(){
+  openModal('Uusi käyttäjä', `
+    <div class="form-row"><div class="field"><label>Nimi</label><input id="nu-name"/></div>
+      <div class="field"><label>Rooli</label><select id="nu-role"><option value="worker">Asentaja</option><option value="supervisor">Työnjohtaja</option><option value="admin">Pääkäyttäjä</option></select></div></div>
+    <div class="field"><label>Sähköposti</label><input id="nu-email"/></div>
+    <button class="btn" onclick="saveNewUser()">Tallenna</button>`);
+}
+function saveNewUser(){
+  DB.users.push({id:uid('u'),name:$('nu-name').value,role:$('nu-role').value,email:$('nu-email').value,active:true});
+  saveData(); closeModal(); renderAdmin();
+}
+
+/* =========================================================
+   CUSTOMER PORTAL
+   ========================================================= */
+function renderPortal(){
+  const u = STATE.currentUser;
+  if(u.role !== 'customer'){ $('portal-content').innerHTML = '<div class="alert">Vain asiakaskäyttäjille.</div>'; return; }
+  const cust = DB.customers.find(c=>c.id===u.customerId);
+  const devs = DB.devices.filter(d=>d.customerId===u.customerId && !d.deleted);
+  const late = devs.filter(d=>isLate(d.next));
+  const soon = devs.filter(d=>within(d.next,90) && !isLate(d.next));
+  const reqs = [];
+  devs.forEach(d => (d.requests||[]).filter(r=>r.status==='open').forEach(r => reqs.push({d,r})));
+  $('portal-content').innerHTML = `
+    <div style="margin:12px 0"><h2 style="margin:0;color:var(--navy)">${esc(cust?.name||'Kohde')}</h2><small style="color:var(--muted)">${esc(cust?.address||'')}</small></div>
+    <div class="panel"><div class="head">Huoltoyhtiön yhteystiedot</div><div class="body"><div class="kv">
+      <div class="row"><b>Yritys</b><span>${esc(DB.settings.company.name)}</span></div>
+      <div class="row"><b>Puhelin</b><span>${esc(DB.settings.company.phone)}</span></div>
+      <div class="row"><b>Sähköposti</b><span>${esc(DB.settings.company.email)}</span></div>
+    </div></div></div>
+    <div class="stats">
+      <div class="stat red"><div class="lbl">Myöhässä olevat huollot</div><div class="val">${late.length}</div></div>
+      <div class="stat yellow"><div class="lbl">Tulevat 90 pv</div><div class="val">${soon.length}</div></div>
+      <div class="stat"><div class="lbl">Avoimet pyynnöt</div><div class="val">${reqs.length}</div></div>
+    </div>
+
+    <div class="panel"><div class="head">Laitteeni (vain luku)</div><div class="body" style="padding:0">
+      <table class="tbl"><thead><tr><th>Tunnus</th><th>Valmistaja</th><th>Sijainti</th><th>Seuraava huolto</th><th>Tila</th><th></th></tr></thead>
+      <tbody>${devs.map(d => `<tr><td><b>${esc(d.idr)}</b></td><td>${esc(d.make)}</td><td>${esc(locPath(d.locId))}</td><td>${fmtDate(d.next)}</td><td>${statusTag(d)}</td><td><button class="btn ghost sm" onclick="portalRequest('${d.id}')">Tee huoltopyyntö</button></td></tr>`).join('')}</tbody></table>
+    </div></div>
+
+    <div class="panel"><div class="head">Tulevat huollot</div><div class="body">
+      ${devs.filter(d=>within(d.next,180)).sort((a,b)=>new Date(a.next)-new Date(b.next)).map(d => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><span><b>${esc(d.idr)}</b> ${esc(d.make)} <small style="color:var(--muted)">${esc(locPath(d.locId))}</small></span><span>${fmtDate(d.next)} ${statusTag(d)}</span></div>`).join('') || '<div style="color:var(--muted)">Ei tulevia huoltoja.</div>'}
+    </div></div>
+
+    <div class="panel"><div class="head">Omat huoltopyynnöt</div><div class="body">
+      ${reqs.length? reqs.map(({d,r}) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${esc(d.idr)}</b> – ${esc(r.subject)} <span class="tag yellow">Käsittelyssä</span><div style="color:var(--muted);font-size:12px">${esc(r.details||'')}</div></div>`).join('') : '<div style="color:var(--muted)">Ei avoimia pyyntöjä.</div>'}
+    </div></div>
+
+    <div class="panel"><div class="head">Tee huoltopyyntö</div><div class="body">
+      <div class="form-row">
+        <div class="field"><label>Laite</label><select id="pr-dev">${devs.map(d => `<option value="${d.id}">${esc(d.idr)} – ${esc(d.make)}</option>`).join('')}</select></div>
+        <div class="field"><label>Aihe</label><input id="pr-subj"/></div>
+      </div>
+      <div class="field"><label>Lisätieto</label><textarea id="pr-det"></textarea></div>
+      <button class="btn" onclick="submitPortalRequest()">Lähetä pyyntö</button>
+    </div></div>
+
+    <div class="panel"><div class="head">Raportit</div><div class="body">
+      <div class="grid-cards">
+        ${portalReportCard('Laiteluettelo', 'devices')}
+        ${portalReportCard('Tulevat määräaikaishuollot', 'upcoming')}
+        ${portalReportCard('Tulevat tarkastukset', 'inspections')}
+        ${portalReportCard('Huoltopyynnöt', 'reqs')}
+        ${portalReportCard('Käyttökoulutetut henkilöt', 'trained')}
+        <div class="mini-card"><h4>🖨 Tulostettava huoltoraportti</h4><div style="color:var(--muted);font-size:12px;margin-bottom:8px">Avaa siisti tulostusnäkymä uuteen ikkunaan.</div><button class="btn sm" onclick="printPortalReport()">Avaa</button></div>
+      </div>
+    </div></div>
+  `;
+}
+function portalReportCard(name, k){
+  return `<div class="mini-card"><h4>📊 ${esc(name)}</h4><div style="color:var(--muted);font-size:12px;margin-bottom:8px">Lataa CSV (Excel-yhteensopiva)</div><button class="btn sm" onclick="portalCSV('${k}')">Lataa CSV</button></div>`;
+}
+function portalRequest(did){
+  $('pr-dev').value = did;
+  $('pr-subj').focus();
+}
+function submitPortalRequest(){
+  const d = DB.devices.find(x=>x.id===$('pr-dev').value);
+  d.requests.push({id:uid('r'),date:todayISO(),by:STATE.currentUser.name,subject:$('pr-subj').value,details:$('pr-det').value,status:'open'});
+  d.req = (d.requests||[]).filter(r=>r.status==='open').length;
+  d.updated=todayISO(); saveData();
+  $('pr-subj').value=''; $('pr-det').value='';
+  renderPortal();
+  alert('Pyyntö lähetetty huoltoyhtiölle.');
+}
+function portalCSV(k){
+  const cid = STATE.currentUser.customerId;
+  const devs = DB.devices.filter(d=>d.customerId===cid && !d.deleted);
+  let head=[], rows=[];
+  if(k==='devices'){
+    head=['Tunnus','Valmistaja','Sijainti','Seuraava huolto','Hankinta-arvo'];
+    rows = devs.map(d => [d.idr,d.make,locPath(d.locId),fmtDate(d.next),d.value]);
+  } else if(k==='upcoming'){
+    head=['Tunnus','Sijainti','Seuraava huolto','Tila'];
+    rows = devs.filter(d=>!d.isContract).sort((a,b)=>new Date(a.next)-new Date(b.next)).map(d => [d.idr,locPath(d.locId),fmtDate(d.next),isLate(d.next)?'Myöhässä':within(d.next,90)?'Pian':'Kunnossa']);
+  } else if(k==='inspections'){
+    head=['Tunnus','Sijainti','Viimeisin tarkastus','Tulos'];
+    rows = devs.map(d => { const last=(d.inspections||[]).slice(-1)[0]; return [d.idr,locPath(d.locId),fmtDate(last?.date),last?.result||'–']; });
+  } else if(k==='reqs'){
+    head=['Tunnus','Aihe','Pvm','Tila'];
+    devs.forEach(d => (d.requests||[]).forEach(r => rows.push([d.idr,r.subject,fmtDate(r.date),r.status==='open'?'Avoin':'Hoidettu'])));
+  } else if(k==='trained'){
+    head=['Tunnus','Sijainti','Henkilö','Pvm'];
+    devs.forEach(d => (d.trained||[]).forEach(t => rows.push([d.idr,locPath(d.locId),t.nimi,fmtDate(t.date)])));
+  }
+  downloadCSV(k+'.csv', [head, ...rows]);
+}
+function printPortalReport(){
+  const cid = STATE.currentUser.customerId;
+  const cust = DB.customers.find(c=>c.id===cid);
+  const devs = DB.devices.filter(d=>d.customerId===cid && !d.deleted);
+  const html = `<!doctype html><html lang="fi"><head><meta charset="utf-8"><title>Huoltoraportti – ${esc(cust.name)}</title>
+  <style>
+    body{font-family:'Manrope',Arial,sans-serif;color:#0f2b30;padding:24px;max-width:900px;margin:auto}
+    h1{color:#0d9488;margin:0 0 6px} h2{margin:18px 0 8px;border-bottom:2px solid #0d9488;padding-bottom:4px}
+    .hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0d9488;padding-bottom:12px;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;margin-bottom:18px}
+    th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left;font-size:13px}
+    th{background:#eef2f1;color:#0f2b30}
+    .late{color:#e2574c;font-weight:700}
+    .footer{margin-top:24px;color:#5b7177;font-size:11px;border-top:1px solid #ddd;padding-top:8px}
+    @media print{ button{display:none} }
+  </style></head><body>
+  <div class="hdr">
+    <div><h1>Servalo – Huoltoraportti</h1><small>${esc(cust.name)} · ${esc(cust.address||'')}</small></div>
+    <div style="text-align:right"><b>${esc(DB.settings.company.name)}</b><br/><small>${esc(DB.settings.company.phone)} · ${esc(DB.settings.company.email)}</small></div>
+  </div>
+  <p>Raportti tulostettu: ${fmtDate(todayISO())}</p>
+  <h2>Laiteluettelo (${devs.length})</h2>
+  <table><thead><tr><th>Tunnus</th><th>Valmistaja</th><th>Sijainti</th><th>Seuraava huolto</th><th>Tila</th></tr></thead><tbody>
+    ${devs.map(d => `<tr><td>${esc(d.idr)}</td><td>${esc(d.make)}</td><td>${esc(locPath(d.locId))}</td><td class="${isLate(d.next)?'late':''}">${fmtDate(d.next)}</td><td>${isLate(d.next)?'<span class="late">MYÖHÄSSÄ</span>':within(d.next,90)?'Tulossa':'Kunnossa'}</td></tr>`).join('')}
+  </tbody></table>
+  <h2>Avoimet huoltopyynnöt</h2>
+  <table><thead><tr><th>Tunnus</th><th>Aihe</th><th>Pvm</th></tr></thead><tbody>
+    ${devs.flatMap(d=>(d.requests||[]).filter(r=>r.status==='open').map(r=>`<tr><td>${esc(d.idr)}</td><td>${esc(r.subject)}</td><td>${fmtDate(r.date)}</td></tr>`)).join('') || '<tr><td colspan="3">Ei avoimia pyyntöjä.</td></tr>'}
+  </tbody></table>
+  <div class="footer">${esc(DB.settings.company.name)} · ${esc(DB.settings.company.web)} · ${esc(DB.settings.company.email)} · ${esc(DB.settings.company.phone)}</div>
+  <button onclick="window.print()" style="margin-top:14px;background:#0d9488;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer">Tulosta / Tallenna PDF</button>
+  </body></html>`;
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+/* =========================================================
+   MODAL / CSV
+   ========================================================= */
+function openModal(title, body){
+  $('modal').innerHTML = `<button class="close" onclick="closeModal()">×</button><h3>${esc(title)}</h3>${body}`;
+  $('modal-back').classList.add('open');
+}
+function closeModal(){ $('modal-back').classList.remove('open'); }
+$('modal-back')?.addEventListener('click', e => { if(e.target.id==='modal-back') closeModal(); });
+
+function downloadCSV(filename, rows){
+  const csv = rows.map(r => r.map(c => {
+    const s = String(c==null?'':c);
+    if(/[;"\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+    return s;
+  }).join(';')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* =========================================================
+   LOOKUPS
+   ========================================================= */
+function custName(id){ return DB.customers.find(c=>c.id===id)?.name || '–'; }
+function userName(id){ return DB.users.find(u=>u.id===id)?.name || '–'; }
+function locName(id){ return DB.locs.find(l=>l.id===id)?.name || '–'; }
+function locPath(id){
+  const parts = []; let cur = DB.locs.find(l=>l.id===id);
+  while(cur){ parts.unshift(cur.name); cur = DB.locs.find(l=>l.id===cur.parent); }
+  return parts.join(' / ');
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+function bootApp(){
+  $('view-login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  renderUserChip();
+  applyRole();
+  renderTree();
+  // default landing per role
+  if(STATE.currentUser.role==='customer') go('portal');
+  else if(STATE.currentUser.role==='worker') go('mywork');
+  else go('devices');
+}
+
+const savedUserId = loadUser();
+if(savedUserId){
+  STATE.currentUser = DB.users.find(u=>u.id===savedUserId);
+  if(STATE.currentUser && STATE.currentUser.active){ bootApp(); }
+  else { setUser(null); $('view-login').classList.remove('hidden'); renderLogin(); }
+} else {
+  $('view-login').classList.remove('hidden');
+  renderLogin();
+}
+</script>
+</body>
+</html>
