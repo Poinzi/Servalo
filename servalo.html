@@ -281,7 +281,12 @@
         <button data-report="poistetut">🗑 Poistetut laitteet</button>
       </div>
     </div>
-    <button class="navlink" data-go="search">🔍 Etsi ▾</button>
+    <div class="dd" id="navSearch">
+      <button class="navlink" id="searchBtn">🔍 Etsi ▾</button>
+      <div class="menu" id="searchMenu">
+        <button onclick="openHistory()">🕘 Laitehistoria</button>
+      </div>
+    </div>
     <div class="dd" id="navMore">
       <button class="navlink" id="moreBtn">⊞ Valikko ▾</button>
       <div class="menu" id="moreMenu">
@@ -523,6 +528,17 @@
     <section id="view-calendar" class="view">
       <div class="topbar"><h2 style="margin:0">Huolto- ja tarkastuskalenteri</h2></div>
       <div id="calendarBody"></div>
+    </section>
+
+    <!-- ===== LAITEHISTORIA ===== -->
+    <section id="view-history" class="view">
+      <div class="topbar"><h2 style="margin:0">Laitehistoria</h2><span class="hint">Muutosloki: kuka muutti mitä ja milloin.</span></div>
+      <div class="panel">
+        <div class="panel-b">
+          <div class="search-box" style="max-width:440px;margin-bottom:14px"><input id="histSearch" placeholder="Hae laitteella, käyttäjällä tai toiminnolla…" oninput="renderHistory()"></div>
+          <div id="histBody"></div>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -1077,13 +1093,16 @@ function routeRender(v){
   else if(v==="dispatch")renderDispatch();
   else if(v==="admin")renderAdmin();
   else if(v==="portal")renderPortal();
-  else if(v==="calendar")renderCalendar();}
+  else if(v==="calendar")renderCalendar();
+  else if(v==="history")renderHistory();}
 document.getElementById("sideToggle").onclick=()=>document.getElementById("sidebar").classList.toggle("collapsed");
 document.getElementById("reportsBtn").onclick=e=>{e.stopPropagation();document.getElementById("reportsMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("reportsMenu").classList.remove("show"));
 document.querySelectorAll("#reportsMenu button").forEach(b=>b.onclick=()=>openReport(b.dataset.report));
 document.getElementById("moreBtn").onclick=e=>{e.stopPropagation();document.getElementById("moreMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("moreMenu").classList.remove("show"));
+document.getElementById("searchBtn").onclick=e=>{e.stopPropagation();document.getElementById("searchMenu").classList.toggle("show");};
+document.addEventListener("click",()=>document.getElementById("searchMenu").classList.remove("show"));
 
 /* ---------- list / summary ---------- */
 function setMode(m){mode=m;
@@ -1151,7 +1170,7 @@ function bulkExport(){const sel=db.devices.filter(d=>selected.has(d.id));
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="valitut-laitteet-"+today()+".json";a.click();
   document.getElementById("bulkMenu").classList.remove("show");}
 function bulkDelete(){if(!confirm(`Poistetaanko ${selected.size} laitetta?`))return;
-  db.devices.forEach(d=>{if(selected.has(d.id)){d.deleted=true;d.delDate=today();d.delReason=d.delReason||"Joukkopoisto";d.delComment=d.delComment||"";}});save();
+  db.devices.forEach(d=>{if(selected.has(d.id)){d.deleted=true;d.delDate=today();d.delReason=d.delReason||"Joukkopoisto";d.delComment=d.delComment||"";logHist("Poistettu",d,[{f:"Tila",from:"Käytössä",to:"Poistettu"}]);}});save();
   selected.clear();document.getElementById("bulkMenu").classList.remove("show");renderList();renderSummary();}
 document.addEventListener("click",()=>{const m=document.getElementById("bulkMenu");if(m)m.classList.remove("show");});
 
@@ -1553,9 +1572,9 @@ function saveDevice(){
     locId:g("dLoc"),customerId:g("dCustomer")||null,assignedTo:g("dAssignee")||null,value:+g("dValue")||0,interval:g("dInterval").trim(),delivery:g("dDelivery"),
     last:g("dLast"),next:g("dNext"),inspInterval:g("dInspInterval").trim(),inspLast:g("dInspLast"),inspNext:g("dInspNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,notes:g("dNotes").trim(),updated:today()};
   if(!data.idr){alert("Anna Laitetunnus.");return;}
-  if(id){Object.assign(db.devices.find(x=>x.id===id),data);}
-  else{db.devices.unshift({id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
-    expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038",...data});}
+  if(id){const dv=db.devices.find(x=>x.id===id);logDeviceDiff(dv,data);Object.assign(dv,data);}
+  else{const nd={id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
+    expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038",...data};db.devices.unshift(nd);logHist("Luotu",nd,[]);}
   save();closeOverlay("devOverlay");
   renderList();renderSummary();if(document.getElementById("view-device").classList.contains("active"))renderDevTab();
 }
@@ -2137,6 +2156,7 @@ function applyRole(){
   show("navAdmin", role()==="admin");
   show("navPortal", cust);
   show("navCalendar", !cust);
+  show("navSearch", !cust);
   // asiakkaalle piilotetaan sivupalkki (laitepuu) ja sisäiset napit
   const sb=document.getElementById("sidebar");if(sb)sb.style.display=cust?"none":"";
   const st=document.getElementById("sideToggle");if(st)st.style.display=cust?"none":"";
@@ -2253,7 +2273,8 @@ function completeMaint(devId){
   const iso=today();
   d.maintenances=d.maintenances||[];
   d.maintenances.unshift({date:iso,comment:"Huolto kuitattu – "+(currentUser?currentUser.name:"")});
-  d.last=iso;d.next=addInterval(iso,d.interval);d.updated=iso;
+  const _oldNext=d.next;d.last=iso;d.next=addInterval(iso,d.interval);d.updated=iso;
+  logHist("Huolto kuitattu",d,[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(iso)},{f:"Seuraava määräaikaishuolto",from:fmt(_oldNext),to:fmt(d.next)}]);
   save();renderMywork();renderList();renderSummary();
 }
 function completeRequest(devId,idx){
@@ -2268,7 +2289,8 @@ function logInspection(devId){
   const iso=today();
   d.inspections=d.inspections||[];
   d.inspections.unshift({date:iso,by:currentUser?currentUser.name:"",comment:"Tarkastus kuitattu"});
-  d.inspLast=iso;d.inspNext=addInterval(iso,d.inspInterval||d.interval);
+  const _oldIns=d.inspNext;d.inspLast=iso;d.inspNext=addInterval(iso,d.inspInterval||d.interval);
+  logHist("Tarkastus kuitattu",d,[{f:"Viimeisin tarkastus",from:"–",to:fmt(iso)},{f:"Seuraava tarkastus",from:fmt(_oldIns),to:fmt(d.inspNext)}]);
   d.updated=iso;save();renderMywork();renderList();renderSummary();
 }
 
@@ -2380,6 +2402,55 @@ function deleteUser(id){
   save();renderAdmin();
 }
 
+/* ---------- Laitehistoria (muutosloki) ---------- */
+const HIST_FIELDS={idr:"Laitetunnus",target:"Huoltosopimuskohde",make:"Valmistaja/Malli/Tyyppi",group:"Laiteryhmä",locId:"Toimipiste",customerId:"Asiakas",assignedTo:"Vastuuhenkilö",interval:"Huoltoväli",last:"Viimeisin määräaikaishuolto",next:"Seuraava määräaikaishuolto",inspInterval:"Tarkastusväli",inspLast:"Viimeisin tarkastus",inspNext:"Seuraava tarkastus",value:"Hankinta-arvo",req:"Huoltopyynnöt",repairs:"Korjaukset",notes:"Lisätiedot"};
+const HIST_BADGE={"Luotu":"green","Päivitetty":"yellow","Huolto kuitattu":"green","Tarkastus kuitattu":"green","Poistettu":"red","Palautettu":"green"};
+function histVal(f,v){if(v==null||v==="")return"–";
+  if(f==="locId")return locPath(v);
+  if(f==="customerId"){const c=custById(v);return c?c.name:String(v);}
+  if(f==="assignedTo"){const u=(db.users||[]).find(x=>x.id===v);return u?u.name:String(v);}
+  if(f==="value")return eur(v);
+  if(["last","next","inspLast","inspNext"].includes(f))return fmt(v);
+  return String(v);}
+function logHist(action,dev,changes){db.history=db.history||[];
+  db.history.unshift({id:uid(),ts:Date.now(),by:currentUser?currentUser.name:"järjestelmä",action,devId:(dev&&dev.id)||"",idr:(dev&&dev.idr)||"",target:(dev&&dev.target)||"",changes:changes||[]});
+  if(db.history.length>500)db.history.length=500;}
+function logDeviceDiff(old,data){const ch=[];for(const f in HIST_FIELDS){const a=old[f]==null?"":old[f],b=data[f]==null?"":data[f];if(String(a)!==String(b))ch.push({f:HIST_FIELDS[f],from:histVal(f,old[f]),to:histVal(f,data[f])});}if(ch.length)logHist("Päivitetty",old,ch);}
+function histDateTime(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,"0");return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+"."+p(d.getMinutes());}
+function renderHistory(){const body=document.getElementById("histBody");if(!body)return;
+  const sEl=document.getElementById("histSearch");const q=(sEl?sEl.value:"").toLowerCase();
+  const list=(db.history||[]).filter(h=>{
+    const txt=(h.idr+" "+h.target+" "+h.by+" "+h.action+" "+(h.changes||[]).map(c=>c.f+" "+c.from+" "+c.to).join(" ")).toLowerCase();
+    return txt.includes(q);});
+  if(!list.length){body.innerHTML='<p class="empty">Ei historiamerkintöjä.</p>';return;}
+  const rows=list.map(h=>{
+    const ch=(h.changes||[]).length?(h.changes.map(c=>`<div style="margin:2px 0"><b>${esc(c.f)}:</b> <span style="text-decoration:line-through;opacity:.55">${esc(c.from)}</span> → <span style="color:#0d9488;font-weight:600">${esc(c.to)}</span></div>`).join("")):'<span class="hint">–</span>';
+    const act=`<button class="iconbtn" style="width:34px;height:34px;font-size:13px" title="Avaa laite" onclick="openDevice('${h.devId}')">🔍</button>`;
+    return `<tr>
+      <td style="white-space:nowrap">${histDateTime(h.ts)}</td>
+      <td>${esc(h.by||"")}</td>
+      <td><span class="badge ${HIST_BADGE[h.action]||"yellow"}">${esc(h.action)}</span></td>
+      <td><b>${esc(h.idr||"–")}</b>${h.target?'<br><span class="hint">'+esc(h.target)+'</span>':''}</td>
+      <td>${ch}</td>
+      <td>${h.devId&&db.devices.find(x=>x.id===h.devId)?act:""}</td>
+    </tr>`;}).join("");
+  body.innerHTML=`<div style="overflow:auto"><table>
+    <thead><tr><th>Aika</th><th>Käyttäjä</th><th>Toiminto</th><th>Laite</th><th>Muutokset</th><th>Toiminnot</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;}
+function openHistory(){const sm=document.getElementById("searchMenu");if(sm)sm.classList.remove("show");
+  document.querySelectorAll("nav.top .navlink").forEach(x=>x.classList.remove("active"));
+  const sb=document.getElementById("searchBtn");if(sb)sb.classList.add("active");
+  go("history");renderHistory();}
+/* demodata: seedaa muutama merkintä jos loki on tyhjä */
+db.history=db.history||[];
+if(!db.history.length&&db.devices&&db.devices.length){
+  const now=Date.now(),d0=db.devices[0],d1=db.devices[1]||db.devices[0];
+  db.history=[
+    {id:uid(),ts:now-3600000*5,by:"Jari Mattila",action:"Päivitetty",devId:d0.id,idr:d0.idr,target:d0.target,changes:[{f:"Seuraava määräaikaishuolto",from:fmt(d0.last||today()),to:fmt(d0.next||today())},{f:"Vastuuhenkilö",from:"–",to:"Eetu Nieminen"}]},
+    {id:uid(),ts:now-3600000*27,by:"Jari Mattila",action:"Huolto kuitattu",devId:d0.id,idr:d0.idr,target:d0.target,changes:[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(today())}]},
+    {id:uid(),ts:now-3600000*52,by:"Sanna Mäkinen",action:"Luotu",devId:d1.id,idr:d1.idr,target:d1.target,changes:[]}
+  ];save();
+}
 /* ---------- init ---------- */
 buildTree();renderList();setMode("list");renderCustomers();
 currentUser=loadUser();
