@@ -672,6 +672,7 @@
         <div class="field"><label>Puhelin</label><input class="f" id="cuPhone" placeholder="+358…"></div>
       </div>
       <div class="field"><label>Osoite</label><input class="f" id="cuAddress" placeholder="Katuosoite, postinumero, kaupunki"></div>
+      <div class="field"><label>Avainten nouto</label><input class="f" id="cuKeys" placeholder="Mistä yleis-/reittiavaimet haetaan (esim. isännöitsijä, vartiointiliike, avainsäilö)"></div>
       <div class="field"><label>Tila</label>
         <select class="f" id="cuStatus">
           <option value="active">Aktiivinen</option>
@@ -948,7 +949,7 @@ function seed(){
     {id:uid(),name:"Huoltoraportti_2026-03.pdf",category:"Huoltoraportti",date:"2026-03-03",by:"Petri Nieminen",data:""}];}
   // ----- asiakkaat (johdetaan kiinteistö-tason organisaatioista) -----
   const customers=[
-    {id:"p1",name:"As Oy Niittyranta",biz:"2901455-3",contact:"Pirjo Laine",email:"isannointi@niittyranta.fi",phone:"+358 9 123 4567",address:"Niittyrannankatu 4, 00980 Helsinki",status:"active",notes:"Isännöitsijä hoitaa sopimusasiat.",created:"2024-08-21",
+    {id:"p1",name:"As Oy Niittyranta",biz:"2901455-3",contact:"Pirjo Laine",email:"isannointi@niittyranta.fi",phone:"+358 9 123 4567",address:"Niittyrannankatu 4, 00980 Helsinki",status:"active",notes:"Isännöitsijä hoitaa sopimusasiat.",keys:"Yleisavain noudettavissa isännöitsijän toimistolta (Pirjo Laine, ark. 8–16). Reittiavain vartiointiliikkeestä koodilla.",created:"2024-08-21",
       contacts:[
         {id:uid(),nimi:"Pirjo Laine",titteli:"Isännöitsijä / Kaupallinen yhteyshenkilö",email:"isannointi@niittyranta.fi",phone:"+358 9 123 4567",invited:true,userId:"u6"},
         {id:uid(),nimi:"Reijo Aalto",titteli:"Tekninen yhteyshenkilö",email:"reijo.aalto@niittyranta.fi",phone:"+358 40 222 3344",invited:false,userId:null}
@@ -1418,6 +1419,7 @@ function deviceMainTab(d){
     <div class="t">Laitteen sijainti : ${esc(locPath(d.locId))}</div>
     <div class="meta">
       <b>Asiakas:</b> ${d.customerId&&custById(d.customerId)?`<a href="#" onclick="openCustomer('${d.customerId}');return false" style="color:var(--orange);font-weight:700;text-decoration:none">${esc(custById(d.customerId).name)}</a>`:"–"}<br>
+      ${d.customerId&&custById(d.customerId)&&custById(d.customerId).keys?'<b>🔑 Avainten nouto:</b> '+esc(custById(d.customerId).keys)+'<br>':''}
       <b>Yhteystiedot:</b> ${esc(locById(d.locId)?.addr||"")}<br>
       <b>Kustannuspaikka:</b> Ecom ID: ${esc(d.ecom||"")}<br>
       <b>Lisätieto:</b> Servalo asiantuntija: ${esc(d.expert||"")}<br>
@@ -1853,6 +1855,7 @@ function renderCustomerDetail(){
         ${pair("Sähköposti",c.email?`<a href="mailto:${esc(c.email)}" style="color:var(--orange)">${esc(c.email)}</a>`:"")}
         ${pair("Puhelin",c.phone?`<a href="tel:${esc(c.phone)}" style="color:var(--orange)">${esc(c.phone)}</a>`:"")}
         ${pair("Osoite",esc(c.address||""))}
+        ${pair("🔑 Avainten nouto",esc(c.keys||""))}
         ${pair("Lisätty",fmt(c.created))}
       </div></div></div>
       <div class="panel"><div class="panel-h">Tehtävät</div><div class="panel-b" style="padding:0">
@@ -1901,7 +1904,7 @@ function editCustomer(id){
   const set=(f,v)=>document.getElementById(f).value=v||"";
   document.getElementById("cuId").value=c?c.id:"";
   set("cuName",c?.name);set("cuBiz",c?.biz);set("cuContact",c?.contact);set("cuEmail",c?.email);
-  set("cuPhone",c?.phone);set("cuAddress",c?.address);set("cuNotes",c?.notes);
+  set("cuPhone",c?.phone);set("cuAddress",c?.address);set("cuKeys",c?.keys);set("cuNotes",c?.notes);
   document.getElementById("cuStatus").value=c?c.status:"active";
   draftContacts=(c&&c.contacts?c.contacts:[]).map(x=>({...x}));
   renderContactRows();
@@ -1913,7 +1916,7 @@ function saveCustomer(){
   const id=document.getElementById("cuId").value;
   const contacts=draftContacts.filter(c=>(c.nimi||"").trim()||(c.email||"").trim());
   const data={name,biz:g("cuBiz").trim(),contact:g("cuContact").trim(),email:g("cuEmail").trim(),
-    phone:g("cuPhone").trim(),address:g("cuAddress").trim(),status:g("cuStatus"),notes:g("cuNotes").trim(),contacts};
+    phone:g("cuPhone").trim(),address:g("cuAddress").trim(),keys:g("cuKeys").trim(),status:g("cuStatus"),notes:g("cuNotes").trim(),contacts};
   if(id){Object.assign(custById(id),data);}
   else{db.customers.unshift({id:uid(),created:today(),...data});}
   save();closeOverlay("custOverlay");
