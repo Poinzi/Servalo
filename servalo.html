@@ -269,9 +269,6 @@
   <nav class="top">
     <button class="navlink active" id="navList" data-go="list"><span>👁</span> Laitteet</button>
     <button class="navlink" id="navPortal" data-go="portal" style="display:none"><span>🏠</span> Oma kohde</button>
-    <button class="navlink" id="navMywork" data-go="mywork"><span>🧰</span> Omat työt</button>
-    <button class="navlink" id="navCustomers" data-go="customers"><span>👥</span> Asiakkaat</button>
-    <button class="navlink" id="navCalendar" data-go="calendar"><span>🗓</span> Kalenteri</button>
     <div class="dd" id="navReports">
       <button class="navlink" id="reportsBtn">☰ Raportit ▾</button>
       <div class="menu" id="reportsMenu">
@@ -284,9 +281,17 @@
         <button data-report="poistetut">🗑 Poistetut laitteet</button>
       </div>
     </div>
-    <button class="navlink" id="navDispatch" data-go="dispatch"><span>🗂</span> Työnjako</button>
-    <button class="navlink" id="navAdmin" data-go="admin"><span>⚙</span> Hallinta</button>
     <button class="navlink" data-go="search">🔍 Etsi ▾</button>
+    <div class="dd" id="navMore">
+      <button class="navlink" id="moreBtn">⊞ Valikko ▾</button>
+      <div class="menu" id="moreMenu">
+        <button id="navMywork" data-go="mywork">🧰 Omat työt</button>
+        <button id="navCalendar" data-go="calendar">🗓 Kalenteri</button>
+        <button id="navCustomers" data-go="customers">👥 Asiakkaat</button>
+        <button id="navDispatch" data-go="dispatch">🗂 Työnjako</button>
+        <button id="navAdmin" data-go="admin">⚙ Hallinta</button>
+      </div>
+    </div>
   </nav>
   <div class="right-nav">
     <span class="navlink hide-sm">❓ Ohjeet</span>
@@ -1076,6 +1081,8 @@ document.getElementById("sideToggle").onclick=()=>document.getElementById("sideb
 document.getElementById("reportsBtn").onclick=e=>{e.stopPropagation();document.getElementById("reportsMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("reportsMenu").classList.remove("show"));
 document.querySelectorAll("#reportsMenu button").forEach(b=>b.onclick=()=>openReport(b.dataset.report));
+document.getElementById("moreBtn").onclick=e=>{e.stopPropagation();document.getElementById("moreMenu").classList.toggle("show");};
+document.addEventListener("click",()=>document.getElementById("moreMenu").classList.remove("show"));
 
 /* ---------- list / summary ---------- */
 function setMode(m){mode=m;
@@ -2132,6 +2139,8 @@ function applyRole(){
   const st=document.getElementById("sideToggle");if(st)st.style.display=cust?"none":"";
   document.querySelectorAll(".req-edit").forEach(el=>el.style.display=can("devices_edit")?"":"none");
   document.querySelectorAll(".req-cust").forEach(el=>el.style.display=can("customers")?"":"none");
+  {const cal=document.getElementById("navCalendar");if(cal)cal.style.display=role()==="customer"?"none":"";}
+  {const mb=document.getElementById("navMore");if(mb){const any=["navMywork","navCalendar","navCustomers","navDispatch","navAdmin"].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=="none";});mb.style.display=any?"":"none";}}
 }
 
 /* ========== OMAT TYÖT (asentaja) ========== */
