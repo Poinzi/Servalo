@@ -398,6 +398,7 @@
       <div class="topbar">
         <button class="btn orange" onclick="go('list')">⟵ Takaisin</button>
         <button class="btn orange req-edit" onclick="editDevice(currentDeviceId)">✎ Muokkaa laitetta</button>
+        <button class="btn danger req-edit" onclick="deleteDevice(currentDeviceId)">🗑 Poista käytöstä</button>
       </div>
       <div class="tabs" id="devTabs">
         <button class="active" data-tab="laite"><span class="ti">ℹ️</span>Laite</button>
@@ -1422,12 +1423,25 @@ function addScan(devId){
 /* ---------- HUOLTOPYYNNÖT-välilehti ---------- */
 function devRequestsTab(d){
   const rows=d.requests||[];
-  const tr=rows.length?rows.map(r=>`<tr><td style="white-space:nowrap">${fmt(r.date)}</td><td>${esc(r.reason||r.subject||"")}</td><td>${esc(r.comment||"")}</td><td>${esc(r.status||"Käsittelyssä")}</td></tr>`).join("")
-    :'<tr><td colspan="4" class="empty">Ei huoltopyyntöjä</td></tr>';
+  const canEdit=can("devices_edit");
+  const tr=rows.length?rows.map((r,idx)=>{
+    const done=r.status==="done";
+    const st=done?'<span class="badge green">Hoidettu '+(r.done?fmt(r.done):"")+'</span>':'<span class="badge red">Käsittelyssä</span>';
+    const act=canEdit?`<td style="white-space:nowrap">${done?"":`<button class="btn sm orange" onclick="completeDevRequest('${d.id}',${idx})">✔ Hoidettu</button> `}<button class="btn sm danger" onclick="deleteDevRequest('${d.id}',${idx})">🗑</button></td>`:'<td></td>';
+    return `<tr><td style="white-space:nowrap">${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td>${esc(r.comment||"")}</td><td>${st}</td>${act}</tr>`;
+  }).join("")
+    :'<tr><td colspan="5" class="empty">Ei huoltopyyntöjä</td></tr>';
   return `<div class="panel"><div class="panel-h">Huoltopyynnöt</div><div class="panel-b" style="padding:0">
-    <table><thead><tr><th>Päivämäärä</th><th>Aihe</th><th>Lisätieto</th><th>Tila</th></tr></thead><tbody>${tr}</tbody></table>
+    <table><thead><tr><th>Pyyntöpäivä</th><th>Aihe</th><th>Lisätieto</th><th>Tila</th><th>Toiminnot</th></tr></thead><tbody>${tr}</tbody></table>
   </div></div>`;
 }
+function completeDevRequest(devId,idx){const d=db.devices.find(x=>x.id===devId);if(!d||!d.requests||!d.requests[idx])return;
+  if(!confirm("Merkitäänkö huoltopyyntö hoidetuksi tänään?"))return;
+  const r=d.requests[idx];r.status="done";r.done=today();r.comment=(r.comment?r.comment+" · ":"")+"Hoidettu ("+(currentUser?currentUser.name:"")+")";
+  d.updated=today();save();renderDevTab();}
+function deleteDevRequest(devId,idx){const d=db.devices.find(x=>x.id===devId);if(!d||!d.requests||!d.requests[idx])return;
+  if(!confirm("Poistetaanko huoltopyyntö? Tätä ei voi perua."))return;
+  d.requests.splice(idx,1);d.updated=today();save();renderDevTab();}
 function deviceMainTab(d){
   const lateBadge=()=>{const n=daysFromToday(d.next);if(n===null)return"";return n<0?` <span class="badge red">${fmt(d.next)}</span>`:n<=14?` <span class="badge yellow">${fmt(d.next)}</span>`:"";};
   const pair=(k,v)=>`<div class="pair"><div class="k">${k}</div><div class="v">${v||""}</div></div>`;
@@ -1507,23 +1521,23 @@ function deviceMainTab(d){
       </tbody></table>
     </div></div>
     <div class="panel"><div class="panel-h">Määräaikaishuollot</div><div class="panel-b" style="padding:0">
-      ${entryRows(d.maintenances)}
+      ${entryRows(d.maintenances,d.id,'maintenances')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','maintenances')">＋</button></div>
     </div></div>
     <div class="panel"><div class="panel-h">Tarkastukset</div><div class="panel-b" style="padding:0">
-      ${entryRows(d.inspections)}
+      ${entryRows(d.inspections,d.id,'inspections')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','inspections')">＋</button></div>
     </div></div>
     <div class="panel"><div class="panel-h">Korjaukset</div><div class="panel-b" style="padding:0">
-      ${(d.repairsLog&&d.repairsLog.length)?entryRows(d.repairsLog):(d.repairs?`<div style="padding:10px 14px">${d.repairs} korjausta kirjattu</div>`:'<p class="empty">Ei merkintöjä</p>')}
+      ${(d.repairsLog&&d.repairsLog.length)?entryRows(d.repairsLog,d.id,'repairsLog'):(d.repairs?`<div style="padding:10px 14px">${d.repairs} korjausta kirjattu</div>`:'<p class="empty">Ei merkintöjä</p>')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','repairsLog')">＋</button></div>
     </div></div>
     <div class="panel"><div class="panel-h">Lisätiedot</div><div class="panel-b" style="padding:0">
-      ${(d.notesLog&&d.notesLog.length)?entryRows(d.notesLog):(d.notes?`<div style="padding:10px 14px">${esc(d.notes)}</div>`:'<p class="empty">Ei merkintöjä</p>')}
+      ${(d.notesLog&&d.notesLog.length)?entryRows(d.notesLog,d.id,'notesLog'):(d.notes?`<div style="padding:10px 14px">${esc(d.notes)}</div>`:'<p class="empty">Ei merkintöjä</p>')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','notesLog')">＋</button></div>
     </div></div>
     <div class="panel"><div class="panel-h">Käyttökoulutetut henkilöt</div><div class="panel-b" style="padding:0">
-      ${entryRows(d.trained)}
+      ${entryRows(d.trained,d.id,'trained')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','trained')">＋</button></div>
     </div></div>
   </div>`;
@@ -1536,16 +1550,27 @@ const ENTRY_CFG={
   notesLog:{title:"Lisää lisätieto",templates:["Lisätieto","Pöytäkirja","Raportti"]},
   trained:{title:"Lisää käyttökoulutettu henkilö",templates:["Käyttökoulutus"],person:true}
 };
-function entryRows(arr){
+function entryRows(arr,devId,type){
   arr=arr||[];
   if(!arr.length)return '<p class="empty">Ei merkintöjä</p>';
-  return '<table><tbody>'+arr.map(e=>{
+  const canEdit=devId&&type&&can("devices_edit");
+  return '<table><tbody>'+arr.map((e,idx)=>{
     const head=[e.pohja,e.name].filter(Boolean).map(esc).join(" – ");
     const file=e.file&&e.file.data?` · <a href="${e.file.data}" download="${esc(e.file.name)}">📎 ${esc(e.file.name)}</a>`:"";
     const photo=e.photo&&e.photo.data?`<div style="margin-top:6px"><a href="${e.photo.data}" download="${esc(e.photo.name||"tarkastuspoytakirja.jpg")}" title="Avaa pöytäkirjan kuva"><img src="${e.photo.data}" alt="Tarkastuspöytäkirja" style="max-width:120px;max-height:120px;border:1px solid var(--line);border-radius:6px;display:block"></a><span class="hint">📷 Pöytäkirjan kuva (sisäinen)</span></div>`:"";
     const body=(head?'<b>'+head+'</b>':'')+(head&&e.comment?' · ':'')+esc(e.comment||"")+file+photo;
-    return `<tr><td style="white-space:nowrap;vertical-align:top">${fmt(e.date)}</td><td>${body||'–'}</td></tr>`;
+    const act=canEdit?`<td style="white-space:nowrap;vertical-align:top;text-align:right"><button class="iconbtn" style="width:30px;height:30px;font-size:12px;background:var(--red)" title="Poista merkintä" onclick="deleteEntry('${devId}','${type}',${idx})">🗑</button></td>`:"";
+    return `<tr><td style="white-space:nowrap;vertical-align:top">${fmt(e.date)}</td><td>${body||'–'}</td>${act}</tr>`;
   }).join("")+'</tbody></table>';
+}
+function deleteEntry(devId,type,idx){
+  const d=db.devices.find(x=>x.id===devId);if(!d||!d[type]||!d[type][idx])return;
+  if(!confirm("Poistetaanko merkintä? Tätä ei voi perua."))return;
+  d[type].splice(idx,1);
+  if(type==="maintenances"){const a=d.maintenances||[];if(a.length){const last=a.map(e=>e.date).filter(Boolean).sort().slice(-1)[0]||"";d.last=last;d.next=last?addInterval(last,d.interval):"";}else{d.last="";d.next="";}}
+  if(type==="inspections"){const a=d.inspections||[];if(a.length){const last=a.map(e=>e.date).filter(Boolean).sort().slice(-1)[0]||"";d.inspLast=last;d.inspNext=last?addInterval(last,d.inspInterval||d.interval):"";}else{d.inspLast="";d.inspNext="";}}
+  if(type==="repairsLog"){d.repairs=Math.max(0,(d.repairs||0)-1);}
+  d.updated=today();save();renderDevTab();
 }
 function previewPhoto(){
   const pi=document.getElementById("enPhoto"),pp=document.getElementById("enPhotoPrev");
@@ -1656,6 +1681,13 @@ const dateBadge=iso=>{const n=daysFromToday(iso);return n<0?`<span class="badge 
 function inDateRange(iso){if(!repDateFilter||!iso)return !repDateFilter;const{from,to}=repDateFilter;if(from&&iso<from)return false;if(to&&iso>to)return false;return true;}
 function monthsBetween(a,b){const x=new Date(a),y=new Date(b);return (y.getFullYear()-x.getFullYear())*12+(y.getMonth()-x.getMonth());}
 function restoreDevice(id){const d=db.devices.find(x=>x.id===id);if(!d||!confirm("Palautetaanko laite käyttöön?"))return;d.deleted=false;save();renderReport();renderList();}
+function deleteDevice(id){const d=db.devices.find(x=>x.id===id);if(!d)return;
+  if(d.deleted){alert("Laite on jo poistettu käytöstä.");return;}
+  const reason=prompt("Poiston syy (esim. Käyttöaika, Rikkoutunut, Muu):","Muu");if(reason===null)return;
+  if(!confirm("Poistetaanko laite "+(d.idr||"")+" käytöstä? Laite siirtyy Poistetut-raporttiin ja voidaan palauttaa sieltä."))return;
+  d.deleted=true;d.delDate=today();d.delReason=(reason.trim()||"Muu");d.delComment=d.delComment||"";
+  logHist("Poistettu",d,[{f:"Tila",from:"Käytössä",to:"Poistettu"}]);
+  save();go("list");renderList();}
 
 const reportDefs={
   huollot:{title:"Tulevat määräaikaishuollot",desc:"Näytetään laitteet joilla on huoltoväli ja seuraava määräaikaishuolto.",
@@ -1974,7 +2006,7 @@ function renderCustomerDetail(){
     const late=t.status==="open"&&t.due&&t.due<today();
     const badge=t.status==="done"?'<span class="ctag ct-active">Tehty</span>':(late?'<span class="badge red">Myöhässä</span>':'<span class="ctag ct-lead">Avoin</span>');
     return `<tr><td>${esc(t.title)} ${badge}</td><td>${t.due?fmt(t.due):"–"}</td>
-      <td><button class="btn sm ghost" onclick="toggleCustTask('${t.id}')">${t.status==="done"?"Avaa":"Valmis"}</button></td></tr>`;}).join("")
+      <td style="white-space:nowrap"><button class="btn sm ghost" onclick="toggleCustTask('${t.id}')">${t.status==="done"?"Avaa":"Valmis"}</button> <button class="btn sm danger" onclick="deleteCustTask('${t.id}')">🗑</button></td></tr>`;}).join("")
     :'<tr><td colspan="3" class="empty">Ei tehtäviä.</td></tr>';
   const reqList=reqRows.length?reqRows.map(({d,r})=>`<tr><td><b>${esc(d.idr)}</b></td><td>${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td>${esc(r.comment||"")}</td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei avoimia huoltopyyntöjä.</td></tr>';
@@ -2081,6 +2113,7 @@ function addCustTask(custId){
   save();renderCustomerDetail();
 }
 function toggleCustTask(id){const t=db.tasks.find(x=>x.id===id);if(!t)return;t.status=t.status==="done"?"open":"done";save();renderCustomerDetail();}
+function deleteCustTask(id){if(!confirm("Poistetaanko tehtävä?"))return;db.tasks=db.tasks.filter(x=>x.id!==id);save();renderCustomerDetail();}
 
 /* ---------- asiakasportaalin kutsut ---------- */
 function inviteContact(custId,contactId){
@@ -2523,7 +2556,7 @@ function renderCertList(){const w=document.getElementById("uCertsWrap");if(!w)re
     </div>`;}).join("");
   w.innerHTML=`<div style="margin-top:8px"><label style="font-weight:700">Pätevyydet / kortit</label>${rows||'<p class="hint">Ei lisättyjä pätevyyksiä.</p>'}<button type="button" class="btn sm ghost" onclick="certAdd()">+ Lisää pätevyys</button></div>`;}
 function certAdd(){editCerts.push({type:CERT_TYPES[0],issued:"",expires:"",file:null});renderCertList();}
-function certRemove(i){editCerts.splice(i,1);renderCertList();}
+function certRemove(i){if(!confirm("Poistetaanko pätevyys? Mahdollinen liite poistuu samalla."))return;editCerts.splice(i,1);renderCertList();}
 function certSet(i,f,v){editCerts[i][f]=v;if(f==="expires")renderCertList();}
 function certClearFile(i){editCerts[i].file=null;renderCertList();}
 function certFile(i,input){const fl=input.files&&input.files[0];if(!fl)return;if(fl.size>4*1024*1024){alert("Liite on liian suuri (max 4 MB).");return;}const r=new FileReader();r.onload=()=>{editCerts[i].file=r.result;renderCertList();};r.readAsDataURL(fl);}
