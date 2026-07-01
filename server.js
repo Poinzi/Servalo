@@ -40,9 +40,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Julkinen QR-palvelu (ohje24) vs. isännöitsijän sovellus (Servalo).
+  // Host-pohjainen oletus: kun ohje24-domain osoittaa tähän palveluun,
+  // juuripolku palauttaa julkisen QR-sivun. Muuten Servalo-sovellus.
+  const host = String(req.headers.host || "").toLowerCase();
+  const isPublic = host.includes("ohje24");
+  const defaultFile = isPublic ? "/ohje24.html" : "/servalo.html";
+
   // Estä polkuhyökkäykset
   let urlPath = decodeURIComponent(req.url.split("?")[0]);
-  if (urlPath === "/") urlPath = "/servalo.html";
+  // QR-koodilinkit (esim. /k/82FA66) -> aina julkinen sivu; sivu lukee koodin URL:sta
+  if (urlPath === "/k" || urlPath.startsWith("/k/")) urlPath = "/ohje24.html";
+  if (urlPath === "/") urlPath = defaultFile;
 
   const filePath = path.normalize(path.join(ROOT, urlPath));
   if (!filePath.startsWith(ROOT)) {
@@ -52,8 +61,9 @@ const server = http.createServer((req, res) => {
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      // Tuntematon polku -> palauta sovellus (SPA)
-      fs.readFile(path.join(ROOT, "servalo.html"), (e2, html) => {
+      // Tuntematon polku -> julkisella domainilla QR-sivu, muuten Servalo (SPA)
+      const fallback = isPublic ? "ohje24.html" : "servalo.html";
+      fs.readFile(path.join(ROOT, fallback), (e2, html) => {
         if (e2) {
           res.writeHead(404);
           return res.end("Not found");

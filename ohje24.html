@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ohje24.fi — turvallisuustiedot</title>
+<style>
+  :root{
+    --bg:#f4f4f5; --card:#ffffff; --ink:#141414; --muted:#6b6b6b;
+    --line:#e6e6e6; --brand:#0a0a0a; --accent:#d5001c; --accent2:#ff2038;
+    --ok:#1a7f37; --okbg:#e8f5ec; --warn:#b45309; --warnbg:#fdf1d6;
+    --bad:#d5001c; --badbg:#fde4e6; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    padding:0 0 40px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:520px; margin:0 auto; padding:0 14px}
+
+  /* top bar */
+  .top{
+    background:var(--brand); color:#fff; padding:14px 14px calc(14px + env(safe-area-inset-top));
+    padding-top:calc(14px + env(safe-area-inset-top));
+  }
+  .top .wrap{display:flex; align-items:center; gap:10px}
+  .logo{font-weight:800; letter-spacing:-.3px; font-size:19px}
+  .logo b{color:var(--accent2)}
+  .top .code{margin-left:auto; font-size:12px; opacity:.75; font-variant-numeric:tabular-nums}
+
+  h1{font-size:20px; margin:16px 0 2px; letter-spacing:-.3px}
+  .sub{color:var(--muted); font-size:13px; margin:0 0 14px}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); padding:14px 15px; margin:0 0 12px;
+  }
+  .card h2{font-size:13px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted);
+    margin:0 0 10px; font-weight:700}
+
+  .status-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--line)}
+  .status-row:first-of-type{border-top:0}
+  .status-row .name{font-weight:600; font-size:14px}
+  .status-row .meta{color:var(--muted); font-size:12px}
+  .status-row .grow{flex:1; min-width:0}
+  .pill{font-size:12px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .pill.ok{background:var(--okbg); color:var(--ok)}
+  .pill.warn{background:var(--warnbg); color:var(--warn)}
+  .pill.bad{background:var(--badbg); color:var(--bad)}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    border:0; border-radius:11px; padding:14px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-top:4px;
+  }
+  .btn.primary{background:var(--accent); color:#fff}
+  .btn.primary:active{background:#a80016}
+  .btn.ghost{background:#fff; color:var(--ink); border:1px solid var(--line)}
+  .btn.ghost:active{background:#f3f4f6}
+  .btn.block{margin-bottom:8px}
+  .btn[disabled]{opacity:.55; cursor:default}
+
+  .doc{display:flex; align-items:center; gap:11px; padding:11px 0; border-top:1px solid var(--line); text-decoration:none; color:inherit}
+  .doc:first-of-type{border-top:0}
+  .doc .ic{width:34px;height:34px;border-radius:9px;background:#f4f4f5;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+  .doc .t{font-weight:600;font-size:14px}
+  .doc .s{color:var(--muted);font-size:12px}
+  .doc .chev{margin-left:auto;color:#c0c4cc;font-size:18px}
+
+  .contact{display:flex; gap:11px; padding:11px 0; border-top:1px solid var(--line)}
+  .contact:first-of-type{border-top:0}
+  .contact .ic{width:34px;height:34px;border-radius:9px;background:#f4f4f5;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+  .contact .t{font-weight:600;font-size:14px}
+  .contact .s{color:var(--muted);font-size:12.5px}
+  .contact a{color:var(--accent); font-weight:700; text-decoration:none; font-size:13px}
+
+  .note{background:#f8fafc; border:1px dashed var(--line); border-radius:11px; padding:11px 12px; color:var(--muted); font-size:12.5px; margin-top:2px}
+  .banner{border-radius:11px; padding:12px 13px; font-size:13.5px; margin:0 0 12px; display:flex; gap:9px; align-items:flex-start}
+  .banner.ok{background:var(--okbg); color:#166534}
+  .banner.warn{background:var(--warnbg); color:#92400e}
+  .banner b{font-weight:800}
+
+  .hint{color:var(--muted); font-size:12px}
+  .center{text-align:center}
+  .empty{padding:40px 20px; text-align:center; color:var(--muted)}
+  .empty .big{font-size:44px; margin-bottom:8px}
+  .empty h1{color:var(--ink)}
+
+  /* pin gate */
+  .gate{padding:22px 4px; text-align:center}
+  .gate .lock{font-size:40px; margin-bottom:6px}
+  .pinbox{display:flex; gap:8px; justify-content:center; margin:16px 0 6px}
+  .pinbox input{width:46px;height:54px; text-align:center; font-size:22px; font-weight:700;
+    border:1px solid var(--line); border-radius:11px; background:#fff}
+  .pinbox input:focus{outline:2px solid var(--accent2); border-color:var(--accent2)}
+  .err{color:var(--bad); font-size:13px; font-weight:600; min-height:18px; margin-top:4px}
+
+  /* demo switcher */
+  .demobar{position:fixed; left:0; right:0; bottom:0; background:#111827ee; backdrop-filter:blur(6px);
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom)); z-index:50; border-top:1px solid #00000030}
+  .demobar .inner{max-width:520px; margin:0 auto; display:flex; gap:6px; align-items:center; overflow-x:auto}
+  .demobar .lab{color:#9aa2b1; font-size:11px; font-weight:700; white-space:nowrap; padding-right:2px}
+  .chip{white-space:nowrap; border:1px solid #ffffff22; background:#ffffff12; color:#e5e7eb;
+    font-size:12px; font-weight:600; padding:7px 11px; border-radius:999px; cursor:pointer}
+  .chip.active{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .toast{position:fixed; left:50%; bottom:64px; transform:translateX(-50%) translateY(20px);
+    background:#111827; color:#fff; padding:11px 16px; border-radius:11px; font-size:14px; font-weight:600;
+    opacity:0; transition:.25s; z-index:60; box-shadow:0 6px 20px rgba(0,0,0,.3); max-width:90%}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:18px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="wrap">
+      <span class="logo">ohje<b>24</b>.fi</span>
+      <span class="code" id="topCode"></span>
+    </div>
+  </div>
+
+  <div class="wrap" id="app"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- DEMO-VALITSIN (ei tule tuotantoon) -->
+  <div class="demobar">
+    <div class="inner">
+      <span class="lab">DEMO ▸</span>
+      <span class="chip" data-code="10AULA">Ala-aula</span>
+      <span class="chip" data-code="82FA66">Asunto A12</span>
+      <span class="chip" data-code="7HK220">Lämmönjakohuone</span>
+      <span class="chip" data-code="90ZZ00">Kohdistamaton</span>
+    </div>
+  </div>
+
+<script>
+/* ================= DEMODATA (kaikki keksittyä) ================= */
+var COMPANY = {
+  name:"Asunto Oy Esimerkkitie 4",
+  address:"Esimerkkitie 4, 00100 Helsinki",
+  status:[
+    {name:"Käsisammuttimet",  state:"ok",   meta:"Tarkastettu 3/2026 · voimassa 3/2027"},
+    {name:"Väestönsuoja (VSS)",state:"ok",  meta:"Tarkastettu 9/2025 · voimassa 9/2035"},
+    {name:"Savunpoisto",      state:"ok",   meta:"Tarkastettu 5/2026 · voimassa 5/2027"},
+    {name:"Hissit",           state:"ok",   meta:"Tarkastettu 2/2026 · voimassa 2/2027"},
+    {name:"Palovaroittimet",  state:"warn", meta:"Asukkaan omalla vastuulla — muista testata"}
+  ]
+};
+
+/* koodi -> kohde. type: aula | asukas | laite | huolto | (tuntematon = kohdistamaton) */
+var CODES = {
+  "10AULA":{ type:"aula" },
+  "82FA66":{ type:"asukas", apt:"A12", floor:"1. krs" },
+  "82CF54":{ type:"laite",  device:"Käsisammutin", loc:"A-rappu, 2. krs", kind:"sammutin",
+             last:"3/2026", next:"3/2027", state:"ok" },
+  "7HK220":{ type:"huolto", room:"Lämmönjakohuone", loc:"Kellari, A-rappu", pin:"2468" },
+  "90ZZ00":{ type:null }
+};
+
+var DOCS = {
+  pelastus:{ic:"📄", t:"Pelastussuunnitelma", s:"PDF · päivitetty 1/2026"},
+  toiminta:{ic:"🧯", t:"Toimintaohje tulipalossa", s:"Näin toimit hätätilanteessa"},
+  poistu:{ic:"🚪", t:"Poistumisreitit", s:"A-rapun pohjakuva"}
+};
+var HUOLTODOCS = {
+  rakenne:{ic:"🏗️", t:"Rakennekuvat", s:"PDF · rajattu"},
+  viemari:{ic:"🚰", t:"Viemäri- ja vesikuvat", s:"PDF · rajattu"},
+  sahko:{ic:"⚡", t:"Sähkökuvat", s:"PDF · rajattu"}
+};
+var CONTACTS = [
+  {ic:"🚰", ala:"Putkityöt", yritys:"Putkiliike Malli Oy", puh:"040 000 0000"},
+  {ic:"⚡", ala:"Sähkötyöt", yritys:"Sähköasennus Esimerkki Oy", puh:"040 111 1111"},
+  {ic:"🔧", ala:"Yleishuolto", yritys:"Huoltoyhtiö Demo Oy", puh:"040 222 2222"}
+];
+var TARVIKKEET = "Yhtiössä käytetään vain isännöitsijän hyväksymiä tarvikkeita. Tarkista ennen asennusta.";
+
+/* Ala-aulan / kiinteistön tason tiedot (lakisääteisesti esillä pidettävät) */
+var BUILDING = {
+  kokoontuminen:"Piha, lipputangon vieressä",
+  reitit:"Poistu lähintä porrasta pitkin ulos. Älä käytä hissiä."
+};
+var AVAUKSET = [
+  {ic:"🛡️", t:"Väestönsuoja (VSS)", s:"Kellari, A-rappu — opaste 'VSS'"},
+  {ic:"🔑", t:"Pelastuslaitoksen avainsäilö", s:"Pääoven vieressä oikealla (putkilukko)"},
+  {ic:"⚡", t:"Sähköpääkeskus / pääkytkin", s:"Tekninen tila, kellari, A-rappu"},
+  {ic:"🚰", t:"Päävesisulku", s:"Lämmönjakohuone, kellari"},
+  {ic:"💨", t:"Savunpoiston laukaisu", s:"Porrashuone, 1. krs, aulan seinä"}
+];
+var AULA_CONTACTS = [
+  {ic:"🚨", ala:"Yleinen hätänumero", yritys:"Hätäkeskus", puh:"112"},
+  {ic:"🏢", ala:"Isännöinti", yritys:"Isännöinti Demo Oy", puh:"09 000 0000"},
+  {ic:"🔧", ala:"Huoltopäivystys 24 h", yritys:"Huoltoyhtiö Demo Oy", puh:"040 222 2222"}
+];
+
+/* ================= APUFUNKTIOT ================= */
+function esc(s){return String(s==null?"":s).replace(/[&<>\"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+function el(id){return document.getElementById(id);}
+function toast(msg){var t=el("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("show");},2200);}
+
+function statusBlock(){
+  var rows = COMPANY.status.map(function(s){
+    return '<div class="status-row"><span class="dot '+s.state+'"></span>'+
+      '<div class="grow"><div class="name">'+esc(s.name)+'</div>'+
+      '<div class="meta">'+esc(s.meta)+'</div></div>'+
+      '<span class="pill '+s.state+'">'+(s.state==="ok"?"Voimassa":s.state==="warn"?"Muista":"Vanhentunut")+'</span></div>';
+  }).join("");
+  return '<div class="card"><h2>Taloyhtiön turvallisuustilanne</h2>'+rows+'</div>';
+}
+function docList(map){
+  return Object.keys(map).map(function(k){var d=map[k];
+    return '<a class="doc" href="#" onclick="openDoc(\''+k+'\');return false">'+
+      '<span class="ic">'+d.ic+'</span><div><div class="t">'+esc(d.t)+'</div>'+
+      '<div class="s">'+esc(d.s)+'</div></div><span class="chev">›</span></a>';
+  }).join("");
+}
+function openDoc(k){toast("Demo: avaisi dokumentin ("+k+")");}
+
+/* ================= NÄKYMÄT ================= */
+function viewAula(code,c){
+  var avaukset = AVAUKSET.map(function(a){
+    return '<div class="doc" style="cursor:default"><span class="ic">'+a.ic+'</span>'+
+      '<div><div class="t">'+esc(a.t)+'</div><div class="s">'+esc(a.s)+'</div></div></div>';
+  }).join("");
+  var yht = AULA_CONTACTS.map(function(x){
+    return '<div class="contact"><span class="ic">'+x.ic+'</span>'+
+      '<div class="grow"><div class="t">'+esc(x.yritys)+'</div><div class="s">'+esc(x.ala)+'</div></div>'+
+      '<a href="tel:'+esc(x.puh.replace(/\s/g,""))+'">'+esc(x.puh)+'</a></div>';
+  }).join("");
+  return '<h1>'+esc(COMPANY.name)+'</h1>'+
+    '<p class="sub">'+esc(COMPANY.address)+'</p>'+
+    '<div class="banner ok">✓ <span><b>Talon turvallisuus kunnossa.</b> Kaikki tarkastukset voimassa.</span></div>'+
+    '<div class="card"><h2>Hätätilanteessa</h2>'+
+      '<div class="status-row" style="border-top:0"><span style="font-size:22px">🚨</span>'+
+        '<div class="grow"><div class="name">Soita 112</div>'+
+        '<div class="meta">'+esc(BUILDING.reitit)+'</div></div></div>'+
+      '<div class="status-row"><span style="font-size:22px">📍</span>'+
+        '<div class="grow"><div class="name">Kokoontumispaikka</div>'+
+        '<div class="meta">'+esc(BUILDING.kokoontuminen)+'</div></div></div>'+
+      '<a class="btn primary" style="margin-top:10px;text-decoration:none" href="tel:112">📞 Soita hätänumeroon 112</a>'+
+    '</div>'+
+    statusBlock()+
+    '<div class="card"><h2>Kulku, sulut ja avaukset</h2>'+avaukset+'</div>'+
+    '<div class="card"><h2>Ohjeet ja suunnitelmat</h2>'+docList(DOCS)+'</div>'+
+    '<div class="card"><h2>Yhteystiedot</h2>'+yht+'</div>'+
+    '<div class="card"><h2>Huomasitko vian?</h2>'+
+      '<button class="btn ghost" onclick="report()">⚠ Tee vikailmoitus</button></div>'+
+    footer();
+}
+function viewAsukas(code,c){
+  return '<h1>Asunto '+esc(c.apt)+'</h1>'+
+    '<p class="sub">'+esc(COMPANY.name)+' · '+esc(c.floor)+'</p>'+
+    '<div class="banner ok">✓ <span><b>Talon turvallisuus kunnossa.</b> Sammuttimet, väestönsuoja, savunpoisto ja hissit tarkastettu ja voimassa.</span></div>'+
+    statusBlock()+
+    '<div class="card"><h2>Oma palovaroitin</h2>'+
+      '<p class="hint" style="margin:0 0 10px">Testaa palovaroitin painamalla testinappia. Kun se on kunnossa, kuittaa se tästä. Kuittaus ei kerää henkilötietoja.</p>'+
+      '<button class="btn primary" id="pvBtn" onclick="markSmoke()">✓ Palovaroitin testattu ja kunnossa</button>'+
+      '<div class="note" id="pvNote" style="display:none"></div>'+
+    '</div>'+
+    '<div class="card"><h2>Ohjeet ja suunnitelmat</h2>'+docList(DOCS)+'</div>'+
+    '<div class="card"><h2>Huomasitko vian?</h2>'+
+      '<button class="btn ghost" onclick="report()">⚠ Tee vikailmoitus</button>'+
+    '</div>'+footer();
+}
+function markSmoke(){
+  var b=el("pvBtn"), n=el("pvNote");
+  b.disabled=true; b.textContent="✓ Kuitattu tänään";
+  var d=new Date(); var s=d.getDate()+"."+(d.getMonth()+1)+"."+d.getFullYear();
+  n.style.display="block";
+  n.innerHTML='Kiitos! Merkitty '+esc(s)+'. Tämä on muistutuskuittaus — ei virallinen tarkastus.';
+  toast("Palovaroitin kuitattu");
+}
+
+function viewLaite(code,c){
+  var pill = c.state==="ok"?'<span class="pill ok">Voimassa</span>':'<span class="pill warn">Vanhentumassa</span>';
+  return '<h1>'+esc(c.device)+'</h1>'+
+    '<p class="sub">'+esc(COMPANY.name)+' · '+esc(c.loc)+'</p>'+
+    '<div class="card"><h2>Tarkastustilanne</h2>'+
+      '<div class="status-row"><span class="dot '+c.state+'"></span>'+
+        '<div class="grow"><div class="name">Viimeisin tarkastus '+esc(c.last)+'</div>'+
+        '<div class="meta">Seuraava tarkastus '+esc(c.next)+'</div></div>'+pill+'</div>'+
+    '</div>'+
+    '<div class="card"><h2>Ammattilaiselle</h2>'+
+      '<p class="hint" style="margin:0 0 10px">Virallinen tarkastus tehdään pöytäkirjan kautta — ei pelkällä napilla. Kirjaudu huoltona tehdäksesi tarkastuksen.</p>'+
+      '<button class="btn ghost block" onclick="toast(\'Demo: avaisi tarkastuspöytäkirjan\')">📋 Tee tarkastus (pöytäkirja)</button>'+
+      '<button class="btn ghost" onclick="report()">⚠ Ilmoita viasta</button>'+
+    '</div>'+
+    '<div class="card"><h2>Taloyhtiön tilanne</h2><p class="hint" style="margin:0 0 6px">Tämän laitteen tila näkyy osana yhtiön turvallisuustilannetta.</p></div>'+
+    footer();
+}
+
+function viewHuolto(code,c){
+  if(!huoltoUnlocked[code]){
+    return '<h1>'+esc(c.room)+'</h1><p class="sub">'+esc(COMPANY.name)+' · '+esc(c.loc)+'</p>'+
+      '<div class="card"><div class="gate">'+
+        '<div class="lock">🔒</div>'+
+        '<div style="font-weight:700">Vain hyväksytylle huollolle</div>'+
+        '<p class="hint" style="margin:6px 0 0">Syötä yhtiön antama huoltokoodi nähdäksesi piirustukset ja yhteystiedot.</p>'+
+        '<div class="pinbox">'+
+          '<input id="p0" inputmode="numeric" maxlength="1" oninput="pinType(0)">'+
+          '<input id="p1" inputmode="numeric" maxlength="1" oninput="pinType(1)">'+
+          '<input id="p2" inputmode="numeric" maxlength="1" oninput="pinType(2)">'+
+          '<input id="p3" inputmode="numeric" maxlength="1" oninput="pinType(3)">'+
+        '</div>'+
+        '<div class="err" id="pinErr"></div>'+
+        '<p class="hint">(demo-koodi: '+esc(c.pin)+')</p>'+
+      '</div></div>'+footer();
+  }
+  return '<h1>'+esc(c.room)+'</h1><p class="sub">'+esc(COMPANY.name)+' · '+esc(c.loc)+'</p>'+
+    '<div class="banner warn">🔧 <span><b>Huoltonäkymä.</b> Tämä sisältö ei näy asukkaille.</span></div>'+
+    '<div class="card"><h2>Piirustukset</h2>'+docList(HUOLTODOCS)+'</div>'+
+    '<div class="card"><h2>Hyväksytyt yhteystiedot</h2>'+
+      CONTACTS.map(function(x){return '<div class="contact"><span class="ic">'+x.ic+'</span>'+
+        '<div class="grow"><div class="t">'+esc(x.yritys)+'</div><div class="s">'+esc(x.ala)+'</div></div>'+
+        '<a href="tel:'+esc(x.puh.replace(/\s/g,""))+'">'+esc(x.puh)+'</a></div>';}).join("")+
+      '<div class="note" style="margin-top:10px">'+esc(TARVIKKEET)+'</div>'+
+    '</div>'+
+    '<div class="card"><h2>Merkitse käynti</h2>'+
+      '<button class="btn ghost block" onclick="toast(\'Demo: käynti merkitty\')">✓ Merkitse käynti</button>'+
+      '<button class="btn ghost" onclick="report()">⚠ Tee vikailmoitus</button>'+
+    '</div>'+footer();
+}
+
+function viewUnknown(code){
+  return '<div class="empty">'+
+    '<div class="big">🏷️</div>'+
+    '<h1>Koodi ei ole vielä käytössä</h1>'+
+    '<p class="sub" style="margin-top:6px">Koodi <b>'+esc(code)+'</b> on kelvollinen mutta sitä ei ole vielä kohdistettu kohteeseen.</p>'+
+    '<div class="note" style="text-align:left;margin-top:14px">Taloyhtiön henkilökunta kohdistaa koodin paikan päällä (asunto, tekninen tila tai laite). Sen jälkeen tämä sivu näyttää kohteen tiedot.</div>'+
+    '</div>'+footer();
+}
+
+function report(){toast("Demo: avaisi vikailmoituslomakkeen");}
+function footer(){return '<div class="foot">ohje24.fi · taloyhtiön turvallisuustiedot · demo, kaikki tiedot keksittyjä</div>';}
+
+/* ================= PIN ================= */
+var huoltoUnlocked = {};
+function pinType(i){
+  var box=el("p"+i);
+  if(box.value && i<3){ el("p"+(i+1)).focus(); }
+  var pin=(el("p0").value+el("p1").value+el("p2").value+el("p3").value);
+  if(pin.length===4){
+    var c=CODES[currentCode];
+    if(c && pin===c.pin){ huoltoUnlocked[currentCode]=true; render(currentCode); }
+    else { el("pinErr").textContent="Väärä koodi"; ["p0","p1","p2","p3"].forEach(function(id){el(id).value="";}); el("p0").focus(); }
+  }
+}
+
+/* ================= REITITYS ================= */
+var currentCode=null;
+function readCode(){
+  // tukee: #82FA66 , ?k=82FA66 , /k/82FA66 , polun viimeinen segmentti
+  var h=(location.hash||"").replace(/^#/,"").trim();
+  if(h) return h.toUpperCase();
+  var m=location.search.match(/[?&]k=([^&]+)/i);
+  if(m) return decodeURIComponent(m[1]).toUpperCase();
+  var seg=location.pathname.split("/").filter(Boolean);
+  if(seg.length){var last=seg[seg.length-1]; if(last && last.indexOf(".")<0) return last.toUpperCase();}
+  return "82FA66"; // demo-oletus
+}
+function render(code){
+  currentCode=code;
+  el("topCode").textContent=code||"";
+  var c=CODES[code];
+  var html;
+  if(!c || !c.type) html = c===undefined ? viewUnknown(code) : viewUnknown(code);
+  else if(c.type==="aula")   html=viewAula(code,c);
+  else if(c.type==="asukas") html=viewAsukas(code,c);
+  else if(c.type==="laite")  html=viewLaite(code,c);
+  else if(c.type==="huolto") html=viewHuolto(code,c);
+  else html=viewUnknown(code);
+  el("app").innerHTML=html;
+  document.querySelectorAll(".chip").forEach(function(ch){
+    ch.classList.toggle("active", ch.getAttribute("data-code")===code);
+  });
+  window.scrollTo(0,0);
+}
+function go(code){ location.hash=code; }
+
+document.querySelectorAll(".chip").forEach(function(ch){
+  ch.addEventListener("click",function(){ go(ch.getAttribute("data-code")); });
+});
+window.addEventListener("hashchange",function(){ render(readCode()); });
+/* DEMO-valitsin näkyy testeissä, piilotetaan oikeassa ohje24-domainissa */
+if(location.hostname.indexOf("ohje24")>=0){var _d=document.querySelector(".demobar");if(_d)_d.style.display="none";}
+render(readCode());
+</script>
+</body>
+</html>
