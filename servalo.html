@@ -2307,7 +2307,7 @@ function applyRole(){
   const cust=role()==="customer";
   const show=(id,v)=>{const el=document.getElementById(id);if(el)el.style.display=v?"":"none";};
   show("navList", !cust);
-  show("navMywork", role()!=null&&!cust);
+  show("navMywork", role()==="worker");
   show("navCustomers", can("customers"));
   show("navReports", can("reports"));
   show("navDispatch", can("dispatch"));
