@@ -1079,7 +1079,8 @@ function filterTree(){const q=document.getElementById("treeSearch").value.toLowe
 
 /* ---------- navigation ---------- */
 function go(v){document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
-  document.getElementById("view-"+v).classList.add("active");window.scrollTo(0,0);}
+  document.getElementById("view-"+v).classList.add("active");window.scrollTo(0,0);
+  if(typeof applyTitles==="function")setTimeout(applyTitles,0);}
 document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav.top .navlink").forEach(x=>x.classList.remove("active"));
   b.classList.add("active");
@@ -2499,11 +2500,33 @@ if(!db.history.length&&db.devices&&db.devices.length){
     {id:uid(),ts:now-3600000*52,by:"Sanna Mäkinen",action:"Luotu",devId:d1.id,idr:d1.idr,target:d1.target,changes:[]}
   ];save();
 }
+function applyTitles(){
+  const t={
+    navList:"Näytä kaikki laitteet",
+    navPortal:"Oman kohteesi tiedot",
+    reportsBtn:"Avaa raporttivalikko",
+    searchBtn:"Haku ja laitehistoria",
+    moreBtn:"Lisää näkymiä ja hallinta",
+    navMywork:"Sinulle osoitetut työt",
+    navCalendar:"Huoltojen ja tarkastusten kalenteri",
+    navCustomers:"Asiakkaat ja kohteet",
+    navDispatch:"Töiden osoitus asentajille",
+    navAdmin:"Käyttäjät ja asetukset",
+    userChip:"Käyttäjävalikko (vaihda käyttäjää)"
+  };
+  Object.keys(t).forEach(id=>{const e=document.getElementById(id);if(e&&!e.getAttribute("title"))e.setAttribute("title",t[id]);});
+  const rep={huollot:"Tulevat määräaikaishuollot",tarkastukset:"Tulevat tarkastukset",pyynnot:"Avoimet huoltopyynnöt",koulutetut:"Käyttökoulutetut henkilöt",vuokralaitteet:"Vuokralaitteet",korjatut:"Eniten korjatut laitteet",poistetut:"Poistetut laitteet"};
+  document.querySelectorAll("[data-report]").forEach(b=>{if(!b.getAttribute("title"))b.setAttribute("title","Avaa raportti: "+(rep[b.dataset.report]||(b.textContent||"").trim()));});
+  const tab={laite:"Laitteen perustiedot",tiedostot:"Tiedostot ja raportit",linkitykset:"Linkitetyt laitteet",pyynnot:"Huoltopyynnöt",historia:"Historiatiedot",nfc:"NFC-skannaukset",kustannukset:"Kustannukset"};
+  document.querySelectorAll("[data-tab]").forEach(b=>{if(!b.getAttribute("title"))b.setAttribute("title",tab[b.dataset.tab]||(b.textContent||"").trim());});
+  document.querySelectorAll("button, .navlink").forEach(b=>{if(!b.getAttribute("title")){const tx=(b.textContent||"").replace(/\s+/g," ").trim();if(tx)b.setAttribute("title",tx);}});
+}
 /* ---------- init ---------- */
 buildTree();renderList();setMode("list");renderCustomers();
 currentUser=loadUser();
 if(currentUser){applyRole();renderUserChip();const v=defaultView();setNavActive(v);go(v);routeRender(v);}
 else{showLogin();}
+applyTitles();
 </script>
 </body>
 </html>
