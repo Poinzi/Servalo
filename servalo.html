@@ -380,6 +380,7 @@
             <button class="tbtn orange" id="btnViews" title="Tallennetut näkymät" onclick="openViews()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18a1 1 0 0 1 .8 1.6L15 14v5.2a1 1 0 0 1-1.45.9l-3-1.5A1 1 0 0 1 10 17.7V14L2.2 6.1A1 1 0 0 1 3 4.5z"/></svg>
               <span class="dot">!</span></button>
+            <button class="tbtn orange" id="btnScan" title="Skannaa QR-koodi kameralla" onclick="openScan()">📷</button>
             <div class="search-box" style="flex:1"><input id="devSearch" placeholder="Etsi" oninput="renderList()"></div>
           </div>
           <p class="hint" style="margin:-6px 0 14px">Etsitään laitetaulukon aktiivisista tiedoista. Laajenna hakua painikkeesta.</p>
@@ -590,6 +591,18 @@
       <button class="btn ghost" onclick="closeOverlay('settingsOverlay')">Sulje</button>
       <button class="btn orange" id="setSaveBtn" onclick="saveSettings()">Tallenna</button>
     </div>
+  </div>
+</div>
+
+<!-- QR-SKANNAUS -->
+<div class="overlay" id="scanOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-h"><span>📷 Skannaa QR-koodi</span><span class="x" onclick="closeScan()">×</span></div>
+    <div class="modal-b" style="text-align:center">
+      <video id="scanVideo" playsinline muted style="width:100%;max-height:300px;background:#000;border-radius:10px"></video>
+      <p class="hint" id="scanMsg" style="margin:10px 0 0">Kohdista QR-koodi kameraan…</p>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeScan()">Sulje</button></div>
   </div>
 </div>
 
@@ -1191,6 +1204,24 @@ function renderList(){
 /* ----- multi-select ----- */
 let multiMode=false, selected=new Set(), activeFilters=[], sortDesc=true;
 function toggleSort(){sortDesc=!sortDesc;renderList();}
+/* --- QR: linkki, näyttö ja kameraskannaus --- */
+function devLink(code){return location.origin+location.pathname+"#dev="+encodeURIComponent((code||"").trim());}
+function qrImg(code){code=(code||"").trim();if(!code)return"";var u="https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data="+encodeURIComponent(devLink(code));return '<img src="'+u+'" width="120" height="120" alt="QR '+esc(code)+'" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" loading="lazy"><div class="hint" style="margin-top:4px">Skannaa avataksesi laitteen</div>';}
+function extractCode(raw){raw=(raw||"").trim();var m=raw.match(/[#?&]dev=([^&]+)/i);if(m)return decodeURIComponent(m[1]);try{var u=new URL(raw);var seg=u.pathname.split("/").filter(Boolean);if(seg.length)return decodeURIComponent(seg[seg.length-1]);}catch(e){}return raw;}
+function handleDeepLink(){var m=(location.hash||"").match(/[#&]dev=([^&]+)/i);if(!m)return;var code=decodeURIComponent(m[1]);var d=db.devices.find(function(x){return String(x.idr).toLowerCase()===code.toLowerCase();});history.replaceState(null,"",location.pathname+location.search);if(d&&currentUser)openDevice(d.id);}
+let scanStream=null,scanTimer=null;
+async function openScan(){
+  var ov=document.getElementById("scanOverlay");ov.classList.add("show");
+  var msg=document.getElementById("scanMsg");msg.textContent="Kohdista QR-koodi kameraan…";
+  if(!("BarcodeDetector" in window)){msg.textContent="Selain ei tue QR-lukua. Kokeile Chromea (Android) tai Safaria (iOS 17+) – tai syötä koodi hakuun käsin.";return;}
+  try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});}
+  catch(e){msg.textContent="Kameraa ei voitu avata: "+e.message;return;}
+  var v=document.getElementById("scanVideo");v.srcObject=scanStream;try{await v.play();}catch(e){}
+  var det;try{det=new BarcodeDetector({formats:["qr_code"]});}catch(e){msg.textContent="QR-luku ei ole käytettävissä tässä selaimessa.";return;}
+  scanTimer=setInterval(async function(){try{var codes=await det.detect(v);if(codes&&codes.length)handleScan(codes[0].rawValue);}catch(e){}},400);
+}
+function closeScan(){var ov=document.getElementById("scanOverlay");if(ov)ov.classList.remove("show");if(scanTimer){clearInterval(scanTimer);scanTimer=null;}if(scanStream){scanStream.getTracks().forEach(function(t){t.stop();});scanStream=null;}var v=document.getElementById("scanVideo");if(v)v.srcObject=null;}
+function handleScan(raw){var code=extractCode(raw);closeScan();var d=db.devices.find(function(x){return String(x.idr).toLowerCase()===String(code).toLowerCase();});if(d){openDevice(d.id);return;}var s=document.getElementById("devSearch");if(s)s.value=code;go("list");renderList();alert("Ei täsmäävää laitetta koodille \""+code+"\". Haku täytettiin koodilla.");}
 function toggleMulti(){multiMode=!multiMode;selected.clear();
   document.getElementById("multiExtra").style.display=multiMode?"inline-flex":"none";
   document.getElementById("btnMulti").classList.toggle("active",multiMode);
@@ -1476,6 +1507,7 @@ function deviceMainTab(d){
     const k=d.contract, cline=c=>c?[esc(c.nimi),esc(c.phone),esc(c.email)].filter(Boolean).join("<br>"):"";
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot (sopimus)</div><div class="panel-b" style="padding:0"><div class="kv">
         ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
+        ${pair("QR-koodi",qrImg(d.idr))}
         ${pair("Vartiointiliike ja yhteystiedot",esc(k.vartiointi))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
         ${pair("Valvomot ja yhteystiedot",esc(k.valvomo))}
@@ -1498,6 +1530,7 @@ function deviceMainTab(d){
   } else {
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot</div><div class="panel-b" style="padding:0"><div class="kv">
         ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
+        ${pair("QR-koodi",qrImg(d.idr))}
         ${pair("Toimituspäivä",fmt(d.delivery))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
         ${pair("Takuuaika","")}
@@ -2772,6 +2805,8 @@ currentUser=loadUser();
 if(currentUser){applyRole();renderUserChip();const v=defaultView();setNavActive(v);go(v);routeRender(v);}
 else{showLogin();}
 applyTitles();
+handleDeepLink();
+window.addEventListener("hashchange",handleDeepLink);
 </script>
 </body>
 </html>
