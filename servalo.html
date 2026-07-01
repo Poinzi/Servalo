@@ -1810,15 +1810,28 @@ function exportData(){const blob=new Blob([JSON.stringify(db,null,2)],{type:"app
 function repCellText(x){return String(x==null?"":x)
   .replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
   .replace(/&nbsp;/g," ").replace(/&#\d+;/g," ").replace(/\s+/g," ").trim();}
+function repMonthOf(s){const m=String(s).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?m[3]+"-"+m[2].padStart(2,"0"):"";}
 function exportReport(){
   const def=reportDefs[currentReport];
   if(!def){exportData();return;}
   const cols=def.cols.map(c=>String(c).replace(/[↑↓]/g,"").trim());
   const keep=cols.map((c,i)=>i).filter(i=>!/^(toiminnot|ⓘ)$/i.test(cols[i]));
+  let rows=reportRows().map(r=>r.map(repCellText));
+  const dateIdx=def.cols.findIndex(c=>/[↑↓]/.test(String(c)));
+  let suffix="";
+  if(dateIdx>=0){
+    const months=[...new Set(rows.map(r=>repMonthOf(r[dateIdx])).filter(Boolean))].sort();
+    if(months.length){
+      const pick=prompt("Rajaa vienti kuukauteen (VVVV-KK).\nSaatavilla: "+months.join(", ")+"\n\nJätä tyhjäksi = kaikki:","");
+      if(pick===null)return;
+      const p=pick.trim();
+      if(p){rows=rows.filter(r=>repMonthOf(r[dateIdx])===p);suffix="-"+p;}
+    }
+  }
   const head=keep.map(i=>cols[i]);
-  const body=reportRows().map(r=>keep.map(i=>repCellText(r[i])));
+  const body=rows.map(r=>keep.map(i=>r[i]));
   const name=repTitle(currentReport).replace(/[\/\\]/g," ").replace(/\s+/g,"_");
-  downloadCsv([head,...body],name+"-"+today()+".csv");
+  downloadCsv([head,...body],name+suffix+"-"+today()+".csv");
 }
 
 /* ---------- CRM: asiakkaat ---------- */
