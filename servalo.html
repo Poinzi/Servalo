@@ -277,7 +277,6 @@
         <button data-report="tarkastukset">▦ Tulevat tarkastukset</button>
         <button data-report="pyynnot">🔧 Huoltopyynnöt</button>
         <button data-report="koulutetut">👥 Käyttökoulutetut henkilöt</button>
-        <button data-report="patevyydet">🎫 Pätevyydet / kortit</button>
         <button data-report="vuokralaitteet">⊞ Vuokralaitteet</button>
         <button data-report="korjatut">🩹 Eniten korjatut laitteet</button>
         <button data-report="poistetut">🗑 Poistetut laitteet</button>
@@ -295,6 +294,7 @@
       <div class="menu" id="moreMenu">
         <button id="navCustomers" data-go="customers">👥 Asiakkaat</button>
         <button id="navDispatch" data-go="dispatch">🗂 Työnjako</button>
+        <button data-report="patevyydet">🎫 Pätevyydet / kortit</button>
         <button id="navAdmin" data-go="admin">⚙ Käyttäjät & asetukset</button>
       </div>
     </div>
@@ -1116,7 +1116,7 @@ function routeRender(v){
 document.getElementById("sideToggle").onclick=()=>document.getElementById("sidebar").classList.toggle("collapsed");
 document.getElementById("reportsBtn").onclick=e=>{e.stopPropagation();document.getElementById("reportsMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("reportsMenu").classList.remove("show"));
-document.querySelectorAll("#reportsMenu button").forEach(b=>b.onclick=()=>openReport(b.dataset.report));
+document.querySelectorAll("[data-report]").forEach(b=>b.onclick=()=>openReport(b.dataset.report));
 document.getElementById("moreBtn").onclick=e=>{e.stopPropagation();document.getElementById("moreMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("moreMenu").classList.remove("show"));
 document.getElementById("logBtn").onclick=e=>{e.stopPropagation();document.getElementById("logMenu").classList.toggle("show");};
