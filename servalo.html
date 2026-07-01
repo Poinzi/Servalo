@@ -276,6 +276,7 @@
         <button data-report="tarkastukset">▦ Tulevat tarkastukset</button>
         <button data-report="pyynnot">🔧 Huoltopyynnöt</button>
         <button data-report="koulutetut">👥 Käyttökoulutetut henkilöt</button>
+        <button data-report="patevyydet">🎫 Pätevyydet / kortit</button>
         <button data-report="vuokralaitteet">⊞ Vuokralaitteet</button>
         <button data-report="korjatut">🩹 Eniten korjatut laitteet</button>
         <button data-report="poistetut">🗑 Poistetut laitteet</button>
@@ -563,6 +564,7 @@
         <div class="field"><label>Sähköposti</label><input class="f" id="uEmailF" type="email" placeholder="nimi@servalo.fi"></div>
       </div>
       <label class="rtoggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="uActiveF" checked> Aktiivinen (voi kirjautua)</label>
+      <div id="uCertsWrap"></div>
     </div>
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeOverlay('userOverlay')">Peruuta</button>
@@ -1000,11 +1002,22 @@ function seed(){
   ];
   // ----- käyttäjät (admin / työnjohtaja / asentajat) -----
   const users=[
-    {id:"u1",name:"Anna Järvinen",role:"admin",email:"anna.jarvinen@servalo.fi",active:true},
-    {id:"u2",name:"Laura Mäkelä",role:"supervisor",email:"laura.makela@servalo.fi",active:true},
-    {id:"u3",name:"Mikko Virtanen",role:"worker",email:"mikko.virtanen@servalo.fi",active:true},
-    {id:"u4",name:"Sanna Koskinen",role:"worker",email:"sanna.koskinen@servalo.fi",active:true},
-    {id:"u5",name:"Jani Lehtonen",role:"worker",email:"jani.lehtonen@servalo.fi",active:true},
+    {id:"u1",name:"Anna Järvinen",role:"admin",email:"anna.jarvinen@servalo.fi",active:true,certs:[
+      {type:"Työturvallisuuskortti",issued:"2023-05-20",expires:"2028-05-20",file:null}]},
+    {id:"u2",name:"Laura Mäkelä",role:"supervisor",email:"laura.makela@servalo.fi",active:true,certs:[
+      {type:"Paloilmoitinliikkeen vastuuhenkilö (Kiwa)",issued:"2024-03-10",expires:"2029-03-10",file:null},
+      {type:"Työturvallisuuskortti",issued:"2023-05-20",expires:"2028-05-20",file:null}]},
+    {id:"u3",name:"Mikko Virtanen",role:"worker",email:"mikko.virtanen@servalo.fi",active:true,certs:[
+      {type:"Tulityökortti",issued:"2021-08-15",expires:"2026-08-15",file:null},
+      {type:"Työturvallisuuskortti",issued:"2024-09-01",expires:"2029-09-01",file:null},
+      {type:"Paloilmoittimen hoitaja",issued:"2023-02-01",expires:"2028-02-01",file:null}]},
+    {id:"u4",name:"Sanna Koskinen",role:"worker",email:"sanna.koskinen@servalo.fi",active:true,certs:[
+      {type:"Työturvallisuuskortti",issued:"2021-04-01",expires:"2026-05-01",file:null},
+      {type:"Ensiapu EA1",issued:"2024-06-10",expires:"2027-06-10",file:null}]},
+    {id:"u5",name:"Jani Lehtonen",role:"worker",email:"jani.lehtonen@servalo.fi",active:true,certs:[
+      {type:"Tulityökortti",issued:"2025-01-20",expires:"2030-01-20",file:null},
+      {type:"Sähkötyöturvallisuus SFS 6002",issued:"2022-08-01",expires:"2026-08-01",file:null},
+      {type:"Työturvallisuuskortti",issued:"2023-11-15",expires:"2028-11-15",file:null}]},
     {id:"u6",name:"Pirjo Laine",role:"customer",email:"isannointi@niittyranta.fi",active:true,customerId:"p1"}
   ];
   // jaa laitteet asentajille (joka 4. jää osoittamatta työnjakoa varten)
@@ -1682,6 +1695,13 @@ const reportDefs={
     cols:["Laitetunnus","Poistopäivä ↓","Kommentti","Syy","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>db.devices.filter(d=>d.deleted).sort((a,b)=>String(b.delDate||"").localeCompare(String(a.delDate||"")))
       .map(d=>[d.idr,fmt(d.delDate),esc(d.delComment||""),esc(d.delReason||""),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',restoreBtn(d.id)])},
+  patevyydet:{title:"Pätevyydet / vanhenevat kortit",desc:"Näytetään työntekijöiden pätevyydet ja korttien voimassaolo. Punainen = vanhentunut, keltainen = vanhenee 60 pv sisällä.",
+    cols:["Henkilö","Rooli","Pätevyys","Myönnetty","Vanhenee ↑","Tila","Liite"],
+    rows:()=>{const out=[];
+      (db.users||[]).forEach(u=>(u.certs||[]).forEach(c=>{
+        const s=certState(c.expires);
+        out.push([esc(u.name),ROLE_LABEL[u.role]||u.role,esc(c.type||""),fmt(c.issued),c.expires?dateBadge(c.expires):"–",`<span class="badge ${s.cls||''}">${s.lab}</span>`,c.file?'<span class="chk">✔</span>':"–"]);}));
+      return out.sort((a,b)=>{const g=x=>{const m=String(x).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?m[3]+m[2].padStart(2,"0")+m[1].padStart(2,"0"):"99999999";};return g(a[4]).localeCompare(g(b[4]));});}},
 };
 const repTitle=r=>typeof reportDefs[r].title==="function"?reportDefs[r].title():reportDefs[r].title;
 const repDescOf=r=>typeof reportDefs[r].desc==="function"?reportDefs[r].desc():reportDefs[r].desc;
@@ -2404,7 +2424,10 @@ function workerOptions(sel){
   return '<option value="">– Ei osoitettu –</option>'+db.users.filter(u=>u.role==="worker"&&u.active)
     .map(u=>`<option value="${u.id}" ${u.id===sel?"selected":""}>${esc(u.name)}</option>`).join("");
 }
-function assignWork(devId,uid){const d=db.devices.find(x=>x.id===devId);if(!d)return;d.assignedTo=uid||null;d.updated=today();save();renderDispatch();}
+function assignWork(devId,uid){const d=db.devices.find(x=>x.id===devId);if(!d)return;d.assignedTo=uid||null;d.updated=today();save();renderDispatch();
+  if(uid){const u=(db.users||[]).find(x=>x.id===uid);const fl=u?userCertFlags(u):{expired:0,soon:0};
+    if(fl.expired)alert("⚠ Huomio: "+u.name+" – "+fl.expired+" pätevyys vanhentunut. Työ osoitettiin silti.");
+    else if(fl.soon)alert("⚠ Huomio: "+u.name+" – "+fl.soon+" pätevyys vanhenee 60 pv sisällä.");}}
 function renderDispatch(){
   const who=document.getElementById("dispWho");
   if(who.options.length<=1){
@@ -2479,6 +2502,31 @@ function saveSettings(){
   db.settings.intervals=g("seIntervals").split("\n").map(s=>s.trim()).filter(Boolean);
   save();alert("Asetukset tallennettu.");
 }
+const CERT_TYPES=["Tulityökortti","Työturvallisuuskortti","Paloilmoittimen hoitaja","Paloilmoitinliikkeen vastuuhenkilö (Kiwa)","Ensiapu EA1","Ensiapu EA2","Sähkötyöturvallisuus SFS 6002","Muu"];
+function certState(exp){const n=daysFromToday(exp);if(n===null)return{cls:"",lab:"–",n:null};if(n<0)return{cls:"red",lab:"Vanhentunut",n};if(n<=60)return{cls:"yellow",lab:n+" pv jäljellä",n};return{cls:"green",lab:"Voimassa",n};}
+function certBadge(exp){if(!exp)return '<span class="badge">–</span>';const s=certState(exp);return `<span class="badge ${s.cls}">${fmt(exp)} · ${s.lab}</span>`;}
+function userCertFlags(u){const cs=(u&&u.certs)||[];let expired=0,soon=0;cs.forEach(c=>{const n=daysFromToday(c.expires);if(n===null)return;if(n<0)expired++;else if(n<=60)soon++;});return{expired,soon};}
+let editCerts=[];
+function renderCertList(){const w=document.getElementById("uCertsWrap");if(!w)return;
+  const rows=editCerts.map((c,i)=>{const opts=CERT_TYPES.map(t=>`<option ${c.type===t?"selected":""}>${t}</option>`).join("");
+    const file=c.file?`<a href="${c.file}" download="${esc((c.type||'kortti'))}" class="hint" title="Avaa liite">📎 liite</a> <button type="button" class="btn sm ghost" onclick="certClearFile(${i})">×</button>`:`<label class="hint" style="cursor:pointer">📎 Liitä kuva/PDF<input type="file" accept="image/*,application/pdf" style="display:none" onchange="certFile(${i},this)"></label>`;
+    return `<div class="certrow" style="border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div class="grid2" style="gap:8px">
+        <div class="field"><label>Pätevyys</label><select class="f" onchange="certSet(${i},'type',this.value)">${opts}</select></div>
+        <div class="field"><label>Voimassaolo</label><div style="padding-top:6px">${certBadge(c.expires)}</div></div>
+      </div>
+      <div class="grid2" style="gap:8px">
+        <div class="field"><label>Myönnetty</label><input class="f" type="date" value="${c.issued||""}" onchange="certSet(${i},'issued',this.value)"></div>
+        <div class="field"><label>Vanhenee</label><input class="f" type="date" value="${c.expires||""}" onchange="certSet(${i},'expires',this.value)"></div>
+      </div>
+      <div class="topbar" style="margin:0"><span>${file}</span><button type="button" class="btn sm danger" onclick="certRemove(${i})">Poista</button></div>
+    </div>`;}).join("");
+  w.innerHTML=`<div style="margin-top:8px"><label style="font-weight:700">Pätevyydet / kortit</label>${rows||'<p class="hint">Ei lisättyjä pätevyyksiä.</p>'}<button type="button" class="btn sm ghost" onclick="certAdd()">+ Lisää pätevyys</button></div>`;}
+function certAdd(){editCerts.push({type:CERT_TYPES[0],issued:"",expires:"",file:null});renderCertList();}
+function certRemove(i){editCerts.splice(i,1);renderCertList();}
+function certSet(i,f,v){editCerts[i][f]=v;if(f==="expires")renderCertList();}
+function certClearFile(i){editCerts[i].file=null;renderCertList();}
+function certFile(i,input){const fl=input.files&&input.files[0];if(!fl)return;if(fl.size>4*1024*1024){alert("Liite on liian suuri (max 4 MB).");return;}const r=new FileReader();r.onload=()=>{editCerts[i].file=r.result;renderCertList();};r.readAsDataURL(fl);}
 function editUser(id){
   const u=id?db.users.find(x=>x.id===id):null;
   document.getElementById("userModalTitle").textContent=u?"Muokkaa käyttäjää":"Uusi käyttäjä";
@@ -2487,13 +2535,15 @@ function editUser(id){
   document.getElementById("uRoleF").value=u?u.role:"worker";
   document.getElementById("uEmailF").value=u?(u.email||""):"";
   document.getElementById("uActiveF").checked=u?!!u.active:true;
+  editCerts=u&&u.certs?JSON.parse(JSON.stringify(u.certs)):[];
+  renderCertList();
   document.getElementById("userOverlay").classList.add("show");
 }
 function saveUser(){
   const g=f=>document.getElementById(f).value;
   const name=g("uNameF").trim();if(!name){alert("Anna nimi.");return;}
   const id=document.getElementById("uId").value;
-  const data={name,role:g("uRoleF"),email:g("uEmailF").trim(),active:document.getElementById("uActiveF").checked};
+  const data={name,role:g("uRoleF"),email:g("uEmailF").trim(),active:document.getElementById("uActiveF").checked,certs:editCerts.slice()};
   if(id)Object.assign(db.users.find(x=>x.id===id),data);
   else db.users.push({id:uid(),...data});
   save();closeOverlay("userOverlay");renderAdmin();
