@@ -434,7 +434,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="17" rx="2"/><path d="M3 9h18M9 3.5v17"/></svg></button>
             <div class="search-box" style="flex:1"><input id="repSearch" placeholder="Etsi" oninput="repPage=0;renderReport()"></div>
             <div class="datemenu" id="dateMenu"></div>
-            <div class="datemenu" id="colsMenu" style="left:auto;right:0;width:280px;max-height:60vh;overflow:auto"></div>
+            <div class="datemenu" id="colsMenu" style="position:fixed;width:290px;max-height:70vh;overflow:auto;z-index:200"></div>
           </div>
           <p class="hint" style="margin:-6px 0 14px">Etsitään laitetaulukon aktiivisista tiedoista. Laajenna hakua painikkeesta.</p>
           <div id="repSub"></div>
@@ -1824,7 +1824,10 @@ function renderColsMenu(){const m=document.getElementById("colsMenu");const def=
 function openColsMenu(e){e.stopPropagation();const m=document.getElementById("colsMenu");if(!m)return;
   if(m.classList.contains("show")){m.classList.remove("show");return;}
   document.querySelectorAll(".datemenu.show").forEach(x=>x.classList.remove("show"));
-  renderColsMenu();m.classList.add("show");}
+  renderColsMenu();m.classList.add("show");
+  const b=document.getElementById("btnRepCols").getBoundingClientRect();
+  m.style.top=(b.bottom+6)+"px";
+  m.style.left=Math.max(8,Math.min(b.left,window.innerWidth-m.offsetWidth-8))+"px";}
 function toggleCol(i){const arr=repColsHidden[currentReport]||(repColsHidden[currentReport]=[]);
   const p=arr.indexOf(i);if(p>=0)arr.splice(p,1);else arr.push(i);
   if(!arr.length)delete repColsHidden[currentReport];
