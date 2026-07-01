@@ -414,7 +414,7 @@
     <section id="view-report" class="view">
       <div class="topbar">
         <button class="btn orange" onclick="go('list')">⟵ Takaisin edelliselle sivulle</button>
-        <button class="btn orange" onclick="exportData()">⬇ Vie tiedot</button>
+        <button class="btn orange" onclick="exportReport()">⬇ Vie tiedot</button>
       </div>
       <div class="panel">
         <div class="panel-b">
@@ -1807,6 +1807,19 @@ function updateDateBtn(){const b=document.getElementById("btnRepDate");if(!b)ret
 document.addEventListener("click",()=>{const m=document.getElementById("dateMenu");if(m)m.classList.remove("show");});
 function exportData(){const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="laitehallinta-vienti-"+today()+".json";a.click();}
+function repCellText(x){return String(x==null?"":x)
+  .replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+  .replace(/&nbsp;/g," ").replace(/&#\d+;/g," ").replace(/\s+/g," ").trim();}
+function exportReport(){
+  const def=reportDefs[currentReport];
+  if(!def){exportData();return;}
+  const cols=def.cols.map(c=>String(c).replace(/[↑↓]/g,"").trim());
+  const keep=cols.map((c,i)=>i).filter(i=>!/^(toiminnot|ⓘ)$/i.test(cols[i]));
+  const head=keep.map(i=>cols[i]);
+  const body=reportRows().map(r=>keep.map(i=>repCellText(r[i])));
+  const name=repTitle(currentReport).replace(/[\/\\]/g," ").replace(/\s+/g,"_");
+  downloadCsv([head,...body],name+"-"+today()+".csv");
+}
 
 /* ---------- CRM: asiakkaat ---------- */
 const CUST_TAG={active:["ct-active","Aktiivinen"],lead:["ct-lead","Liidi"],inactive:["ct-inactive","Passiivinen"]};
