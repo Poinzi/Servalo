@@ -725,6 +725,7 @@
       <div class="field"><label>Kommentti</label><textarea class="f" id="enComment" rows="3" placeholder="Lisätieto, pöytäkirjan sisältö…"></textarea></div>
       <div class="field"><label>Tiedosto (raportti / pöytäkirja)</label><input class="f" id="enFile" type="file"></div>
       <p class="hint">Voit liittää PDF:n tai kuvan. Suuret tiedostot (yli ~4 MB) eivät tallennu selainmuistiin.</p>
+      <div class="field" id="enPhotoField" style="display:none"><label>📷 Tarkastuspöytäkirjan kuva <span class="hint" style="font-weight:400">(sisäinen – asiakas ei näe)</span></label><input class="f" id="enPhoto" type="file" accept="image/*" capture="environment" onchange="previewPhoto()"><div id="enPhotoPrev" style="margin-top:8px"></div></div>
     </div>
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeOverlay('entryOverlay')">Peruuta</button>
@@ -1280,6 +1281,7 @@ function deviceFiles(d){
   (d.files||[]).forEach((f,i)=>out.push({name:f.name,cat:f.category||"Muu",date:f.date,by:f.by||"",data:f.data,src:"files",idx:i}));
   const pull=(key,label)=>(d[key]||[]).forEach((e,i)=>{if(e.file&&e.file.data)out.push({name:e.file.name,cat:label+(e.pohja?" – "+e.pohja:""),date:e.date,by:e.name||"",data:e.file.data,src:key,idx:i});});
   pull("maintenances","Huolto");pull("inspections","Tarkastus");pull("repairsLog","Korjaus");pull("notesLog","Lisätieto");
+  (d.inspections||[]).forEach((e,i)=>{if(e.photo&&e.photo.data)out.push({name:e.photo.name||"tarkastuspoytakirja.jpg",cat:"Tarkastus – pöytäkirjakuva",date:e.date,by:e.name||"",data:e.photo.data,src:"inspphoto",idx:i});});
   return out;
 }
 function devFilesTab(d){
@@ -1525,9 +1527,18 @@ function entryRows(arr){
   return '<table><tbody>'+arr.map(e=>{
     const head=[e.pohja,e.name].filter(Boolean).map(esc).join(" – ");
     const file=e.file&&e.file.data?` · <a href="${e.file.data}" download="${esc(e.file.name)}">📎 ${esc(e.file.name)}</a>`:"";
-    const body=(head?'<b>'+head+'</b>':'')+(head&&e.comment?' · ':'')+esc(e.comment||"")+file;
+    const photo=e.photo&&e.photo.data?`<div style="margin-top:6px"><a href="${e.photo.data}" download="${esc(e.photo.name||"tarkastuspoytakirja.jpg")}" title="Avaa pöytäkirjan kuva"><img src="${e.photo.data}" alt="Tarkastuspöytäkirja" style="max-width:120px;max-height:120px;border:1px solid var(--line);border-radius:6px;display:block"></a><span class="hint">📷 Pöytäkirjan kuva (sisäinen)</span></div>`:"";
+    const body=(head?'<b>'+head+'</b>':'')+(head&&e.comment?' · ':'')+esc(e.comment||"")+file+photo;
     return `<tr><td style="white-space:nowrap;vertical-align:top">${fmt(e.date)}</td><td>${body||'–'}</td></tr>`;
   }).join("")+'</tbody></table>';
+}
+function previewPhoto(){
+  const pi=document.getElementById("enPhoto"),pp=document.getElementById("enPhotoPrev");
+  if(!pi||!pp)return;pp.innerHTML="";
+  const f=pi.files&&pi.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{pp.innerHTML=`<img src="${r.result}" alt="Esikatselu" style="max-width:160px;max-height:160px;border:1px solid var(--line);border-radius:6px">`;};
+  r.readAsDataURL(f);
 }
 function openEntry(devId,type){
   if(!can("devices_edit"))return;
@@ -1540,6 +1551,7 @@ function openEntry(devId,type){
   document.getElementById("enComment").value="";
   document.getElementById("enName").value="";
   document.getElementById("enFile").value="";
+  {const pf=document.getElementById("enPhotoField"),pi=document.getElementById("enPhoto"),pp=document.getElementById("enPhotoPrev");if(pi)pi.value="";if(pp)pp.innerHTML="";if(pf)pf.style.display=type==="inspections"?"":"none";}
   document.getElementById("enNameField").style.display=cfg.person?"":"none";
   const dev=db.devices.find(x=>x.id===devId);
   const isCycle=(type==="maintenances"||type==="inspections");
@@ -1565,15 +1577,17 @@ function saveEntry(){
     if(type==="repairsLog"){d.repairs=(d.repairs||0)+1;}
     d.updated=today();save();closeOverlay("entryOverlay");renderDevTab();
   };
-  const fi=document.getElementById("enFile");
-  if(fi.files&&fi.files[0]){
-    const f=fi.files[0];
-    if(f.size>4*1024*1024){alert("Tiedosto on liian suuri (max ~4 MB). Tallenna ilman liitettä tai pienennä tiedostoa.");return;}
-    const r=new FileReader();
-    r.onload=()=>{entry.file={name:f.name,type:f.type,data:r.result};finalize();};
-    r.onerror=()=>{alert("Tiedoston luku epäonnistui.");};
-    r.readAsDataURL(f);
-  } else finalize();
+  const readInto=(inputEl,key,next)=>{
+    if(inputEl&&inputEl.files&&inputEl.files[0]){
+      const f=inputEl.files[0];
+      if(f.size>4*1024*1024){alert("Tiedosto on liian suuri (max ~4 MB). Tallenna ilman liitettä tai pienennä tiedostoa.");return;}
+      const r=new FileReader();
+      r.onload=()=>{entry[key]={name:f.name,type:f.type,data:r.result};next();};
+      r.onerror=()=>{alert("Tiedoston luku epäonnistui.");};
+      r.readAsDataURL(f);
+    } else next();
+  };
+  readInto(document.getElementById("enFile"),"file",()=>readInto(document.getElementById("enPhoto"),"photo",finalize));
 }
 
 /* ---------- device add/edit ---------- */
