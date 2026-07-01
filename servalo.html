@@ -1062,6 +1062,7 @@ function buildTree(){
   root.innerHTML="";(byParent["root"]||[]).forEach(l=>root.appendChild(node(l)));
 }
 function selectLocation(id){selLoc=id;buildTree();renderList();renderSummary();
+  setNavActive("list");go("list");
   if(window.innerWidth<=760)document.getElementById("sidebar").classList.add("collapsed");}
 function filterTree(){const q=document.getElementById("treeSearch").value.toLowerCase();
   if(!q){buildTree();return;}
