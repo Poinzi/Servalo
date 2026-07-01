@@ -305,7 +305,7 @@
       <span class="uava" id="uAva">–</span>
       <span class="ucol"><span class="uname" id="uName">–</span><span class="urole" id="uRole"></span></span>
       <span style="opacity:.7">▾</span>
-      <div class="usermenu" id="userMenu"><button onclick="logout()">↩ Vaihda käyttäjää</button></div>
+      <div class="usermenu" id="userMenu"><button onclick="openSettings()">⚙ Omat asetukset</button><button onclick="logout()">↩ Vaihda käyttäjää</button></div>
     </div>
   </div>
 </header>
@@ -570,6 +570,25 @@
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeOverlay('userOverlay')">Peruuta</button>
       <button class="btn orange" onclick="saveUser()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<!-- OMAT ASETUKSET MODAL -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-h"><span>⚙ Omat asetukset</span><span class="x" onclick="closeOverlay('settingsOverlay')">×</span></div>
+    <div class="modal-b">
+      <div class="tabs" id="setTabs">
+        <button class="active" data-set="tiedot" onclick="settingsTab('tiedot')"><span class="ti">👤</span>Tietoni</button>
+        <button data-set="ilmoitukset" onclick="settingsTab('ilmoitukset')"><span class="ti">✉️</span>Sähköposti-ilmoitukset</button>
+        <button data-set="turva" onclick="settingsTab('turva')"><span class="ti">🔒</span>Turvallisuus</button>
+      </div>
+      <div id="setPane"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeOverlay('settingsOverlay')">Sulje</button>
+      <button class="btn orange" id="setSaveBtn" onclick="saveSettings()">Tallenna</button>
     </div>
   </div>
 </div>
@@ -2303,6 +2322,92 @@ function renderUserChip(){if(!currentUser)return;
   document.getElementById("uRole").textContent=ROLE_LABEL[currentUser.role];}
 function toggleUserMenu(e){e.stopPropagation();document.getElementById("userMenu").classList.toggle("show");}
 document.addEventListener("click",()=>document.getElementById("userMenu").classList.remove("show"));
+/* --- Omat asetukset --- */
+let setTab="tiedot";
+function openSettings(){document.getElementById("userMenu").classList.remove("show");setTab="tiedot";renderSettings();document.getElementById("settingsOverlay").classList.add("show");}
+function settingsTab(t){setTab=t;renderSettings();}
+function renderSettings(){
+  const u=currentUser;if(!u)return;
+  const p=document.getElementById("setPane");
+  const saveBtn=document.getElementById("setSaveBtn");
+  document.querySelectorAll("#setTabs button").forEach(b=>b.classList.toggle("active",b.dataset.set===setTab));
+  if(setTab==="tiedot"){
+    saveBtn.style.display="";
+    const nm=(u.name||"").trim().split(/\s+/);
+    const first=u.first!=null?u.first:(nm.length>1?nm.slice(0,-1).join(" "):(nm[0]||""));
+    const last=u.last!=null?u.last:(nm.length>1?nm[nm.length-1]:"");
+    p.innerHTML=`
+      <div class="grid2">
+        <div class="field"><label>Etunimi</label><input class="f" id="setFirst" value="${esc(first)}"></div>
+        <div class="field"><label>Sukunimi</label><input class="f" id="setLast" value="${esc(last)}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Puhelinnumero</label><input class="f" id="setPhone" value="${esc(u.phone||"")}" placeholder="esim. 040 123 4567"></div>
+        <div class="field"><label>Sähköposti</label><input class="f" value="${esc(u.email||"")}" disabled title="Sähköpostin vaihto Turvallisuus-välilehdellä"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Kieli</label><select class="f" id="setLang">
+          <option value="fi">Suomi</option><option value="en">English</option><option value="sv">Svenska</option></select></div>
+        <div class="field"><label>Päivämäärän muotoilu</label><select class="f" id="setDateFmt">
+          <option value="pp.kk.vvvv">pp.kk.vvvv</option><option value="vvvv-kk-pp">vvvv-kk-pp</option><option value="kk/pp/vvvv">kk/pp/vvvv</option></select></div>
+      </div>
+      <div class="field"><label>Numeroiden muotoilu</label><select class="f" id="setNumFmt">
+        <option value="1 234,56">1 234,56 (välilyönti / pilkku)</option><option value="1,234.56">1,234.56 (pilkku / piste)</option></select></div>`;
+    document.getElementById("setLang").value=u.lang||"fi";
+    document.getElementById("setDateFmt").value=u.dateFmt||"pp.kk.vvvv";
+    document.getElementById("setNumFmt").value=u.numFmt||"1 234,56";
+  }else if(setTab==="ilmoitukset"){
+    saveBtn.style.display="";
+    const n=u.notify||{};
+    const row=(k,label,def)=>`<label class="rtoggle" style="justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)"><span>${label}</span><input type="checkbox" data-notif="${k}" ${(n[k]!==undefined?n[k]:def)?"checked":""}></label>`;
+    p.innerHTML=`<p class="hint" style="margin:0 0 6px">Valitse mistä tapahtumista haluat sähköposti-ilmoituksen. (Demo: sähköposteja ei oikeasti lähetetä.)</p>`
+      +row("maintDue","Tuleva määräaikaishuolto / tarkastus",true)
+      +row("assigned","Minulle osoitettu uusi työ",true)
+      +row("request","Uusi huoltopyyntö kohteestani",true)
+      +row("weekly","Viikkokooste avoimista töistä",false);
+  }else{
+    saveBtn.style.display="none";
+    const mfa=!!u.mfa;
+    p.innerHTML=`
+      <div class="field"><label style="font-weight:700">Salasanan vaihto</label></div>
+      <div class="grid2">
+        <div class="field"><label>Nykyinen salasana</label><input class="f" type="password" id="pwOld"></div>
+        <div class="field"><label>Uusi salasana</label><input class="f" type="password" id="pwNew"></div>
+      </div>
+      <div class="field"><label>Vahvista uusi salasana</label><input class="f" type="password" id="pwNew2"></div>
+      <button class="btn orange" style="margin:2px 0 18px" onclick="changePassword()">Vaihda salasana</button>
+      <hr style="border:0;border-top:1px solid var(--line);margin:0 0 16px">
+      <label class="rtoggle" style="justify-content:space-between"><span>Kaksivaiheinen tunnistus (MFA)</span><input type="checkbox" id="setMfa" ${mfa?"checked":""} onchange="toggleMfa(this.checked)"></label>
+      <p class="hint" style="margin:6px 0 18px">${mfa?"MFA on käytössä.":"Suosittelemme ottamaan kaksivaiheisen tunnistuksen käyttöön."}</p>
+      <div class="field"><label style="font-weight:700">Aktiiviset istunnot</label></div>
+      <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden">
+        <div style="padding:11px 13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center"><span>🖥 Tämä laite · kirjautunut ${esc(today())}</span><span class="hint">Nykyinen istunto</span></div>
+        <div style="padding:11px 13px;display:flex;justify-content:space-between;align-items:center"><span>📱 Mobiilisovellus · Helsinki</span><button class="btn ghost" style="padding:3px 12px" onclick="alert('Istunto suljettu (demo).')">Sulje</button></div>
+      </div>`;
+  }
+}
+function saveSettings(){
+  const u=currentUser;if(!u)return;
+  const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
+  if(setTab==="tiedot"){
+    u.first=g("setFirst").trim();u.last=g("setLast").trim();
+    u.name=(u.first+" "+u.last).trim()||u.name;
+    u.phone=g("setPhone").trim();u.lang=g("setLang");u.dateFmt=g("setDateFmt");u.numFmt=g("setNumFmt");
+  }else if(setTab==="ilmoitukset"){
+    const n={};document.querySelectorAll("[data-notif]").forEach(c=>n[c.dataset.notif]=c.checked);u.notify=n;
+  }
+  save();renderUserChip();
+  const btn=document.getElementById("setSaveBtn");if(btn){const t=btn.textContent;btn.textContent="Tallennettu ✓";setTimeout(()=>btn.textContent=t,1400);}
+}
+function changePassword(){
+  const o=document.getElementById("pwOld").value,a=document.getElementById("pwNew").value,b=document.getElementById("pwNew2").value;
+  if(!o||!a){alert("Täytä salasanakentät.");return;}
+  if(a.length<8){alert("Uuden salasanan tulee olla vähintään 8 merkkiä.");return;}
+  if(a!==b){alert("Uudet salasanat eivät täsmää.");return;}
+  document.getElementById("pwOld").value="";document.getElementById("pwNew").value="";document.getElementById("pwNew2").value="";
+  alert("Salasana vaihdettu (demo).");
+}
+function toggleMfa(on){currentUser.mfa=on;save();renderSettings();}
 /* --- oikeuksien soveltaminen näkymään --- */
 function applyRole(){
   const cust=role()==="customer";
