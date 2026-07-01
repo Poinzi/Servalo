@@ -269,6 +269,7 @@
   <nav class="top">
     <button class="navlink active" id="navList" data-go="list"><span>👁</span> Laitteet</button>
     <button class="navlink" id="navPortal" data-go="portal" style="display:none"><span>🏠</span> Oma kohde</button>
+    <button class="navlink" id="navMywork" data-go="mywork">🧰 Omat työt</button>
     <div class="dd" id="navReports">
       <button class="navlink" id="reportsBtn">☰ Raportit ▾</button>
       <div class="menu" id="reportsMenu">
@@ -282,20 +283,19 @@
         <button data-report="poistetut">🗑 Poistetut laitteet</button>
       </div>
     </div>
-    <div class="dd" id="navSearch">
-      <button class="navlink" id="searchBtn">🔍 Etsi ▾</button>
-      <div class="menu" id="searchMenu">
+    <div class="dd" id="navLog">
+      <button class="navlink" id="logBtn">📓 Loki ▾</button>
+      <div class="menu" id="logMenu">
+        <button id="navCalendar" data-go="calendar">🗓 Kalenteri</button>
         <button onclick="openHistory()">🕘 Laitehistoria</button>
       </div>
     </div>
     <div class="dd" id="navMore">
-      <button class="navlink" id="moreBtn">⊞ Valikko ▾</button>
+      <button class="navlink" id="moreBtn">⚙ Hallinta ▾</button>
       <div class="menu" id="moreMenu">
-        <button id="navMywork" data-go="mywork">🧰 Omat työt</button>
-        <button id="navCalendar" data-go="calendar">🗓 Kalenteri</button>
         <button id="navCustomers" data-go="customers">👥 Asiakkaat</button>
         <button id="navDispatch" data-go="dispatch">🗂 Työnjako</button>
-        <button id="navAdmin" data-go="admin">⚙ Hallinta</button>
+        <button id="navAdmin" data-go="admin">⚙ Käyttäjät & asetukset</button>
       </div>
     </div>
   </nav>
@@ -1119,8 +1119,8 @@ document.addEventListener("click",()=>document.getElementById("reportsMenu").cla
 document.querySelectorAll("#reportsMenu button").forEach(b=>b.onclick=()=>openReport(b.dataset.report));
 document.getElementById("moreBtn").onclick=e=>{e.stopPropagation();document.getElementById("moreMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("moreMenu").classList.remove("show"));
-document.getElementById("searchBtn").onclick=e=>{e.stopPropagation();document.getElementById("searchMenu").classList.toggle("show");};
-document.addEventListener("click",()=>document.getElementById("searchMenu").classList.remove("show"));
+document.getElementById("logBtn").onclick=e=>{e.stopPropagation();document.getElementById("logMenu").classList.toggle("show");};
+document.addEventListener("click",()=>document.getElementById("logMenu").classList.remove("show"));
 
 /* ---------- list / summary ---------- */
 function setMode(m){mode=m;
@@ -2314,14 +2314,14 @@ function applyRole(){
   show("navAdmin", role()==="admin");
   show("navPortal", cust);
   show("navCalendar", !cust);
-  show("navSearch", !cust);
+  show("navLog", !cust);
   // asiakkaalle piilotetaan sivupalkki (laitepuu) ja sisäiset napit
   const sb=document.getElementById("sidebar");if(sb)sb.style.display=cust?"none":"";
   const st=document.getElementById("sideToggle");if(st)st.style.display=cust?"none":"";
   document.querySelectorAll(".req-edit").forEach(el=>el.style.display=can("devices_edit")?"":"none");
   document.querySelectorAll(".req-cust").forEach(el=>el.style.display=can("customers")?"":"none");
   {const cal=document.getElementById("navCalendar");if(cal)cal.style.display=role()==="customer"?"none":"";}
-  {const mb=document.getElementById("navMore");if(mb){const any=["navMywork","navCalendar","navCustomers","navDispatch","navAdmin"].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=="none";});mb.style.display=any?"":"none";}}
+  {const mb=document.getElementById("navMore");if(mb){const any=["navCustomers","navDispatch","navAdmin"].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=="none";});mb.style.display=any?"":"none";}}
 }
 
 /* ========== OMAT TYÖT (asentaja) ========== */
@@ -2625,9 +2625,9 @@ function renderHistory(){const body=document.getElementById("histBody");if(!body
   body.innerHTML=`<div style="overflow:auto"><table>
     <thead><tr><th>Aika</th><th>Käyttäjä</th><th>Toiminto</th><th>Laite</th><th>Muutokset</th><th>Toiminnot</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;}
-function openHistory(){const sm=document.getElementById("searchMenu");if(sm)sm.classList.remove("show");
+function openHistory(){const sm=document.getElementById("logMenu");if(sm)sm.classList.remove("show");
   document.querySelectorAll("nav.top .navlink").forEach(x=>x.classList.remove("active"));
-  const sb=document.getElementById("searchBtn");if(sb)sb.classList.add("active");
+  const sb=document.getElementById("logBtn");if(sb)sb.classList.add("active");
   go("history");renderHistory();}
 /* demodata: seedaa muutama merkintä jos loki on tyhjä */
 db.history=db.history||[];
@@ -2644,8 +2644,8 @@ function applyTitles(){
     navList:"Näytä kaikki laitteet",
     navPortal:"Oman kohteesi tiedot",
     reportsBtn:"Avaa raporttivalikko",
-    searchBtn:"Haku ja laitehistoria",
-    moreBtn:"Lisää näkymiä ja hallinta",
+    logBtn:"Kalenteri ja laitehistoria",
+    moreBtn:"Hallinta: asiakkaat, työnjako, käyttäjät",
     navMywork:"Sinulle osoitetut työt",
     navCalendar:"Huoltojen ja tarkastusten kalenteri",
     navCustomers:"Asiakkaat ja kohteet",
