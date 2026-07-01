@@ -2502,7 +2502,7 @@ function saveSettings(){
   db.settings.intervals=g("seIntervals").split("\n").map(s=>s.trim()).filter(Boolean);
   save();alert("Asetukset tallennettu.");
 }
-const CERT_TYPES=["Tulityökortti","Työturvallisuuskortti","Paloilmoittimen hoitaja","Paloilmoitinliikkeen vastuuhenkilö (Kiwa)","Ensiapu EA1","Ensiapu EA2","Sähkötyöturvallisuus SFS 6002","Muu"];
+const CERT_TYPES=["Tulityökortti","Työturvallisuuskortti","Paloilmoittimen hoitaja","Paloilmoitinliikkeen vastuuhenkilö (Kiwa)","Hissipätevyys / hissiturvallisuustutkinto","Kylmäainepätevyys (F-kaasu)","Ensiapu EA1","Ensiapu EA2","Sähkötyöturvallisuus SFS 6002","Muu"];
 function certState(exp){const n=daysFromToday(exp);if(n===null)return{cls:"",lab:"–",n:null};if(n<0)return{cls:"red",lab:"Vanhentunut",n};if(n<=60)return{cls:"yellow",lab:n+" pv jäljellä",n};return{cls:"green",lab:"Voimassa",n};}
 function certBadge(exp){if(!exp)return '<span class="badge">–</span>';const s=certState(exp);return `<span class="badge ${s.cls}">${fmt(exp)} · ${s.lab}</span>`;}
 function userCertFlags(u){const cs=(u&&u.certs)||[];let expired=0,soon=0;cs.forEach(c=>{const n=daysFromToday(c.expires);if(n===null)return;if(n<0)expired++;else if(n<=60)soon++;});return{expired,soon};}
