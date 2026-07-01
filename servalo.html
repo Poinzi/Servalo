@@ -2167,7 +2167,7 @@ function can(p){
   const r=role();
   if(r==="admin")return true;
   if(r==="supervisor")return ["mywork","dispatch","customers","reports","devices_edit","view"].includes(p);
-  if(r==="worker")return ["mywork","view","complete"].includes(p);
+  if(r==="worker")return ["mywork","view","complete","devices_edit"].includes(p);
   if(r==="customer")return ["portal"].includes(p);
   return false;
 }
