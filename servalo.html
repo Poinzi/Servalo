@@ -1041,6 +1041,7 @@ const cs=()=>db.settings.company;
 
 /* ---------- location helpers ---------- */
 function locById(id){return db.locs.find(l=>l.id===id);}
+function mapLink(addr){addr=(addr||"").trim();if(!addr)return"";return ' · <a class="maplink" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(addr)+'" target="_blank" rel="noopener" title="Avaa osoite Google Mapsissa">📍 Näytä kartalla</a>';}
 function locPath(id){const out=[];let c=locById(id);while(c){out.unshift(c.name);c=locById(c.parent);}return out.join(" - ");}
 function siteName(id){const l=locById(id);return l?l.name:"";}
 function descendants(id){if(!id)return null;const set=new Set([id]);let added=true;while(added){added=false;db.locs.forEach(l=>{if(l.parent&&set.has(l.parent)&&!set.has(l.id)){set.add(l.id);added=true;}});}return set;}
@@ -1504,7 +1505,7 @@ function deviceMainTab(d){
     <div class="meta">
       <b>Asiakas:</b> ${d.customerId&&custById(d.customerId)?`<a href="#" onclick="openCustomer('${d.customerId}');return false" style="color:var(--orange);font-weight:700;text-decoration:none">${esc(custById(d.customerId).name)}</a>`:"–"}<br>
       ${d.customerId&&custById(d.customerId)&&custById(d.customerId).keys?'<b>🔑 Avainten nouto:</b> '+esc(custById(d.customerId).keys)+'<br>':''}
-      <b>Yhteystiedot:</b> ${esc(locById(d.locId)?.addr||"")}<br>
+      <b>Yhteystiedot:</b> ${esc(locById(d.locId)?.addr||"")}${mapLink(locById(d.locId)?.addr)}<br>
       <b>Kustannuspaikka:</b> Ecom ID: ${esc(d.ecom||"")}<br>
       <b>Lisätieto:</b> Servalo asiantuntija: ${esc(d.expert||"")}<br>
       <b>Lisätieto:</b> Servalo huoltopäällikkö: ${esc(d.manager||"")}
@@ -2030,7 +2031,7 @@ function renderCustomerDetail(){
         ${pair("Tila",tg[1])}
         ${pair("Sähköposti",c.email?`<a href="mailto:${esc(c.email)}" style="color:var(--orange)">${esc(c.email)}</a>`:"")}
         ${pair("Puhelin",c.phone?`<a href="tel:${esc(c.phone)}" style="color:var(--orange)">${esc(c.phone)}</a>`:"")}
-        ${pair("Osoite",esc(c.address||""))}
+        ${pair("Osoite",esc(c.address||"")+mapLink(c.address))}
         ${pair("🔑 Avainten nouto",esc(c.keys||""))}
         ${pair("Lisätty",fmt(c.created))}
       </div></div></div>
