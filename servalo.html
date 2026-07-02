@@ -2249,6 +2249,43 @@ function renderCoverageOverlay(rows){
   document.body.appendChild(ov);
 }
 function closeCoverage(){ var o=document.getElementById("covOverlay"); if(o)o.remove(); }
+function pushImage(code,dataUrl){
+  return fetch("/api/liite",{method:"POST",headers:apiHeaders(),body:JSON.stringify({koodi:code,dataUrl:dataUrl})})
+    .then(function(r){return r.ok?r.json():null;}).then(function(j){ return (j&&j.id)||null; });
+}
+function viewServerImages(id){
+  var x=(db.codes||[]).find(c=>c.id===id); if(!x)return;
+  fetch("/api/liitteet/"+encodeURIComponent(x.code),{headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(list){ if(!list){ alert("Kuvien haku epäonnistui."); return; } renderImagesOverlay(x.code, list); })
+    .catch(function(){ alert("Palvelimeen ei saatu yhteyttä."); });
+}
+function renderImagesOverlay(code, list){
+  var body = list.length ? list.map(function(im){
+    return '<div style="position:relative;display:inline-block;margin:6px">'+
+      '<img src="'+im.dataUrl+'" style="width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">'+
+      '<button class="btn sm danger" style="position:absolute;top:4px;right:4px" onclick="deleteServerImage(\''+im.id+'\',\''+esc(code)+'\')">🗑</button>'+
+    '</div>';
+  }).join("") : '<p style="color:#64748b">Ei palvelinkuvia tälle koodille vielä. Lisää kuva 📎 +.</p>';
+  var ov=document.createElement("div"); ov.id="imgOverlay";
+  ov.style.cssText="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto";
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:680px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+      '<h2 style="margin:0;font-size:18px">☁🖼 Palvelinkuvat · '+esc(code)+'</h2>'+
+      '<button class="btn ghost" onclick="closeImages()">✕ Sulje</button></div>'+
+    '<div>'+body+'</div>'+
+    '<p style="font-size:12px;color:#64748b;margin-top:12px">Tallennettu palvelimelle, näkyvät kaikilla laitteilla.</p></div>';
+  ov.addEventListener("click",function(e){ if(e.target===ov) closeImages(); });
+  document.body.appendChild(ov);
+}
+function closeImages(){ var o=document.getElementById("imgOverlay"); if(o)o.remove(); }
+function deleteServerImage(imgId, code){
+  if(!confirm("Poistetaanko palvelinkuva?"))return;
+  fetch("/api/liite/"+encodeURIComponent(imgId),{method:"DELETE",headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(){ closeImages(); var x=(db.codes||[]).find(c=>(c.code||"").toUpperCase()===code.toUpperCase()); if(x) viewServerImages(x.id); })
+    .catch(function(){});
+}
 function codeParse(apt){
   apt=(apt||"").trim();
   const m=apt.match(/^([A-Za-zÅÄÖåäö]+)?\s*0*(\d+)?/);
@@ -2275,7 +2312,7 @@ function codeRowsHtml(cid){
       '<td>'+esc(x.apt||"")+((x.type&&x.type!=="asukas")?' <span style="font-size:11px;color:#64748b;border:1px solid var(--line);border-radius:6px;padding:1px 5px">'+esc(x.type)+'</span>':"")+'</td>'+
       '<td>'+esc(codeParse(x.apt).rappu||"–")+'</td>'+
       '<td>'+esc(x.note||"")+'</td>'+
-      '<td>'+thumbs+'<button class="btn sm ghost" onclick="addCodeImage(\''+x.id+'\')">📎 +</button></td>'+
+      '<td>'+thumbs+'<button class="btn sm ghost" onclick="addCodeImage(\''+x.id+'\')">📎 +</button>'+(x.synced?' <button class="btn sm ghost" onclick="viewServerImages(\''+x.id+'\')" title="Palvelinkuvat">☁🖼</button>':'')+'</td>'+
       '<td style="white-space:nowrap"><button class="btn sm ghost" onclick="editCode(\''+x.id+'\')">✎</button> <button class="btn sm danger" onclick="deleteCode(\''+x.id+'\')">🗑</button></td>'+
     '</tr>';
   }).join("");
@@ -2336,8 +2373,9 @@ function addCodeImage(id){
         cv.getContext("2d").drawImage(img,0,0,w,h);
         const data=cv.toDataURL("image/jpeg",0.6);
         x.images=x.images||[];x.images.push(data);
-        try{save();}catch(e){x.images.pop();alert("Muisti täynnä — kuvaa ei voitu tallentaa. Kuvat siirtyvät backend-vaiheessa palvelimelle.");}
+        try{save();}catch(e){x.images.pop();alert("Selaimen paikallinen muisti täynnä — kuva viedään vain palvelimelle.");}
         refreshCodes();
+        if(x.synced){ pushImage(x.code,data).then(function(){}).catch(function(){}); }
       };
       img.src=r.result;
     };

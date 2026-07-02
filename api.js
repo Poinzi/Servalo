@@ -126,7 +126,7 @@ async function handle(req, res) {
     }
 
     // Kirjautuneiden reitit alla
-    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti")) {
+    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite")) {
       if (!requireAuth()) return;
     }
 
@@ -232,6 +232,50 @@ async function handle(req, res) {
       );
       if (!q.rows.length) return sendJson(res, 404, { error: "unknown koodi" });
       return sendJson(res, 200, { ok: true, koodi: q.rows[0].koodi });
+    }
+
+    // POST /api/liite (auth: tallenna koodin liitekuva Postgresiin)
+    if (method === "POST" && p === "/api/liite") {
+      const body = await readBody(req, 1024 * 1024 * 6); // max ~6 MB
+      const koodi = String(body.koodi || "").trim().toUpperCase();
+      const dataUrl = String(body.dataUrl || "");
+      if (!koodi) return sendJson(res, 400, { error: "koodi required" });
+      const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!m) return sendJson(res, 400, { error: "invalid dataUrl" });
+      const mime = m[1];
+      const buf = Buffer.from(m[2], "base64");
+      const exists = await db.query("SELECT kohde_id FROM koodit WHERE koodi=$1", [koodi]);
+      if (!exists.rows.length) return sendJson(res, 404, { error: "unknown koodi" });
+      const ins = await db.query(
+        "INSERT INTO liitteet (koodi, kohde_id, tyyppi, nimi, mime, data) VALUES ($1,$2,'kuva',$3,$4,$5) RETURNING id, luotu",
+        [koodi, exists.rows[0].kohde_id, "kuva-" + Date.now() + ".jpg", mime, buf]
+      );
+      return sendJson(res, 201, { id: ins.rows[0].id, luotu: ins.rows[0].luotu });
+    }
+
+    // GET /api/liitteet/:koodi (auth: listaa koodin kuvat data-URL:eina)
+    if (method === "GET" && p.startsWith("/api/liitteet/")) {
+      const koodi = decodeURIComponent(p.slice("/api/liitteet/".length)).trim().toUpperCase();
+      if (!koodi) return sendJson(res, 400, { error: "empty koodi" });
+      const q = await db.query(
+        "SELECT id, mime, encode(data,'base64') AS b64, luotu FROM liitteet WHERE koodi=$1 AND tyyppi='kuva' ORDER BY luotu",
+        [koodi]
+      );
+      const kuvat = q.rows.map((r) => ({
+        id: r.id,
+        mime: r.mime,
+        luotu: r.luotu,
+        dataUrl: "data:" + (r.mime || "image/jpeg") + ";base64," + r.b64,
+      }));
+      return sendJson(res, 200, kuvat);
+    }
+
+    // DELETE /api/liite/:id (auth)
+    const mLiite = p.match(/^\/api\/liite\/([0-9a-f-]{36})$/i);
+    if (method === "DELETE" && mLiite) {
+      const q = await db.query("DELETE FROM liitteet WHERE id=$1 RETURNING id", [mLiite[1]]);
+      if (!q.rows.length) return sendJson(res, 404, { error: "unknown liite" });
+      return sendJson(res, 200, { ok: true, id: q.rows[0].id });
     }
 
     return sendJson(res, 404, { error: "unknown api route" });
