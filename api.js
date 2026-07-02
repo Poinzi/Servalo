@@ -1,7 +1,69 @@
 // Servalo QR-palvelun API. Yksinkertainen reititys pg-tietokantaa vasten.
-// Auth: X-User-Id -header (kevyt demoauth; roolit tulevat myöhemmin).
+// Auth: allekirjoitettu roolitoken (Authorization: Bearer). Roolit: admin / kentta / huolto.
+// Legacy: jos AUTH_SECRET ei ole asetettu, ei-tyhjä X-User-Id kelpaa adminina (yhteensopivuus).
 
 const db = require("./db");
+const crypto = require("crypto");
+
+// --- Rooliauth -------------------------------------------------------------
+const SECRET = process.env.AUTH_SECRET || "servalo-dev-secret";
+const ENFORCE = !!process.env.AUTH_SECRET; // vasta kun AUTH_SECRET on asetettu, pakotetaan roolit
+
+// Demokäyttäjät (fiktiivisiä). Vaihda salasanat ja aseta AUTH_SECRET tuotannossa.
+const USERS = {
+  admin:  { id: "u-admin",  nimi: "Pääkäyttäjä",     rooli: "admin",  salasana: "admin123" },
+  kentta: { id: "u-kentta", nimi: "Kenttäasentaja",  rooli: "kentta", salasana: "kentta123" },
+  huolto: { id: "u-huolto", nimi: "Huoltokumppani",  rooli: "huolto", salasana: "huolto123" },
+};
+
+function checkPassword(given, expected) {
+  const a = Buffer.from(String(given));
+  const b = Buffer.from(String(expected));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function b64url(buf) {
+  return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function hmac(body) {
+  return b64url(crypto.createHmac("sha256", SECRET).update(body).digest());
+}
+function signToken(payload) {
+  const body = b64url(JSON.stringify(payload));
+  return body + "." + hmac(body);
+}
+function verifyToken(token) {
+  if (!token || token.indexOf(".") < 0) return null;
+  const i = token.lastIndexOf(".");
+  const body = token.slice(0, i);
+  const sig = token.slice(i + 1);
+  const exp = hmac(body);
+  if (sig.length !== exp.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(exp))) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(body.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")); }
+  catch (e) { return null; }
+  if (payload && payload.exp && Date.now() > payload.exp) return null;
+  return payload;
+}
+
+// Reittikohtaiset oikeudet. admin: kaikki. kentta: luku + kirjoitus paitsi
+// poistot (kontakti/kohdista). huolto: luku + liitekuvat (lisää/poista).
+function permit(method, p, rooli) {
+  if (rooli === "admin") return true;
+  if (method === "GET") return rooli === "kentta" || rooli === "huolto";
+  const liitePost = method === "POST" && p === "/api/liite";
+  const liiteDel = method === "DELETE" && /^\/api\/liite\/[0-9a-f-]{36}$/i.test(p);
+  if (rooli === "huolto") return liitePost || liiteDel;
+  if (rooli === "kentta") {
+    const kontDel = method === "DELETE" && /^\/api\/kontakti\/[0-9a-f-]{36}$/i.test(p);
+    const kohdistaDel = method === "DELETE" && /^\/api\/kohdista\//.test(p);
+    if (kontDel || kohdistaDel) return false;
+    return true;
+  }
+  return false;
+}
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -82,10 +144,15 @@ async function handle(req, res) {
   const url = new URL(req.url, "http://localhost");
   const p = url.pathname;
   const method = req.method || "GET";
-  const userId = String(req.headers["x-user-id"] || "").trim();
-  const requireAuth = () => {
-    if (!userId) { sendJson(res, 401, { error: "auth required" }); return false; }
-    return true;
+  let userId = String(req.headers["x-user-id"] || "").trim();
+  const resolveActor = () => {
+    const auth = String(req.headers["authorization"] || "");
+    const bearer = auth.indexOf("Bearer ") === 0 ? auth.slice(7).trim() : "";
+    const payload = bearer ? verifyToken(bearer) : null;
+    if (payload) return payload;
+    // Legacy-tila (AUTH_SECRET ei asetettu): ei-tyhjä X-User-Id kelpaa adminina
+    if (!ENFORCE && userId) return { id: userId, nimi: userId, rooli: "admin", legacy: true };
+    return null;
   };
 
   try {
@@ -125,9 +192,34 @@ async function handle(req, res) {
       return sendJson(res, 200, { koodi, lkm: q.rows[0].lkm, viimeisin: q.rows[0].viimeisin });
     }
 
-    // Kirjautuneiden reitit alla
+    // POST /api/login (julkinen: palauttaa allekirjoitetun roolitokenin)
+    if (method === "POST" && p === "/api/login") {
+      const body = await readBody(req);
+      const kayttaja = String(body.kayttaja || "").trim().toLowerCase();
+      const salasana = String(body.salasana || "");
+      const u = USERS[kayttaja];
+      if (!u || !checkPassword(salasana, u.salasana)) {
+        return sendJson(res, 401, { error: "vaara tunnus tai salasana" });
+      }
+      const exp = Date.now() + 1000 * 60 * 60 * 12; // 12 h
+      const token = signToken({ id: u.id, nimi: u.nimi, rooli: u.rooli, exp });
+      return sendJson(res, 200, { token, id: u.id, nimi: u.nimi, rooli: u.rooli, exp });
+    }
+
+    // GET /api/mina (julkinen: kuka olen tokenin/legacy-headerin perusteella)
+    if (method === "GET" && p === "/api/mina") {
+      const who = resolveActor();
+      return sendJson(res, 200, who
+        ? { id: who.id, nimi: who.nimi, rooli: who.rooli, enforce: ENFORCE }
+        : { rooli: null, enforce: ENFORCE });
+    }
+
+    // Kirjautuneiden reitit: rooli-portti + reittikohtaiset oikeudet
     if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite") || p.startsWith("/api/kontakti")) {
-      if (!requireAuth()) return;
+      const who = resolveActor();
+      if (!who) { sendJson(res, 401, { error: "auth required" }); return; }
+      if (!permit(method, p, who.rooli)) { sendJson(res, 403, { error: "forbidden", rooli: who.rooli }); return; }
+      userId = who.id;
     }
 
     // GET /api/raportti/kattavuus (auth: kohdistus + palovaroitin-kattavuus per kohde)
