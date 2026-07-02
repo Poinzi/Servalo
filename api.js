@@ -173,6 +173,19 @@ async function handle(req, res) {
       return sendJson(res, 200, { ...q.rows[0], koodit: koodit.rows, huolto_kontaktit: kontaktit.rows });
     }
 
+    // POST /api/kohteet/:id/status (auth: päivitä turvallisuustilanne)
+    const mStatus = p.match(/^\/api\/kohteet\/([0-9a-f-]{36})\/status$/i);
+    if (method === "POST" && mStatus) {
+      const body = await readBody(req);
+      if (!Array.isArray(body.status)) return sendJson(res, 400, { error: "status array required" });
+      const q = await db.query(
+        "UPDATE kohteet SET status=$2::jsonb WHERE id=$1 RETURNING id, status",
+        [mStatus[1], JSON.stringify(body.status)]
+      );
+      if (!q.rows.length) return sendJson(res, 404, { error: "unknown kohde" });
+      return sendJson(res, 200, { ok: true, id: q.rows[0].id, status: q.rows[0].status });
+    }
+
     // POST /api/kohteet (luo uusi kohde)
     if (method === "POST" && p === "/api/kohteet") {
       const body = await readBody(req);

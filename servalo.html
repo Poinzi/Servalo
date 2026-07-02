@@ -2139,6 +2139,23 @@ function renderCustomerDetail(){
         <thead><tr><th>Ala</th><th>Yritys</th><th>Puhelin</th><th></th></tr></thead>
         <tbody>${contactRowsHtml(c.id)}</tbody></table></div>
     </div></div>
+    <div class="panel"><div class="panel-h">Turvallisuustilanne (näkyy /k-asukas- ja aulanäkymässä)</div><div class="panel-b">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input id="stName" placeholder="Kohde (Käsisammuttimet)" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <input id="stMeta" placeholder="Lisätieto (Tarkastettu 3/2026)" style="flex:2;min-width:160px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <select id="stState" style="min-width:130px;padding:9px;border:1px solid var(--line);border-radius:8px">
+          <option value="ok">Voimassa</option>
+          <option value="warn">Muista</option>
+          <option value="expired">Vanhentunut</option>
+        </select>
+        <button class="btn orange" type="button" onclick="addStatusRow('${c.id}')">＋ Lisää rivi</button>
+        <button class="btn primary" type="button" onclick="saveStatus('${c.id}')">💾 Tallenna palvelimelle</button>
+        <button class="btn ghost" type="button" onclick="loadStatus('${c.id}')">⟳ Hae</button>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Kohde</th><th>Lisätieto</th><th>Tila</th><th></th></tr></thead>
+        <tbody>${statusRowsHtml(c.id)}</tbody></table></div>
+    </div></div>
     <div class="panel"><div class="panel-h">Avoimet huoltopyynnöt</div><div class="panel-b" style="padding:0">
       <table><thead><tr><th>Laitetunnus</th><th>Pyyntöpäivä</th><th>Syy</th><th>Kommentti</th></tr></thead><tbody>${reqList}</tbody></table>
     </div></div>`;
@@ -2374,6 +2391,50 @@ function deleteContact(cid, contactId){
     .then(function(r){return r.ok?r.json():null;})
     .then(function(){ c.contacts=(c.contacts||[]).filter(function(k){return k.id!==contactId;}); save(); refreshContacts(); })
     .catch(function(){});
+}
+function statusOf(c){ return (c && c.status) || []; }
+function statusRowsHtml(cid){
+  var c=custById(cid); var list=statusOf(c);
+  if(!list.length) return '<tr><td colspan="4" class="empty">Ei tilarivejä. Lisää yllä ja tallenna palvelimelle.</td></tr>';
+  return list.map(function(s,i){
+    var lab = s.state==="ok"?"Voimassa":s.state==="warn"?"Muista":"Vanhentunut";
+    return '<tr>'+
+      '<td>'+esc(s.name||"")+'</td>'+
+      '<td>'+esc(s.meta||"")+'</td>'+
+      '<td>'+esc(lab)+'</td>'+
+      '<td><button class="btn sm danger" onclick="removeStatusRow(\''+cid+'\','+i+')">🗑</button></td>'+
+    '</tr>';
+  }).join("");
+}
+function refreshStatus(){ if(document.getElementById("view-customer").classList.contains("active"))renderCustomerDetail(); }
+function addStatusRow(cid){
+  var c=custById(cid); if(!c)return;
+  var name=(document.getElementById("stName").value||"").trim();
+  var meta=(document.getElementById("stMeta").value||"").trim();
+  var state=(document.getElementById("stState")||{}).value||"ok";
+  if(!name){alert("Anna rivin nimi.");return;}
+  c.status=c.status||[]; c.status.push({name:name,meta:meta,state:state}); save(); refreshStatus();
+  ["stName","stMeta"].forEach(function(id){var e=document.getElementById(id); if(e)e.value="";});
+}
+function removeStatusRow(cid,i){
+  var c=custById(cid); if(!c)return;
+  c.status=(c.status||[]).filter(function(_,idx){return idx!==i;}); save(); refreshStatus();
+}
+async function saveStatus(cid){
+  var c=custById(cid); if(!c)return;
+  var kid;
+  try{ kid=await ensureKohde(c); }catch(e){ alert("Kohteen luonti palvelimelle epäonnistui."); return; }
+  var r=await fetch("/api/kohteet/"+encodeURIComponent(kid)+"/status",{method:"POST",headers:apiHeaders(),body:JSON.stringify({status:c.status||[]})});
+  if(!r.ok){ alert("Tallennus epäonnistui ("+r.status+")."); return; }
+  alert("Turvallisuustilanne tallennettu. Näkyy /k-asukas- ja aulanäkymässä.");
+}
+function loadStatus(cid){
+  var c=custById(cid); if(!c)return;
+  if(!c.kohdeId){ alert("Ei palvelinkohdetta vielä. Vie koodeja tai lisää kontakti ensin."); return; }
+  fetch("/api/kohteet/"+encodeURIComponent(c.kohdeId),{headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){ if(!j){alert("Haku epäonnistui.");return;} c.status=Array.isArray(j.status)?j.status:[]; save(); refreshStatus(); })
+    .catch(function(){ alert("Palvelimeen ei saatu yhteyttä."); });
 }
 function addCode(cid){
   const code=(document.getElementById("ncCode").value||"").trim();

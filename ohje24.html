@@ -422,7 +422,7 @@ function render(code){
     .then(function(r){return r.ok?r.json():null;})
     .then(function(res){
       if(res && res.nakymatyyppi){
-        if(res.kohde){ if(res.kohde.nimi)COMPANY.name=res.kohde.nimi; if(res.kohde.osoite)COMPANY.address=res.kohde.osoite; }
+        if(res.kohde){ if(res.kohde.nimi)COMPANY.name=res.kohde.nimi; if(res.kohde.osoite)COMPANY.address=res.kohde.osoite; if(Array.isArray(res.kohde.status)&&res.kohde.status.length)COMPANY.status=res.kohde.status; }
         if(res.huolto_kontaktit) SERVER_CONTACTS[code]=res.huolto_kontaktit;
         var mapped=mapServerCode(res);
         CODES[code]=mapped;
