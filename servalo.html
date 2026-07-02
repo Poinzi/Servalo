@@ -1067,6 +1067,7 @@ if(!db){db=seed();save();}
 db.views=db.views||[];
 db.customers=db.customers||[];
 db.tasks=db.tasks||[];
+db.codes=db.codes||[];
 db.users=db.users||[];
 db.settings=db.settings||{company:{name:"Servalo Oy",email:"info@servalo.fi",phone:"+358 29 000 1112",web:"www.servalo.fi"},groups:[],intervals:["6 kk","1 vuosi","2 vuotta"]};
 const cs=()=>db.settings.company;
@@ -2102,9 +2103,185 @@ function renderCustomerDetail(){
         <thead><tr><th>Laitetunnus</th><th>Valmistaja/Malli/Tyyppi</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Seur. määräaikaishuolto</th><th>Toiminnot</th></tr></thead>
         <tbody>${devRows}</tbody></table></div>
     </div></div>
+    <div class="panel"><div class="panel-h">Koodit &amp; kohteet (${codesOf(c.id).length})</div><div class="panel-b">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input id="ncCode" placeholder="Koodi (tarrasta)" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <button class="btn ghost" type="button" onclick="scanCode()">📷 Skannaa</button>
+        <input id="ncApt" placeholder="Asunto / tila (A12)" style="flex:1;min-width:110px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <input id="ncNote" placeholder="Huomio (valinnainen)" style="flex:2;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <button class="btn orange" type="button" onclick="addCode('${c.id}')">＋ Lisää</button>
+        <button class="btn ghost" type="button" onclick="importCodesCSV('${c.id}')">⬆ Tuo CSV</button>
+      </div>
+      <div id="codeScanBox" style="display:none;margin-bottom:12px"></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Koodi</th><th>Asunto/tila</th><th>Rappu</th><th>Huomio</th><th>Liitteet</th><th></th></tr></thead>
+        <tbody>${codeRowsHtml(c.id)}</tbody></table></div>
+    </div></div>
     <div class="panel"><div class="panel-h">Avoimet huoltopyynnöt</div><div class="panel-b" style="padding:0">
       <table><thead><tr><th>Laitetunnus</th><th>Pyyntöpäivä</th><th>Syy</th><th>Kommentti</th></tr></thead><tbody>${reqList}</tbody></table>
     </div></div>`;
+}
+/* ---------- Koodit & kohteet ---------- */
+function codesOf(cid){return (db.codes||[]).filter(x=>x.customerId===cid);}
+function codeParse(apt){
+  apt=(apt||"").trim();
+  const m=apt.match(/^([A-Za-zÅÄÖåäö]+)?\s*0*(\d+)?/);
+  const rappu=m&&m[1]?m[1].toUpperCase():"";
+  const num=m&&m[2]?parseInt(m[2],10):999999;
+  return {rappu,num};
+}
+function sortCodes(list){
+  return list.slice().sort((a,b)=>{
+    const pa=codeParse(a.apt),pb=codeParse(b.apt);
+    if(pa.rappu!==pb.rappu)return pa.rappu.localeCompare(pb.rappu);
+    if(pa.num!==pb.num)return pa.num-pb.num;
+    return (a.code||"").localeCompare(b.code||"");
+  });
+}
+function codeRowsHtml(cid){
+  const list=sortCodes(codesOf(cid));
+  if(!list.length)return '<tr><td colspan="6" class="empty">Ei koodeja vielä. Skannaa tai näppäile ensimmäinen yltä.</td></tr>';
+  return list.map(x=>{
+    const imgs=(x.images||[]);
+    const thumbs=imgs.map((src,i)=>'<img src="'+src+'" style="width:34px;height:34px;object-fit:cover;border-radius:6px;margin-right:4px;cursor:pointer" onclick="viewCodeImage(\''+x.id+'\','+i+')">').join("");
+    return '<tr>'+
+      '<td><b>'+esc(x.code)+'</b></td>'+
+      '<td>'+esc(x.apt||"")+'</td>'+
+      '<td>'+esc(codeParse(x.apt).rappu||"–")+'</td>'+
+      '<td>'+esc(x.note||"")+'</td>'+
+      '<td>'+thumbs+'<button class="btn sm ghost" onclick="addCodeImage(\''+x.id+'\')">📎 +</button></td>'+
+      '<td style="white-space:nowrap"><button class="btn sm ghost" onclick="editCode(\''+x.id+'\')">✎</button> <button class="btn sm danger" onclick="deleteCode(\''+x.id+'\')">🗑</button></td>'+
+    '</tr>';
+  }).join("");
+}
+function refreshCodes(){ if(document.getElementById("view-customer").classList.contains("active"))renderCustomerDetail(); }
+function addCode(cid){
+  const code=(document.getElementById("ncCode").value||"").trim();
+  const apt=(document.getElementById("ncApt").value||"").trim();
+  const note=(document.getElementById("ncNote").value||"").trim();
+  if(!code){alert("Anna koodi (skannaa tai näppäile).");return;}
+  const ex=codesOf(cid);
+  if(ex.some(x=>(x.code||"").toLowerCase()===code.toLowerCase())){if(!confirm("Koodi on jo listalla. Lisätäänkö silti?"))return;}
+  if(apt&&ex.some(x=>(x.apt||"").toLowerCase()===apt.toLowerCase())){if(!confirm("Tälle asunnolle on jo koodi. Lisätäänkö silti?"))return;}
+  db.codes.push({id:uid(),customerId:cid,code,apt,note,images:[],created:today()});
+  save();
+  refreshCodes();
+  const el=document.getElementById("ncCode");if(el)el.focus();
+}
+function editCode(id){
+  const x=(db.codes||[]).find(c=>c.id===id);if(!x)return;
+  const code=prompt("Koodi:",x.code);if(code===null)return;
+  const apt=prompt("Asunto / tila:",x.apt||"");if(apt===null)return;
+  const note=prompt("Huomio:",x.note||"");if(note===null)return;
+  x.code=code.trim();x.apt=apt.trim();x.note=note.trim();
+  save();refreshCodes();
+}
+function deleteCode(id){
+  if(!confirm("Poistetaanko koodi?"))return;
+  db.codes=(db.codes||[]).filter(c=>c.id!==id);
+  save();refreshCodes();
+}
+function addCodeImage(id){
+  const x=(db.codes||[]).find(c=>c.id===id);if(!x)return;
+  const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.setAttribute("capture","environment");
+  inp.onchange=function(){
+    const f=inp.files&&inp.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=function(){
+      const img=new Image();
+      img.onload=function(){
+        const max=900;let w=img.width,h=img.height;
+        if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>max){w=Math.round(w*max/h);h=max;}
+        const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        const data=cv.toDataURL("image/jpeg",0.6);
+        x.images=x.images||[];x.images.push(data);
+        try{save();}catch(e){x.images.pop();alert("Muisti täynnä — kuvaa ei voitu tallentaa. Kuvat siirtyvät backend-vaiheessa palvelimelle.");}
+        refreshCodes();
+      };
+      img.src=r.result;
+    };
+    r.readAsDataURL(f);
+  };
+  inp.click();
+}
+function viewCodeImage(id,i){
+  const x=(db.codes||[]).find(c=>c.id===id);if(!x||!x.images||!x.images[i])return;
+  const w=window.open("");if(w)w.document.write('<img src="'+x.images[i]+'" style="max-width:100%">');
+}
+function parseCSV(text){
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){if(ch=='"'){if(text[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else{if(ch=='"')q=true;else if(ch==','){row.push(cur);cur="";}else if(ch=='\n'){row.push(cur);rows.push(row);row=[];cur="";}else if(ch=='\r'){}else cur+=ch;}
+  }
+  if(cur.length||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.some(c=>c.trim().length));
+}
+function importCodesCSV(cid){
+  const inp=document.createElement("input");inp.type="file";inp.accept=".csv,text/csv";
+  inp.onchange=function(){
+    const f=inp.files&&inp.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=function(){
+      const rows=parseCSV(String(r.result));
+      if(!rows.length){alert("Tyhjä tiedosto.");return;}
+      const head=rows[0].map(h=>h.trim().toLowerCase());
+      const ci=head.indexOf("koodi"),ni=head.indexOf("nimi"),si=head.indexOf("sijainti");
+      let added=0;
+      for(let i=1;i<rows.length;i++){
+        const row=rows[i];if(!row.length)continue;
+        const code=(ci>=0&&row[ci]?row[ci]:"").trim();
+        const apt=(ni>=0&&row[ni]?row[ni]:"").trim();
+        const note=(si>=0&&row[si]?row[si]:"").trim();
+        if(!code&&!apt)continue;
+        db.codes.push({id:uid(),customerId:cid,code,apt,note,images:[],created:today()});
+        added++;
+      }
+      save();refreshCodes();
+      alert(added+" riviä tuotu.");
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+let codeScanStream=null;
+async function scanCode(){
+  const box=document.getElementById("codeScanBox");if(!box)return;
+  if(codeScanStream){stopScan();return;}
+  if(!("BarcodeDetector" in window)){
+    alert("Tämä selain ei tue QR-skannausta. iPhone/Safari: näppäile koodi käsin. Kameraluku toimii esim. Android-Chromella.");
+    return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    codeScanStream=stream;
+    box.style.display="block";
+    box.innerHTML='<video id="scanVid" style="width:100%;max-width:320px;border-radius:10px" playsinline muted></video> <button class="btn danger sm" type="button" onclick="stopScan()">Sulje kamera</button>';
+    const vid=document.getElementById("scanVid");vid.srcObject=stream;await vid.play();
+    const det=new window.BarcodeDetector({formats:["qr_code","code_128","code_39","ean_13"]});
+    const tick=async function(){
+      if(!codeScanStream)return;
+      try{
+        const found=await det.detect(vid);
+        if(found&&found.length){
+          let val=found[0].rawValue||"";
+          if(val.indexOf("/")>=0){const parts=val.split(/[\/?#]/).filter(Boolean);val=parts[parts.length-1];}
+          const cf=document.getElementById("ncCode");if(cf)cf.value=val;
+          stopScan();
+          const a=document.getElementById("ncApt");if(a)a.focus();
+          return;
+        }
+      }catch(e){}
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }catch(e){alert("Kameraa ei voitu avata: "+e.message);}
+}
+function stopScan(){
+  if(codeScanStream){codeScanStream.getTracks().forEach(t=>t.stop());codeScanStream=null;}
+  const box=document.getElementById("codeScanBox");if(box){box.style.display="none";box.innerHTML="";}
 }
 let draftContacts=[];
 function renderContactRows(){
