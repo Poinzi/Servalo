@@ -2127,6 +2127,18 @@ function renderCustomerDetail(){
         <thead><tr><th>Koodi</th><th>Asunto/tila</th><th>Rappu</th><th>Huomio</th><th>Liitteet</th><th></th></tr></thead>
         <tbody>${codeRowsHtml(c.id)}</tbody></table></div>
     </div></div>
+    <div class="panel"><div class="panel-h">Hyväksytyt huoltokontaktit (näkyvät /k/HUOLTOKOODI-sivulla)</div><div class="panel-b">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input id="kkAla" placeholder="Ala (Putkityöt)" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <input id="kkYritys" placeholder="Yritys" style="flex:1;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <input id="kkPuh" placeholder="Puhelin" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:8px">
+        <button class="btn orange" type="button" onclick="addContact('${c.id}')">＋ Lisää kontakti</button>
+        <button class="btn ghost" type="button" onclick="loadContacts('${c.id}')">⟳ Hae palvelimelta</button>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Ala</th><th>Yritys</th><th>Puhelin</th><th></th></tr></thead>
+        <tbody>${contactRowsHtml(c.id)}</tbody></table></div>
+    </div></div>
     <div class="panel"><div class="panel-h">Avoimet huoltopyynnöt</div><div class="panel-b" style="padding:0">
       <table><thead><tr><th>Laitetunnus</th><th>Pyyntöpäivä</th><th>Syy</th><th>Kommentti</th></tr></thead><tbody>${reqList}</tbody></table>
     </div></div>`;
@@ -2318,6 +2330,51 @@ function codeRowsHtml(cid){
   }).join("");
 }
 function refreshCodes(){ if(document.getElementById("view-customer").classList.contains("active"))renderCustomerDetail(); }
+function contactsOf(c){ return (c && c.contacts) || []; }
+function contactRowsHtml(cid){
+  var c=custById(cid); var list=contactsOf(c);
+  if(!list.length) return '<tr><td colspan="4" class="empty">Ei huoltokontakteja. Lisää yllä.</td></tr>';
+  return list.map(function(k){
+    return '<tr>'+
+      '<td>'+esc(k.ikoni||"🔧")+' '+esc(k.ala||"")+'</td>'+
+      '<td>'+esc(k.yritys||"")+'</td>'+
+      '<td>'+esc(k.puhelin||"")+'</td>'+
+      '<td style="white-space:nowrap">'+(k.hyvaksytty===false?'<span style="color:#b45309">ei hyväksytty</span> ':'')+
+        '<button class="btn sm danger" onclick="deleteContact(\''+cid+'\',\''+k.id+'\')">🗑</button></td>'+
+    '</tr>';
+  }).join("");
+}
+function refreshContacts(){ if(document.getElementById("view-customer").classList.contains("active"))renderCustomerDetail(); }
+async function addContact(cid){
+  var c=custById(cid); if(!c)return;
+  var ala=(document.getElementById("kkAla").value||"").trim();
+  var yritys=(document.getElementById("kkYritys").value||"").trim();
+  var puh=(document.getElementById("kkPuh").value||"").trim();
+  if(!yritys){alert("Anna yrityksen nimi.");return;}
+  var kid;
+  try{ kid=await ensureKohde(c); }catch(e){ alert("Kohteen luonti palvelimelle epäonnistui."); return; }
+  var r=await fetch("/api/kontakti",{method:"POST",headers:apiHeaders(),body:JSON.stringify({kohde_id:kid,ala:ala,yritys:yritys,puhelin:puh})});
+  if(!r.ok){ alert("Kontaktin tallennus epäonnistui ("+r.status+")."); return; }
+  var j=await r.json();
+  c.contacts=c.contacts||[]; c.contacts.push(j); save(); refreshContacts();
+  ["kkAla","kkYritys","kkPuh"].forEach(function(id){var e=document.getElementById(id); if(e)e.value="";});
+}
+function loadContacts(cid){
+  var c=custById(cid); if(!c)return;
+  if(!c.kohdeId){ alert("Ei palvelinkohdetta vielä. Lisää kontakti tai vie koodeja ensin."); return; }
+  fetch("/api/kohteet/"+encodeURIComponent(c.kohdeId),{headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){ if(!j){alert("Haku epäonnistui.");return;} c.contacts=j.huolto_kontaktit||[]; save(); refreshContacts(); })
+    .catch(function(){ alert("Palvelimeen ei saatu yhteyttä."); });
+}
+function deleteContact(cid, contactId){
+  var c=custById(cid); if(!c)return;
+  if(!confirm("Poistetaanko huoltokontakti?"))return;
+  fetch("/api/kontakti/"+encodeURIComponent(contactId),{method:"DELETE",headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(){ c.contacts=(c.contacts||[]).filter(function(k){return k.id!==contactId;}); save(); refreshContacts(); })
+    .catch(function(){});
+}
 function addCode(cid){
   const code=(document.getElementById("ncCode").value||"").trim();
   const apt=(document.getElementById("ncApt").value||"").trim();

@@ -337,9 +337,12 @@ function viewHuolto(code,c){
     '<div class="banner warn">🔧 <span><b>Huoltonäkymä.</b> Tämä sisältö ei näy asukkaille.</span></div>'+
     '<div class="card"><h2>Piirustukset</h2>'+docList(HUOLTODOCS)+'</div>'+
     '<div class="card"><h2>Hyväksytyt yhteystiedot</h2>'+
-      CONTACTS.map(function(x){return '<div class="contact"><span class="ic">'+x.ic+'</span>'+
+      ((SERVER_CONTACTS[code]&&SERVER_CONTACTS[code].length
+        ? SERVER_CONTACTS[code].map(function(k){return {ic:k.ikoni||"🔧", yritys:k.yritys||"", ala:k.ala||"", puh:k.puhelin||""};})
+        : CONTACTS
+      ).map(function(x){return '<div class="contact"><span class="ic">'+x.ic+'</span>'+
         '<div class="grow"><div class="t">'+esc(x.yritys)+'</div><div class="s">'+esc(x.ala)+'</div></div>'+
-        '<a href="tel:'+esc(x.puh.replace(/\s/g,""))+'">'+esc(x.puh)+'</a></div>';}).join("")+
+        '<a href="tel:'+esc((x.puh||"").replace(/\s/g,""))+'">'+esc(x.puh)+'</a></div>';}).join(""))+
       '<div class="note" style="margin-top:10px">'+esc(TARVIKKEET)+'</div>'+
     '</div>'+
     '<div class="card"><h2>Merkitse käynti</h2>'+
@@ -362,6 +365,7 @@ function footer(){return '<div class="foot">ohje24.fi · taloyhtiön turvallisuu
 
 /* ================= PIN ================= */
 var huoltoUnlocked = {};
+var SERVER_CONTACTS = {};
 function pinType(i){
   var box=el("p"+i);
   if(box.value && i<3){ el("p"+(i+1)).focus(); }
@@ -419,6 +423,7 @@ function render(code){
     .then(function(res){
       if(res && res.nakymatyyppi){
         if(res.kohde){ if(res.kohde.nimi)COMPANY.name=res.kohde.nimi; if(res.kohde.osoite)COMPANY.address=res.kohde.osoite; }
+        if(res.huolto_kontaktit) SERVER_CONTACTS[code]=res.huolto_kontaktit;
         var mapped=mapServerCode(res);
         CODES[code]=mapped;
         renderView(code, mapped);

@@ -126,7 +126,7 @@ async function handle(req, res) {
     }
 
     // Kirjautuneiden reitit alla
-    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite")) {
+    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite") || p.startsWith("/api/kontakti")) {
       if (!requireAuth()) return;
     }
 
@@ -275,6 +275,33 @@ async function handle(req, res) {
     if (method === "DELETE" && mLiite) {
       const q = await db.query("DELETE FROM liitteet WHERE id=$1 RETURNING id", [mLiite[1]]);
       if (!q.rows.length) return sendJson(res, 404, { error: "unknown liite" });
+      return sendJson(res, 200, { ok: true, id: q.rows[0].id });
+    }
+
+    // POST /api/kontakti (auth: lisää hyväksytty huoltokontakti kohteelle)
+    if (method === "POST" && p === "/api/kontakti") {
+      const body = await readBody(req);
+      const kohdeId = String(body.kohde_id || "").trim();
+      const yritys = String(body.yritys || "").trim();
+      const ala = String(body.ala || "").trim();
+      if (!kohdeId) return sendJson(res, 400, { error: "kohde_id required" });
+      if (!yritys) return sendJson(res, 400, { error: "yritys required" });
+      const kohdeQ = await db.query("SELECT id FROM kohteet WHERE id=$1", [kohdeId]);
+      if (!kohdeQ.rows.length) return sendJson(res, 404, { error: "unknown kohde" });
+      const ins = await db.query(
+        `INSERT INTO huolto_kontaktit (kohde_id, ala, ikoni, yritys, puhelin, hyvaksytty)
+         VALUES ($1,$2,$3,$4,$5,COALESCE($6,true))
+         RETURNING id, ala, ikoni, yritys, puhelin, hyvaksytty`,
+        [kohdeId, ala, body.ikoni || "🔧", yritys, body.puhelin || null, typeof body.hyvaksytty === "boolean" ? body.hyvaksytty : null]
+      );
+      return sendJson(res, 201, ins.rows[0]);
+    }
+
+    // DELETE /api/kontakti/:id (auth)
+    const mKont = p.match(/^\/api\/kontakti\/([0-9a-f-]{36})$/i);
+    if (method === "DELETE" && mKont) {
+      const q = await db.query("DELETE FROM huolto_kontaktit WHERE id=$1 RETURNING id", [mKont[1]]);
+      if (!q.rows.length) return sendJson(res, 404, { error: "unknown kontakti" });
       return sendJson(res, 200, { ok: true, id: q.rows[0].id });
     }
 
