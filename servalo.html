@@ -2111,6 +2111,7 @@ function renderCustomerDetail(){
         <input id="ncNote" placeholder="Huomio (valinnainen)" style="flex:2;min-width:140px;padding:9px;border:1px solid var(--line);border-radius:8px">
         <button class="btn orange" type="button" onclick="addCode('${c.id}')">＋ Lisää</button>
         <button class="btn ghost" type="button" onclick="importCodesCSV('${c.id}')">⬆ Tuo CSV</button>
+        <button class="btn ghost" type="button" onclick="syncAllCodes('${c.id}')">☁ Vie palvelimelle</button>
       </div>
       <div id="codeScanBox" style="display:none;margin-bottom:12px"></div>
       <div style="overflow-x:auto"><table>
@@ -2123,6 +2124,32 @@ function renderCustomerDetail(){
 }
 /* ---------- Koodit & kohteet ---------- */
 function codesOf(cid){return (db.codes||[]).filter(x=>x.customerId===cid);}
+/* --- palvelinsynkka: kohde-silta + kohdistus --- */
+function apiHeaders(){return {"Content-Type":"application/json","X-User-Id":(currentUser&&currentUser.id)||"kentta"};}
+async function ensureKohde(c){
+  if(c.kohdeId) return c.kohdeId;
+  const r=await fetch("/api/kohteet",{method:"POST",headers:apiHeaders(),
+    body:JSON.stringify({nimi:c.name,osoite:c.address||""})});
+  if(!r.ok) throw new Error("kohde "+r.status);
+  const j=await r.json(); c.kohdeId=j.id; save(); return j.id;
+}
+async function pushCode(c,x){
+  const kid=await ensureKohde(c);
+  const r=await fetch("/api/kohdista",{method:"POST",headers:apiHeaders(),
+    body:JSON.stringify({koodi:x.code,kohde_id:kid,nakymatyyppi:"asukas",data:{apt:x.apt||"",note:x.note||""}})});
+  if(!r.ok) throw new Error("kohdista "+r.status);
+  x.synced=true; save(); return true;
+}
+function syncAllCodes(cid){
+  const c=custById(cid); if(!c){return;}
+  const list=codesOf(cid); if(!list.length){alert("Ei koodeja vietäväksi.");return;}
+  (async function(){
+    let ok=0,fail=0;
+    for(const x of list){ try{ await pushCode(c,x); ok++; }catch(e){ fail++; } }
+    refreshCodes();
+    alert("Palvelimelle viety: "+ok+(fail?(" · epäonnistui: "+fail):"")+".\nJokainen viety koodi toimii nyt osoitteessa /k/KOODI.");
+  })();
+}
 function codeParse(apt){
   apt=(apt||"").trim();
   const m=apt.match(/^([A-Za-zÅÄÖåäö]+)?\s*0*(\d+)?/);
@@ -2145,7 +2172,7 @@ function codeRowsHtml(cid){
     const imgs=(x.images||[]);
     const thumbs=imgs.map((src,i)=>'<img src="'+src+'" style="width:34px;height:34px;object-fit:cover;border-radius:6px;margin-right:4px;cursor:pointer" onclick="viewCodeImage(\''+x.id+'\','+i+')">').join("");
     return '<tr>'+
-      '<td><b>'+esc(x.code)+'</b></td>'+
+      '<td><b>'+esc(x.code)+'</b>'+(x.synced?' <span title="Tallennettu palvelimelle" style="color:#16a34a">☁</span>':'')+'</td>'+
       '<td>'+esc(x.apt||"")+'</td>'+
       '<td>'+esc(codeParse(x.apt).rappu||"–")+'</td>'+
       '<td>'+esc(x.note||"")+'</td>'+
@@ -2163,9 +2190,11 @@ function addCode(cid){
   const ex=codesOf(cid);
   if(ex.some(x=>(x.code||"").toLowerCase()===code.toLowerCase())){if(!confirm("Koodi on jo listalla. Lisätäänkö silti?"))return;}
   if(apt&&ex.some(x=>(x.apt||"").toLowerCase()===apt.toLowerCase())){if(!confirm("Tälle asunnolle on jo koodi. Lisätäänkö silti?"))return;}
-  db.codes.push({id:uid(),customerId:cid,code,apt,note,images:[],created:today()});
+  const nc={id:uid(),customerId:cid,code,apt,note,images:[],created:today()};
+  db.codes.push(nc);
   save();
   refreshCodes();
+  const cust=custById(cid); if(cust){ pushCode(cust,nc).then(function(){refreshCodes();}).catch(function(){}); }
   const el=document.getElementById("ncCode");if(el)el.focus();
 }
 function editCode(id){
@@ -2240,7 +2269,8 @@ function importCodesCSV(cid){
         added++;
       }
       save();refreshCodes();
-      alert(added+" riviä tuotu.");
+      if(added && confirm(added+" riviä tuotu. Viedäänkö ne heti palvelimelle (näkyvät /k/KOODI-sivuilla)?")){ syncAllCodes(cid); }
+      else alert(added+" riviä tuotu.");
     };
     r.readAsText(f);
   };

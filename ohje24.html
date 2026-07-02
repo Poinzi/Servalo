@@ -385,12 +385,17 @@ function readCode(){
   if(seg.length){var last=seg[seg.length-1]; if(last && last.indexOf(".")<0) return last.toUpperCase();}
   return "82FA66"; // demo-oletus
 }
-function render(code){
-  currentCode=code;
-  el("topCode").textContent=code||"";
-  var c=CODES[code];
+function mapServerCode(res){
+  var d=res.data||{}, t=res.nakymatyyppi;
+  if(t==="asukas") return {type:"asukas", apt:d.apt||res.koodi, floor:d.floor||""};
+  if(t==="aula")   return {type:"aula"};
+  if(t==="laite")  return {type:"laite", device:d.device||"Laite", loc:d.loc||"", kind:d.kind||"", last:d.last||"", next:d.next||"", state:d.state||"ok"};
+  if(t==="huolto") return {type:"huolto", room:d.room||"Tekninen tila", loc:d.loc||"", pin:d.pin||""};
+  return {type:null};
+}
+function renderView(code,c){
   var html;
-  if(!c || !c.type) html = c===undefined ? viewUnknown(code) : viewUnknown(code);
+  if(!c || !c.type) html = viewUnknown(code);
   else if(c.type==="aula")   html=viewAula(code,c);
   else if(c.type==="asukas") html=viewAsukas(code,c);
   else if(c.type==="laite")  html=viewLaite(code,c);
@@ -402,6 +407,22 @@ function render(code){
     ch.classList.toggle("active", ch.getAttribute("data-code")===code);
   });
   window.scrollTo(0,0);
+}
+function render(code){
+  currentCode=code;
+  el("topCode").textContent=code||"";
+  var c=CODES[code];
+  if(c){ renderView(code,c); return; }
+  el("app").innerHTML='<div class="empty"><div class="big">⏳</div><h1>Haetaan…</h1></div>';
+  fetch("/api/koodi/"+encodeURIComponent(code))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(res){
+      if(res && res.nakymatyyppi){
+        if(res.kohde){ if(res.kohde.nimi)COMPANY.name=res.kohde.nimi; if(res.kohde.osoite)COMPANY.address=res.kohde.osoite; }
+        renderView(code, mapServerCode(res));
+      } else { renderView(code, {type:null}); }
+    })
+    .catch(function(){ renderView(code, {type:null}); });
 }
 function go(code){ location.hash=code; }
 
