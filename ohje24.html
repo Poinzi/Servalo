@@ -158,7 +158,7 @@ var CODES = {
   "82FA66":{ type:"asukas", apt:"A12", floor:"1. krs" },
   "82CF54":{ type:"laite",  device:"Käsisammutin", loc:"A-rappu, 2. krs", kind:"sammutin",
              last:"3/2026", next:"3/2027", state:"ok" },
-  "7HK220":{ type:"huolto", room:"Lämmönjakohuone", loc:"Kellari, A-rappu", pin:"2468" },
+  "7HK220":{ type:"huolto", room:"Lämmönjakohuone", loc:"Kellari, A-rappu", pin:"2468", demo:true },
   "90ZZ00":{ type:null }
 };
 
@@ -317,7 +317,7 @@ function viewLaite(code,c){
 }
 
 function viewHuolto(code,c){
-  if(!huoltoUnlocked[code]){
+  if(!huoltoUnlocked[code] && c.pin){
     return '<h1>'+esc(c.room)+'</h1><p class="sub">'+esc(COMPANY.name)+' · '+esc(c.loc)+'</p>'+
       '<div class="card"><div class="gate">'+
         '<div class="lock">🔒</div>'+
@@ -330,7 +330,7 @@ function viewHuolto(code,c){
           '<input id="p3" inputmode="numeric" maxlength="1" oninput="pinType(3)">'+
         '</div>'+
         '<div class="err" id="pinErr"></div>'+
-        '<p class="hint">(demo-koodi: '+esc(c.pin)+')</p>'+
+        (c.demo?'<p class="hint">(demo-koodi: '+esc(c.pin)+')</p>':'')+
       '</div></div>'+footer();
   }
   return '<h1>'+esc(c.room)+'</h1><p class="sub">'+esc(COMPANY.name)+' · '+esc(c.loc)+'</p>'+
@@ -419,7 +419,9 @@ function render(code){
     .then(function(res){
       if(res && res.nakymatyyppi){
         if(res.kohde){ if(res.kohde.nimi)COMPANY.name=res.kohde.nimi; if(res.kohde.osoite)COMPANY.address=res.kohde.osoite; }
-        renderView(code, mapServerCode(res));
+        var mapped=mapServerCode(res);
+        CODES[code]=mapped;
+        renderView(code, mapped);
       } else { renderView(code, {type:null}); }
     })
     .catch(function(){ renderView(code, {type:null}); });
