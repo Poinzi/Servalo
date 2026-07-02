@@ -114,6 +114,17 @@ async function handle(req, res) {
       return sendJson(res, 200, { ok: true, id: ins.rows[0].id, aikaleima: ins.rows[0].aikaleima });
     }
 
+    // GET /api/kuittaukset/:koodi (julkinen: viimeisin palovaroitin-kuittaus + lkm)
+    if (method === "GET" && p.startsWith("/api/kuittaukset/")) {
+      const koodi = decodeURIComponent(p.slice("/api/kuittaukset/".length)).trim().toUpperCase();
+      if (!koodi) return sendJson(res, 400, { error: "empty koodi" });
+      const q = await db.query(
+        "SELECT count(*)::int AS lkm, max(aikaleima) AS viimeisin FROM kuittaukset WHERE koodi=$1 AND tyyppi='palovaroitin'",
+        [koodi]
+      );
+      return sendJson(res, 200, { koodi, lkm: q.rows[0].lkm, viimeisin: q.rows[0].viimeisin });
+    }
+
     // Kirjautuneiden reitit alla
     if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista")) {
       if (!requireAuth()) return;

@@ -260,6 +260,7 @@ function viewAsukas(code,c){
       '<p class="hint" style="margin:0 0 10px">Testaa palovaroitin painamalla testinappia. Kun se on kunnossa, kuittaa se tästä. Kuittaus ei kerää henkilötietoja.</p>'+
       '<button class="btn primary" id="pvBtn" onclick="markSmoke()">✓ Palovaroitin testattu ja kunnossa</button>'+
       '<div class="note" id="pvNote" style="display:none"></div>'+
+      '<div class="note" id="pvStatus" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div class="card"><h2>Ohjeet ja suunnitelmat</h2>'+docList(DOCS)+'</div>'+
     '<div class="card"><h2>Huomasitko vian?</h2>'+
@@ -273,6 +274,28 @@ function markSmoke(){
   n.style.display="block";
   n.innerHTML='Kiitos! Merkitty '+esc(s)+'. Tämä on muistutuskuittaus — ei virallinen tarkastus.';
   toast("Palovaroitin kuitattu");
+  // Tallenna kuittaus palvelimelle. Jos DB:tä ei ole, jää paikalliseksi (fallback).
+  try{
+    fetch("/api/kuittaus",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({koodi:currentCode,tyyppi:"palovaroitin"})})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(res){ if(res&&res.aikaleima){ loadSmokeStatus(currentCode); } })
+      .catch(function(){});
+  }catch(e){}
+}
+function loadSmokeStatus(code){
+  var box=el("pvStatus"); if(!box) return;
+  fetch("/api/kuittaukset/"+encodeURIComponent(code))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(res){
+      if(res&&res.viimeisin){
+        var d=new Date(res.viimeisin);
+        var s=d.getDate()+"."+(d.getMonth()+1)+"."+d.getFullYear();
+        box.style.display="block";
+        box.innerHTML='🛰️ Viimeksi kuitattu '+esc(s)+' — tallennettu palvelimelle, näkyy kaikille laitteille. Yhteensä '+res.lkm+' kuittausta.';
+      }
+    })
+    .catch(function(){});
 }
 
 function viewLaite(code,c){
@@ -374,6 +397,7 @@ function render(code){
   else if(c.type==="huolto") html=viewHuolto(code,c);
   else html=viewUnknown(code);
   el("app").innerHTML=html;
+  if(c && c.type==="asukas"){ try{ loadSmokeStatus(code); }catch(e){} }
   document.querySelectorAll(".chip").forEach(function(ch){
     ch.classList.toggle("active", ch.getAttribute("data-code")===code);
   });

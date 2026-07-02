@@ -28,6 +28,18 @@ async function initSchema() {
   const client = await pool.connect();
   try {
     await client.query(sql);
+    // Demo-siemen: yksi fiktiivinen kohde + asukaskoodi, jotta kuittausta voi testata heti.
+    const cnt = await client.query("SELECT count(*)::int AS n FROM koodit");
+    if (cnt.rows[0].n === 0) {
+      const k = await client.query(
+        "INSERT INTO kohteet (nimi, osoite) VALUES ($1,$2) RETURNING id",
+        ["Asunto Oy Esimerkkitie 4", "Esimerkkitie 4, 00100 Helsinki"]
+      );
+      await client.query(
+        "INSERT INTO koodit (koodi, kohde_id, nakymatyyppi, data, kohdistettu_pvm, kohdistaja) VALUES ($1,$2,'asukas',$3::jsonb,now(),'seed') ON CONFLICT (koodi) DO NOTHING",
+        ["82FA66", k.rows[0].id, JSON.stringify({ apt: "A12", floor: "1. krs" })]
+      );
+    }
     return { ok: true };
   } finally {
     client.release();
