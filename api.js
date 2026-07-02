@@ -126,8 +126,26 @@ async function handle(req, res) {
     }
 
     // Kirjautuneiden reitit alla
-    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista")) {
+    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti")) {
       if (!requireAuth()) return;
+    }
+
+    // GET /api/raportti/kattavuus (auth: kohdistus + palovaroitin-kattavuus per kohde)
+    if (method === "GET" && p === "/api/raportti/kattavuus") {
+      const q = await db.query(
+        `SELECT t.id, t.nimi, t.osoite,
+           (SELECT count(*) FROM koodit k WHERE k.kohde_id=t.id AND k.nakymatyyppi IS NOT NULL)::int AS koodit_lkm,
+           (SELECT count(*) FROM koodit k WHERE k.kohde_id=t.id AND k.nakymatyyppi='asukas')::int AS asukas_lkm,
+           (SELECT count(*) FROM koodit k WHERE k.kohde_id=t.id AND k.nakymatyyppi='laite')::int AS laite_lkm,
+           (SELECT count(*) FROM koodit k WHERE k.kohde_id=t.id AND k.nakymatyyppi='huolto')::int AS huolto_lkm,
+           (SELECT count(DISTINCT ku.koodi) FROM kuittaukset ku JOIN koodit k ON k.koodi=ku.koodi
+              WHERE k.kohde_id=t.id AND k.nakymatyyppi='asukas' AND ku.tyyppi='palovaroitin')::int AS kuitatut_asukkaat,
+           (SELECT max(ku.aikaleima) FROM kuittaukset ku JOIN koodit k ON k.koodi=ku.koodi
+              WHERE k.kohde_id=t.id AND ku.tyyppi='palovaroitin') AS viimeisin_kuittaus
+         FROM kohteet t
+         ORDER BY t.nimi`
+      );
+      return sendJson(res, 200, q.rows);
     }
 
     // GET /api/kohteet

@@ -2120,6 +2120,7 @@ function renderCustomerDetail(){
         <button class="btn ghost" type="button" onclick="importCodesCSV('${c.id}')">⬆ Tuo CSV</button>
         <button class="btn ghost" type="button" onclick="syncAllCodes('${c.id}')">☁ Vie palvelimelle</button>
         <button class="btn ghost" type="button" onclick="pullCodes('${c.id}')">⟳ Hae palvelimelta</button>
+        <button class="btn ghost" type="button" onclick="showCoverage()">📊 Kattavuus</button>
       </div>
       <div id="codeScanBox" style="display:none;margin-bottom:12px"></div>
       <div style="overflow-x:auto"><table>
@@ -2209,6 +2210,45 @@ function pullCodes(cid){
     alert("Palvelimelta haettu: "+added+" uutta, "+updated+" päivitetty.");
   })();
 }
+function showCoverage(){
+  fetch("/api/raportti/kattavuus",{headers:apiHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(rows){ if(!rows){ alert("Raportin haku epäonnistui (oletko kirjautunut?)."); return; } renderCoverageOverlay(rows); })
+    .catch(function(){ alert("Palvelimeen ei saatu yhteyttä."); });
+}
+function renderCoverageOverlay(rows){
+  var bodyHtml=rows.map(function(r){
+    var kuit = r.asukas_lkm>0 ? (r.kuitatut_asukkaat+"/"+r.asukas_lkm) : "–";
+    var pct = r.asukas_lkm>0 ? Math.round(100*r.kuitatut_asukkaat/r.asukas_lkm)+"%" : "–";
+    var viim = r.viimeisin_kuittaus ? new Date(r.viimeisin_kuittaus).toLocaleDateString("fi-FI") : "–";
+    return '<tr>'+
+      '<td style="padding:6px"><b>'+esc(r.nimi||"")+'</b><div style="font-size:12px;color:#64748b">'+esc(r.osoite||"")+'</div></td>'+
+      '<td style="text-align:center">'+r.koodit_lkm+'</td>'+
+      '<td style="text-align:center">'+r.asukas_lkm+'</td>'+
+      '<td style="text-align:center">'+r.laite_lkm+'</td>'+
+      '<td style="text-align:center">'+r.huolto_lkm+'</td>'+
+      '<td style="text-align:center">'+esc(kuit)+' <span style="color:#64748b">('+esc(pct)+')</span></td>'+
+      '<td style="text-align:center">'+esc(viim)+'</td>'+
+    '</tr>';
+  }).join("");
+  if(!bodyHtml) bodyHtml='<tr><td colspan="7" style="text-align:center;color:#64748b;padding:20px">Ei kohteita palvelimella. Vie ensin koodeja (☁).</td></tr>';
+  var ov=document.createElement("div");
+  ov.id="covOverlay";
+  ov.style.cssText="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto";
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:860px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+      '<h2 style="margin:0;font-size:18px">📊 Kattavuusraportti</h2>'+
+      '<button class="btn ghost" onclick="closeCoverage()">✕ Sulje</button></div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+
+      '<thead><tr style="border-bottom:2px solid var(--line)">'+
+        '<th style="padding:6px;text-align:left">Kohde</th><th>Koodit</th><th>Asukas</th><th>Laite</th><th>Huolto</th><th>Palovaroitin kuitattu</th><th>Viimeisin</th>'+
+      '</tr></thead><tbody>'+bodyHtml+'</tbody></table></div>'+
+    '<p style="font-size:12px;color:#64748b;margin-top:12px">Palovaroitin kuitattu = montako asukaskoodia on saanut vähintään yhden kuittauksen / asukaskoodien määrä. Data haetaan palvelimelta.</p>'+
+  '</div>';
+  ov.addEventListener("click",function(e){ if(e.target===ov) closeCoverage(); });
+  document.body.appendChild(ov);
+}
+function closeCoverage(){ var o=document.getElementById("covOverlay"); if(o)o.remove(); }
 function codeParse(apt){
   apt=(apt||"").trim();
   const m=apt.match(/^([A-Za-zÅÄÖåäö]+)?\s*0*(\d+)?/);
