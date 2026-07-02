@@ -2119,6 +2119,7 @@ function renderCustomerDetail(){
         <button class="btn orange" type="button" onclick="addCode('${c.id}')">＋ Lisää</button>
         <button class="btn ghost" type="button" onclick="importCodesCSV('${c.id}')">⬆ Tuo CSV</button>
         <button class="btn ghost" type="button" onclick="syncAllCodes('${c.id}')">☁ Vie palvelimelle</button>
+        <button class="btn ghost" type="button" onclick="pullCodes('${c.id}')">⟳ Hae palvelimelta</button>
       </div>
       <div id="codeScanBox" style="display:none;margin-bottom:12px"></div>
       <div style="overflow-x:auto"><table>
@@ -2172,6 +2173,40 @@ function syncAllCodes(cid){
     for(const x of list){ try{ await pushCode(c,x); ok++; }catch(e){ fail++; } }
     refreshCodes();
     alert("Palvelimelle viety: "+ok+(fail?(" · epäonnistui: "+fail):"")+".\nJokainen viety koodi toimii nyt osoitteessa /k/KOODI.");
+  })();
+}
+// Palvelimen data-muoto -> paikalliset kentät (käänteinen pushCode:lle)
+function serverToLocal(t,d){
+  d=d||{};
+  if(t==="laite")  return {apt:d.device||"",note:d.loc||"",pin:""};
+  if(t==="huolto") return {apt:d.room||"",note:d.loc||"",pin:d.pin||""};
+  if(t==="aula")   return {apt:"",note:""};
+  return {apt:d.apt||"",note:d.note||"",pin:""};
+}
+// Hae kohteen koodit palvelimelta ja yhdistä paikalliseen listaan.
+// Palvelin on auktoriteetti niille koodeille jotka siellä ovat; paikalliset
+// (vielä viemättömät) koodit jäävät koskematta.
+function pullCodes(cid){
+  const c=custById(cid); if(!c){return;}
+  if(!c.kohdeId){ alert("Tälle asiakkaalle ei ole vielä palvelinkohdetta. Vie ensin koodeja palvelimelle (☁)."); return; }
+  (async function(){
+    let r;
+    try{ r=await fetch("/api/kohteet/"+encodeURIComponent(c.kohdeId),{headers:apiHeaders()}); }
+    catch(e){ alert("Palvelimeen ei saatu yhteyttä."); return; }
+    if(!r.ok){ alert("Haku epäonnistui ("+r.status+")."); return; }
+    const j=await r.json();
+    const rows=(j&&j.koodit)||[];
+    let added=0,updated=0;
+    for(const sc of rows){
+      const code=(sc.koodi||"").trim(); if(!code)continue;
+      const t=sc.nakymatyyppi||"asukas";
+      const m=serverToLocal(t, sc.data);
+      let x=(db.codes||[]).find(o=>o.customerId===cid && (o.code||"").toUpperCase()===code.toUpperCase());
+      if(x){ x.code=code; x.type=t; x.apt=m.apt; x.note=m.note; x.pin=m.pin; x.synced=true; updated++; }
+      else { db.codes.push({id:uid(),customerId:cid,code:code,apt:m.apt,note:m.note,type:t,pin:m.pin,images:[],synced:true,created:today()}); added++; }
+    }
+    save(); refreshCodes();
+    alert("Palvelimelta haettu: "+added+" uutta, "+updated+" päivitetty.");
   })();
 }
 function codeParse(apt){
@@ -2238,9 +2273,13 @@ function editCode(id){
   const cust=custById(x.customerId); if(cust){ pushCode(cust,x).then(function(){refreshCodes();}).catch(function(){}); }
 }
 function deleteCode(id){
+  const x=(db.codes||[]).find(c=>c.id===id);
   if(!confirm("Poistetaanko koodi?"))return;
   db.codes=(db.codes||[]).filter(c=>c.id!==id);
   save();refreshCodes();
+  if(x && x.synced){
+    fetch("/api/kohdista/"+encodeURIComponent(x.code),{method:"DELETE",headers:apiHeaders()}).catch(function(){});
+  }
 }
 function addCodeImage(id){
   const x=(db.codes||[]).find(c=>c.id===id);if(!x)return;
