@@ -1,7 +1,9 @@
-// Servalo - kevyt staattinen palvelin Railwaylle (nolla riippuvuutta)
+// Servalo - kevyt staattinen palvelin Railwaylle.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const db = require("./db");
+const api = require("./api");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -18,6 +20,11 @@ const TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  // Servalon oma QR-API (kaikki muu /api/* paitsi YTJ-proxy).
+  if (req.url.startsWith("/api/") && !req.url.startsWith("/api/ytj")) {
+    return api.handle(req, res);
+  }
+
   // YTJ-proxy (PRH avoin data) – haetaan yritystiedot palvelimen puolelta,
   // jotta selaimen CORS-rajoitus ei estä kutsua.
   if (req.url.startsWith("/api/ytj")) {
@@ -81,4 +88,11 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Servalo käynnissä portissa ${PORT}`);
+  if (db.isEnabled) {
+    db.initSchema()
+      .then((r) => console.log("[db] initSchema:", r.ok ? "ok" : `skipped (${r.reason})`))
+      .catch((e) => console.error("[db] initSchema failed:", e.message));
+  } else {
+    console.log("[db] disabled (no DATABASE_URL) — /api/* palauttaa 503");
+  }
 });
