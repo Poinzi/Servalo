@@ -66,6 +66,9 @@
   .rc-ok input{width:22px;height:22px}
   .rc-desc{color:var(--muted);font-size:12px;margin:6px 0 10px}
   .rc-desc b{color:var(--ink)}
+  .rc-catinput{width:110px;border:1px solid var(--line);border-radius:6px;padding:4px 7px;font:inherit;font-size:12px;font-weight:700}
+  .rc-titleinput{flex:1;min-width:160px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit;font-size:14px;font-weight:600}
+  .rc-descinput{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;margin-top:4px}
   .rc-score{display:flex;align-items:center;gap:10px;margin:6px 0}
   .scorelbl{width:64px;font-size:12px;font-weight:700;color:var(--muted)}
   .seg{display:flex;gap:6px;flex-wrap:wrap}
@@ -104,6 +107,7 @@
   .plan .liitefigs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px 0}
   .plan figure{margin:0}
   .plan figure img{width:100%;border:1px solid var(--line);border-radius:8px;display:block}
+  .plan .mapfig img{width:auto;max-width:100%;max-height:480px;margin:0 auto}
   .plan figure figcaption{font-size:12px;color:var(--muted);margin-top:4px}
   .plan .note{font-size:12px;color:var(--muted);margin-top:30px;border-top:1px solid var(--line);padding-top:10px}
   .printfoot{display:none}
@@ -215,23 +219,44 @@
     <div class="panel">
       <div class="panel-h">Kuvat</div>
       <div class="panel-b">
-        <div class="field" style="margin-bottom:14px">
+        <div class="field" style="margin-bottom:18px">
           <label>Etusivun kuva (rakennus ulkoa)</label>
           <div class="imgrow">
             <div class="imgprev" id="prev-kansi"></div>
             <div>
-              <button class="btn sm" onclick="document.getElementById('coverFile').click()">📷 Valitse kuva</button>
+              <button class="btn sm" onclick="document.getElementById('coverCam').click()">📷 Kamera</button>
+              <button class="btn sm" onclick="document.getElementById('coverFile').click()">🖼 Galleria</button>
               <button class="btn sm danger" onclick="removeCover()">Poista</button>
               <input type="file" id="coverFile" accept="image/*" style="display:none" onchange="pickCover(this)">
+              <input type="file" id="coverCam" accept="image/*" capture="environment" style="display:none" onchange="pickCover(this)">
               <p class="hint" style="margin:6px 0 0">Näkyy pelastussuunnitelman etusivulla otsikon alla.</p>
             </div>
           </div>
         </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label>Pohjakartta / asemapiirros</label>
+          <div class="imgrow">
+            <div class="imgprev" id="prev-pohja"></div>
+            <div>
+              <button class="btn sm" onclick="document.getElementById('pohjaCam').click()">📷 Kamera</button>
+              <button class="btn sm" onclick="document.getElementById('pohjaFile').click()">🖼 Galleria</button>
+              <button class="btn sm" id="pohja-dl" style="display:none" onclick="downloadPohja()">⬇ Lataa kuva</button>
+              <button class="btn sm danger" onclick="removePohja()">Poista</button>
+              <input type="file" id="pohjaFile" accept="image/*" style="display:none" onchange="pickPohja(this)">
+              <input type="file" id="pohjaCam" accept="image/*" capture="environment" style="display:none" onchange="pickPohja(this)">
+              <p class="hint" style="margin:6px 0 0">Kuvaa piirros kännykällä tai valitse tiedosto. Tallennetaan tarkkana (PNG). Näkyy suunnitelman kohdassa 5 ja on ladattavissa erillisenä kuvana.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
-          <label>Liitekuvat (asemapiirros, poistumistiekartta, kokoontumispaikka…)</label>
+          <label>Liitekuvat (poistumistiekartta, kokoontumispaikka, muut…)</label>
           <div>
-            <button class="btn sm" onclick="document.getElementById('liiteFile').click()">➕ Lisää liitekuva</button>
+            <button class="btn sm" onclick="document.getElementById('liiteCam').click()">📷 Kamera</button>
+            <button class="btn sm" onclick="document.getElementById('liiteFile').click()">🖼 Galleria</button>
             <input type="file" id="liiteFile" accept="image/*" style="display:none" onchange="pickLiite(this)">
+            <input type="file" id="liiteCam" accept="image/*" capture="environment" style="display:none" onchange="pickLiite(this)">
           </div>
           <div class="imggrid" id="liitegrid"></div>
         </div>
@@ -345,11 +370,12 @@ function totClass(t){return t<=0?"tot-0":t<=3?"tot-low":t<=8?"tot-med":t<=14?"to
 function totLabel(t){return t<=0?"–":t<=3?"matala":t<=8?"kohtalainen":t<=14?"korkea":"kriittinen";}
 
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(M));return true;}catch(e){return false;}}
-function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";}
+function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";if(typeof M.pohjakartta!=="string")M.pohjakartta=M.pohjakartta||"";}
 function load(){try{var s=localStorage.getItem(LS_KEY);if(s){M=JSON.parse(s);normM();return true;}}catch(e){}return false;}
 
 // --- kuvat: pienennä canvasilla ja tallenna data-URLina ---
-function resizeImage(file,maxDim,quality,cb){
+// mime "image/jpeg" (valokuvat, pieni koko) tai "image/png" (kartat/piirrokset, terävä teksti)
+function resizeImage(file,maxDim,quality,mime,cb){
   var rd=new FileReader();
   rd.onload=function(){
     var img=new Image();
@@ -357,8 +383,10 @@ function resizeImage(file,maxDim,quality,cb){
       var w=img.width,h=img.height,s=Math.min(1,maxDim/Math.max(w,h));
       var cw=Math.round(w*s),ch=Math.round(h*s);
       var c=document.createElement("canvas");c.width=cw;c.height=ch;
-      c.getContext("2d").drawImage(img,0,0,cw,ch);
-      cb(c.toDataURL("image/jpeg",quality));
+      var ctx=c.getContext("2d");
+      if((mime||"")==="image/png"){ctx.fillStyle="#fff";ctx.fillRect(0,0,cw,ch);}
+      ctx.drawImage(img,0,0,cw,ch);
+      cb(c.toDataURL(mime||"image/jpeg",quality));
     };
     img.onerror=function(){alert("Kuvaa ei voitu lukea.");};
     img.src=rd.result;
@@ -368,7 +396,7 @@ function resizeImage(file,maxDim,quality,cb){
 }
 function pickCover(input){
   var f=input.files&&input.files[0];input.value="";if(!f)return;
-  resizeImage(f,1000,0.8,function(url){
+  resizeImage(f,1000,0.82,"image/jpeg",function(url){
     M.kansi=url;
     if(!save()){M.kansi="";alert("Kuva on liian suuri selaimen muistiin. Kokeile pienempää kuvaa.");}
     renderCover();
@@ -379,9 +407,28 @@ function renderCover(){
   var p=document.getElementById("prev-kansi");if(!p)return;
   p.style.backgroundImage=M.kansi?("url("+M.kansi+")"):"";
 }
+// --- pohjakartta / asemapiirros (PNG, terävä) ---
+function pickPohja(input){
+  var f=input.files&&input.files[0];input.value="";if(!f)return;
+  resizeImage(f,1600,0.92,"image/png",function(url){
+    M.pohjakartta=url;
+    if(!save()){M.pohjakartta="";alert("Kartta on liian suuri selaimen muistiin. Kokeile pienempää kuvaa.");}
+    renderPohja();
+  });
+}
+function removePohja(){M.pohjakartta="";save();renderPohja();}
+function renderPohja(){
+  var p=document.getElementById("prev-pohja");if(p)p.style.backgroundImage=M.pohjakartta?("url("+M.pohjakartta+")"):"";
+  var dl=document.getElementById("pohja-dl");if(dl)dl.style.display=M.pohjakartta?"":"none";
+}
+function downloadPohja(){
+  if(!M.pohjakartta){alert("Lisää ensin pohjakartta.");return;}
+  var nimi=(M.kohde.nimi||"pohjakartta").replace(/[^\wÀ-ſ -]/g,"").trim()||"pohjakartta";
+  var a=document.createElement("a");a.href=M.pohjakartta;a.download=nimi+"-pohjakartta.png";a.click();
+}
 function pickLiite(input){
   var f=input.files&&input.files[0];input.value="";if(!f)return;
-  resizeImage(f,1200,0.8,function(url){
+  resizeImage(f,1400,0.92,"image/png",function(url){
     M.liitteet.push({src:url,cap:""});
     if(!save()){M.liitteet.pop();alert("Kuva on liian suuri selaimen muistiin. Kokeile pienempää kuvaa tai poista muita liitekuvia.");}
     renderLiitteet();
@@ -428,13 +475,24 @@ function renderRows(){
   var b=document.getElementById("riskBody");
   b.innerHTML=M.rows.map(function(r,i){
     var t=totOf(r);
+    function av(s){return esc(s).replace(/"/g,"&quot;");}
+    var topMid,desc;
+    if(r.custom){
+      topMid='<input class="rc-catinput" value="'+av(r.aihe)+'" placeholder="Aihe" onchange="setRow('+i+',\'aihe\',this.value)">'+
+             '<input class="rc-titleinput" value="'+av(r.riski)+'" placeholder="Riskin nimi" onchange="setRow('+i+',\'riski\',this.value)">';
+      desc='<div class="rc-desc"><input class="rc-descinput" value="'+av(r.kuvaus)+'" placeholder="Kuvaus / uhka" onchange="setRow('+i+',\'kuvaus\',this.value)">'+
+           '<input class="rc-descinput" value="'+av(r.toimet)+'" placeholder="Ennaltaehkäisevät toimenpiteet" onchange="setRow('+i+',\'toimet\',this.value)"></div>';
+    } else {
+      topMid='<span class="cat">'+esc(r.aihe)+'</span>'+
+             '<span class="rc-title"><b>'+esc(r.riski)+'</b></span>';
+      desc='<div class="rc-desc"><b>'+esc(r.kuvaus)+'.</b> '+esc(r.toimet)+'</div>';
+    }
     return '<div class="rcard" id="rc'+i+'">'+
       '<div class="rc-top">'+
-        '<span class="cat">'+esc(r.aihe)+'</span>'+
-        '<span class="rc-title"><b>'+esc(r.riski)+'</b></span>'+
+        topMid+
         '<label class="rc-ok"><input type="checkbox" '+(r.ok?"checked":"")+' onchange="setRow('+i+',\'ok\',this.checked)"> OK</label>'+
       '</div>'+
-      '<div class="rc-desc"><b>'+esc(r.kuvaus)+'.</b> '+esc(r.toimet)+'</div>'+
+      desc+
       '<div class="rc-score"><span class="scorelbl">Uhka</span>'+segHtml(i,"uhka",r.uhka)+'</div>'+
       '<div class="rc-score"><span class="scorelbl">Paino</span>'+segHtml(i,"paino",r.paino)+'</div>'+
       '<div class="rc-bottom">'+
@@ -560,7 +618,9 @@ function renderPlan(){
 
   html+='<h2>5. Poistumistiet ja kokoontumispaikka</h2>';
   html+='<ul><li>Rakennukset ja tilat on varustettu selkeästi merkityillä poistumisreiteillä</li><li>Opasteet valaistuja tai jälkivalaisevia, näkyvät myös sähkökatkon aikana</li><li>Reitit pidetään vapaina; kunto tarkastetaan vähintään kerran vuodessa</li></ul>';
-  html+='<h3>Karttapiirros</h3><ul><li>Suunnitelman liitteenä toimitetaan pohjakartta, johon merkitään poistumisreitit, sammutuskalusto, ensiapupisteet, väestönsuoja sekä sähkön, kaasun ja veden pääsulut ja kokoontumispaikka</li></ul>';
+  html+='<h3>Pohjakartta / asemapiirros</h3><ul><li>Pohjakarttaan merkitään poistumisreitit, sammutuskalusto, ensiapupisteet, väestönsuoja sekä sähkön, kaasun ja veden pääsulut ja kokoontumispaikka</li></ul>';
+  if(M.pohjakartta){html+='<figure class="mapfig"><img src="'+M.pohjakartta+'" alt="Pohjakartta"><figcaption>Pohjakartta / asemapiirros</figcaption></figure>';}
+  else{html+='<p>'+todo("liitä pohjakartta välilehdellä 1 (Kuvat)")+'</p>';}
   html+='<div class="kv"><div>Kokoontumispaikka</div><div>'+val("kokoontuminen","kokoontumispaikka")+'</div><div>Sähkön pääsulku</div><div>'+val("sahkosulku","sähkön pääsulku")+'</div><div>Veden pääsulku</div><div>'+val("vesisulku","veden pääsulku")+'</div></div>';
 
   html+='<h2>6. Tiedottaminen ja perehdytys</h2>';
@@ -601,13 +661,13 @@ function loadJson(input){
 }
 function clearAll(){
   if(!confirm("Tyhjennetäänkö kaikki tiedot ja palautetaan vakioriskit?"))return;
-  M={kohde:{},rows:[],liitteet:[],kansi:""};initRows();save();location.reload();
+  M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:""};initRows();save();location.reload();
 }
 
 // init
-if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:""};initRows();}
+if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:""};initRows();}
 normM();
-bindKohde();renderRows();renderSummary();renderCover();renderLiitteet();
+bindKohde();renderRows();renderSummary();renderCover();renderPohja();renderLiitteet();
 </script>
 </body>
 </html>
