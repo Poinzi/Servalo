@@ -669,7 +669,7 @@
     <div class="modal-b">
       <input type="hidden" id="dId">
       <div class="grid2">
-        <div class="field"><label>QR-koodi <span class="hint">(tyhjä = luodaan automaattisesti)</span></label><input class="f" id="dIdr" placeholder="Luodaan automaattisesti"></div>
+        <div class="field"><label>QR-koodi <span class="hint">(tyhjä = luodaan automaattisesti)</span></label><input class="f" id="dTag" placeholder="Luodaan automaattisesti"></div>
         <div class="field"><label>QR-kohde</label><select class="f" id="dQrTarget"><option value="servalo">Savuks Oy:n oma tarkastettava laite → Servalo</option><option value="ohje24">Taloyhtiö / asukastila → ohje24.fi</option></select></div>
         <div class="field"><label>Huoltosopimuskohde</label><input class="f" id="dTarget" placeholder="esim. Paloilmoitinjärjestelmä"></div>
         <div class="field"><label>Valmistaja/Malli/Tyyppi</label><input class="f" id="dMake" placeholder="esim. Panasonic EBL G3"></div>
@@ -882,7 +882,12 @@ let currentDeviceId=null, currentReport=null, mode="list", selLoc=null, devTab="
 const calState={y:new Date().getFullYear(),m:new Date().getMonth()};
 const treeOpen=new Set();  // pysyvät auki-tilat (sijaintipuun solmut, joiden lapset näytetään)
 
-function loadDB(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.devices)return d;}catch(e){}return null;}
+function loadDB(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.devices)return migrateTag(d);}catch(e){}return null;}
+function migrateTag(d){
+  (d.devices||[]).forEach(function(x){if(x&&x["idr"]!==undefined&&x.tag===undefined){x.tag=x["idr"];delete x["idr"];}});
+  (d.history||[]).forEach(function(h){if(h&&h["idr"]!==undefined&&h.tag===undefined){h.tag=h["idr"];delete h["idr"];}});
+  return d;
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(db));}
 function uid(){return Math.random().toString(36).slice(2,9);}
 function esc(s){return(s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -909,8 +914,8 @@ function seed(){
     L("p4","c1","Kiinteistö Oy Tampereen Kongressihotelli (2890774-1)","property"),
     L("s8","p4","Kongressihotelli","site","Keskuskatu 3, 33100 Tampere"),
   ];
-  const mkDev=(idr,target,make,group,locId,value,interval,last,next,req,rep,notes)=>({
-    id:uid(),idr,target,make,group,locId,value,interval,delivery:"",
+  const mkDev=(tag,target,make,group,locId,value,interval,last,next,req,rep,notes)=>({
+    id:uid(),tag,target,make,group,locId,value,interval,delivery:"",
     last,next,req:req||0,repairs:rep||0,notes:notes||"",created:"2024-08-21",updated:"2025-08-18",deleted:false,
     serial:"",locDetail:"",rental:false,rentalPeriod:"",
     maintenances:last?[{date:last,comment:""},{date:yearBefore(last),comment:""}]:[],
@@ -935,7 +940,7 @@ function seed(){
   const baseVal={Savunpoisto:2200,Poistumistievalaistus:680,Paloilmoitin:8600,Näytteenotto:3100,
     Yhdistelmä:12000,Kuulutus:5200,Sammutusjärjestelmä:15400,Käsisammutin:95,Paloposti:400,"Väestönsuoja":0,Muu:500};
   const sites=["s1","s2","s3","s4","s5","s6","s7","s8"];
-  // [idr, valmistaja/malli/tyyppi, huoltosopimuskohde]
+  // [tag, valmistaja/malli/tyyppi, huoltosopimuskohde]
   const raw=[
     ["601708","Stig Wahlström","Savunpoistojärjestelmä"],
     ["601707","Finntek PWK-250","Poistumistievalaistus järjestelmä"],
@@ -985,25 +990,25 @@ function seed(){
 
   const dev=[];
   let i=0;
-  special.forEach(([idr,make,target,loc])=>{
+  special.forEach(([tag,make,target,loc])=>{
     const g=groupFor(target);const next=nextDate(i);const last=yearBefore(next);
-    dev.push(mkDev(idr,target,make,g,loc,baseVal[g]||400,target==="Väestönsuoja"?"2 vuotta":"1 vuosi",last,next,0,0,idr==="X58238719038"?"Tarkemmin huolto raportissa.":""));i++;});
-  raw.forEach(([idr,make,target])=>{
+    dev.push(mkDev(tag,target,make,g,loc,baseVal[g]||400,target==="Väestönsuoja"?"2 vuotta":"1 vuosi",last,next,0,0,tag==="X58238719038"?"Tarkemmin huolto raportissa.":""));i++;});
+  raw.forEach(([tag,make,target])=>{
     const g=groupFor(target);const loc=sites[i%sites.length];const next=nextDate(i);const last=yearBefore(next);
     const value=Math.round((baseVal[g]||500)*(0.85+(i%5)*0.07));
     const rep=(i%7===0)?( (i%14===0)?3:1):0;
     const req=(i%11===0)?1:0;
-    dev.push(mkDev(idr,target,make,g,loc,value,"1 vuosi",last,next,req,rep,""));i++;});
+    dev.push(mkDev(tag,target,make,g,loc,value,"1 vuosi",last,next,req,rep,""));i++;});
   // ----- tarkastussyklit: oma väli + seuraava tarkastuspäivä (esimerkit) -----
   dev.forEach((d,k)=>{ d.inspInterval=d.interval;
     if(k%2===0&&d.next){ const t=new Date(d.next);t.setMonth(t.getMonth()+6);d.inspNext=t.toISOString().slice(0,10);
       const l=new Date(d.inspNext);l.setFullYear(l.getFullYear()-1);d.inspLast=l.toISOString().slice(0,10); } });
   // ----- esimerkkitiedot raportteja varten -----
-  const byIdr=n=>dev.find(d=>d.idr===n);
-  const t1=byIdr("601678"),t2=byIdr("601671");
+  const byTag=n=>dev.find(d=>d.tag===n);
+  const t1=byTag("601678"),t2=byTag("601671");
   if(t1){t1.locDetail="1.Krs Tuulikaappi";t1.trained=[{name:"Petri Nieminen",date:"2025-03-13"}];}
   if(t2){t2.locDetail="1.Krs Tuulikaappi";t2.trained=[{name:"Petri Nieminen",date:"2025-03-13"}];}
-  const tx=byIdr("X58238719038");if(tx){tx.target="Sopimustiedot";tx.isContract=true;tx.ecom="100880";tx.interval="1 vuosi";
+  const tx=byTag("X58238719038");if(tx){tx.target="Sopimustiedot";tx.isContract=true;tx.ecom="100880";tx.interval="1 vuosi";
     tx.trained=[{name:"esa.lahtinen@varastokeskus.fi",date:"2025-02-05"}];
     tx.contract={type:"Huolto",hoitaja:"Heli Rantanen, +358 40 555 7788",
       commercial:{nimi:"Markku Salo",phone:"+358 40 555 1212",email:"kiinteistot@hoivakotisaatio.fi"},
@@ -1011,7 +1016,7 @@ function seed(){
       hatakeskus:"Sisä-Suomen hätäkeskus, 112",linjavianvalvonta:"",
       vartiointi:"Turvapalvelu Vartius Oy, +358 200 12345",valvomo:"Kohteen oma valvomo, ark. 8–16",
       extra1:"Kohde odottaa käsisammuttimien huoltoraporttia.",extra2:"",extra3:""};}
-  const ty=byIdr("X75833644946");if(ty){ty.target="Sopimustiedot";ty.isContract=true;ty.ecom="100712";ty.interval="1 vuosi";
+  const ty=byTag("X75833644946");if(ty){ty.target="Sopimustiedot";ty.isContract=true;ty.ecom="100712";ty.interval="1 vuosi";
     ty.trained=[{name:"Tomi Saarinen, tomi.saarinen@kongressihotelli.fi",date:"2026-04-21"}];
     ty.contract={type:"Huolto",hoitaja:"Esa Lahtinen, +358 40 711 0220",
       commercial:{nimi:"Anne Mäkinen",phone:"+358 20 7100 100",email:"huolto@varastokeskus.fi"},
@@ -1019,33 +1024,33 @@ function seed(){
       hatakeskus:"",linjavianvalvonta:"Linjavalvonta 24/7, +358 20 555 9000",
       vartiointi:"",valvomo:"",extra1:"",extra2:"",extra3:""};}
   // huoltopyynnöt
-  const r1=byIdr("601698");
+  const r1=byTag("601698");
   if(r1){r1.req=1;r1.locDetail="2.Krs sähköpääkeskus";r1.requests=[{requested:"2026-06-12",done:"",reason:"Vikailmoitus keskuksessa",comment:"Asiakas ilmoittanut vikavalosta",sentTo:"huolto@servalo.fi",status:"open"}];}
-  const r2=byIdr("601622");
+  const r2=byTag("601622");
   if(r2){r2.requests=[{requested:"2026-05-02",done:"2026-05-09",reason:"Vuosihuolto",comment:"Tehty, OK",sentTo:"huolto@servalo.fi",status:"done"}];}
   // vuokralaitteet
-  const v1=byIdr("601640");if(v1){v1.rental=true;v1.rentalStart="2026-01-01";v1.rentalMonths=12;v1.rentalMonthly=120;v1.rentalEnd="2026-12-31";v1.rentalBuyout=900;}
-  const v2=byIdr("601655");if(v2){v2.rental=true;v2.rentalStart="2026-06-01";v2.rentalMonths=12;v2.rentalMonthly=340;v2.rentalEnd="2027-05-31";v2.rentalBuyout=2400;}
+  const v1=byTag("601640");if(v1){v1.rental=true;v1.rentalStart="2026-01-01";v1.rentalMonths=12;v1.rentalMonthly=120;v1.rentalEnd="2026-12-31";v1.rentalBuyout=900;}
+  const v2=byTag("601655");if(v2){v2.rental=true;v2.rentalStart="2026-06-01";v2.rentalMonths=12;v2.rentalMonthly=340;v2.rentalEnd="2027-05-31";v2.rentalBuyout=2400;}
   // korjaukset/vuosi (eniten korjatut)
-  [["601534",5.43],["601671",0.77]].forEach(([n,r])=>{const d=byIdr(n);if(d){d.repairs=Math.max(d.repairs,1);d.repairsPerYear=r;}});
+  [["601534",5.43],["601671",0.77]].forEach(([n,r])=>{const d=byTag(n);if(d){d.repairs=Math.max(d.repairs,1);d.repairsPerYear=r;}});
   // poistetut laitteet
   const del1=mkDev("X29572605448","Käsisammutin","Presto 6kg","Käsisammutin","s8",95,"1 vuosi","2025-06-01","2026-06-01",0,0,"");
   del1.deleted=true;del1.delDate="2026-06-01";del1.delComment="Ylimääräinen turha";del1.delReason="Muu";dev.push(del1);
   const del2=mkDev("X54278086033","Käsisammutin","Presto 2kg","Käsisammutin","s2",95,"1 vuosi","2025-05-20","2026-05-20",0,0,"");
   del2.deleted=true;del2.delDate="2026-05-20";del2.delComment="Sopimus päättynyt";del2.delReason="Käyttöaika";dev.push(del2);
   // ----- NFC-tunnisteet ja skannausloki (esimerkit) -----
-  const nfc1=byIdr("601698");
+  const nfc1=byTag("601698");
   if(nfc1){nfc1.nfcTag="NFC-601698";nfc1.nfcScans=[
     {datetime:"12.06.2026 09:42",by:"Petri Nieminen",type:"Huoltokäynti",comment:"Vikavalon tarkistus"},
     {datetime:"03.03.2026 13:15",by:"Petri Nieminen",type:"Tarkastus",comment:"Määräaikaistarkastus OK"}];}
-  const nfc2=byIdr("601678");
+  const nfc2=byTag("601678");
   if(nfc2){nfc2.nfcTag="NFC-601678";nfc2.nfcScans=[
     {datetime:"13.03.2026 11:05",by:"Petri Nieminen",type:"Tunnistus",comment:""}];}
   // ----- linkitykset (keskus + siihen liittyvät laitteet) -----
-  const lc=byIdr("601698"),la=byIdr("601696"),lb=byIdr("601678");
+  const lc=byTag("601698"),la=byTag("601696"),lb=byTag("601678");
   if(lc&&la&&lb){lc.links=[{targetId:la.id,relation:"Alakeskus"},{targetId:lb.id,relation:"Liittyy laitteeseen"}];}
   // ----- tiedostot (metatiedot; varsinaiset liitteet käyttäjä lisää) -----
-  const f1=byIdr("601698");
+  const f1=byTag("601698");
   if(f1){f1.files=[{id:uid(),name:"Kayttoohje_Esmi_FX.pdf",category:"Käyttöohje",date:"2025-09-01",by:"Mikko Virtanen",data:""},
     {id:uid(),name:"Huoltoraportti_2026-03.pdf",category:"Huoltoraportti",date:"2026-03-03",by:"Petri Nieminen",data:""}];}
   // ----- asiakkaat (johdetaan kiinteistö-tason organisaatioista) -----
@@ -1117,7 +1122,7 @@ db.customers=db.customers||[];
 db.tasks=db.tasks||[];
 db.codes=db.codes||[];
 if(!Array.isArray(db.reports)){
-  var _rdev=function(idr){var x=db.devices.find(function(d){return d.idr===idr;});return x?x.id:null;};
+  var _rdev=function(tag){var x=db.devices.find(function(d){return d.tag===tag;});return x?x.id:null;};
   db.reports=[
     {id:uid(),created:"2026-06-18",by:"Mikko Virtanen",byId:"u3",customerId:"p1",deviceId:_rdev("601678"),work:"Vuosihuolto: paloilmoittimen ilmaisimet puhdistettu ja testattu, keskus OK.",status:"avoin",infoNote:"",invoicedDate:""},
     {id:uid(),created:"2026-06-20",by:"Sanna Koskinen",byId:"u4",customerId:"p2",deviceId:_rdev("601698"),work:"Vikakäynti: vikavalon syy paikallistettu ja silmukka korjattu.",status:"lisatieto",infoNote:"Asiakkaan tilausnumero (PO) puuttuu — ei voi laskuttaa ennen kuin isännöitsijä toimittaa sen.",invoicedDate:""},
@@ -1225,9 +1230,9 @@ function scopeText(){return selLoc?locPath(selLoc):"Näytetään kaikki laitteet
 function listedDevices(){
   const q=document.getElementById("devSearch").value.toLowerCase();
   let list=devicesInScope().filter(d=>{
-    const m=(d.idr+d.make+d.target+d.group+siteName(d.locId)).toLowerCase().includes(q);
+    const m=(d.tag+d.make+d.target+d.group+siteName(d.locId)).toLowerCase().includes(q);
     return m && activeFilters.every(f=>filterMatch(d,f));});
-  list.sort((a,b)=>sortDesc?String(b.idr).localeCompare(String(a.idr)):String(a.idr).localeCompare(String(b.idr)));
+  list.sort((a,b)=>sortDesc?String(b.tag).localeCompare(String(a.tag)):String(a.tag).localeCompare(String(b.tag)));
   return list;
 }
 function renderList(){
@@ -1267,23 +1272,23 @@ function toggleSort(){sortDesc=!sortDesc;renderList();}
 var OHJE24_URL="https://ohje24.fi/";
 function devLink(code){return location.origin+location.pathname+"#dev="+encodeURIComponent((code||"").trim());}
 function qrTargetOf(d){return (d&&d.qrTarget==="ohje24")?"ohje24":"servalo";}
-function qrTargetUrl(d){var code=(d&&d.idr||"").trim();if(!code)return"";return qrTargetOf(d)==="ohje24"?OHJE24_URL+"?k="+encodeURIComponent(code):devLink(code);}
+function qrTargetUrl(d){var code=(d&&d.tag||"").trim();if(!code)return"";return qrTargetOf(d)==="ohje24"?OHJE24_URL+"?k="+encodeURIComponent(code):devLink(code);}
 function qrTargetLabel(d){return qrTargetOf(d)==="ohje24"?"ohje24.fi (julkinen turvallisuustieto)":"Servalo (oma tarkastettava laite)";}
 function qrSrc(url,size){return "https://api.qrserver.com/v1/create-qr-code/?size="+size+"x"+size+"&margin=0&data="+encodeURIComponent(url);}
-function qrImgFor(d){var url=qrTargetUrl(d);if(!url)return"";return '<img src="'+qrSrc(url,160)+'" width="140" height="140" alt="QR '+esc(d.idr)+'" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" loading="lazy"><div class="hint" style="margin-top:4px">Skannaamalla avautuu: '+esc(qrTargetLabel(d))+'</div>';}
-function qrThumb(d){var url=qrTargetUrl(d);if(!url)return esc(d.idr||"");return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><img src="'+qrSrc(url,80)+'" width="42" height="42" alt="QR" style="background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px" loading="lazy"><b style="font-size:11px">'+esc(d.idr||"")+'</b></div>';}
-function qrImg(code){return qrImgFor({idr:code,qrTarget:"servalo"});}
-function genQrCode(){var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",c;do{c="SVL-";for(var i=0;i<5;i++)c+=chars.charAt(Math.floor(Math.random()*chars.length));}while(db.devices.some(function(x){return String(x.idr).toUpperCase()===c;}));return c;}
+function qrImgFor(d){var url=qrTargetUrl(d);if(!url)return"";return '<img src="'+qrSrc(url,160)+'" width="140" height="140" alt="QR '+esc(d.tag)+'" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" loading="lazy"><div class="hint" style="margin-top:4px">Skannaamalla avautuu: '+esc(qrTargetLabel(d))+'</div>';}
+function qrThumb(d){var url=qrTargetUrl(d);if(!url)return esc(d.tag||"");return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><img src="'+qrSrc(url,80)+'" width="42" height="42" alt="QR" style="background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px" loading="lazy"><b style="font-size:11px">'+esc(d.tag||"")+'</b></div>';}
+function qrImg(code){return qrImgFor({tag:code,qrTarget:"servalo"});}
+function genQrCode(){var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",c;do{c="SVL-";for(var i=0;i<5;i++)c+=chars.charAt(Math.floor(Math.random()*chars.length));}while(db.devices.some(function(x){return String(x.tag).toUpperCase()===c;}));return c;}
 function printQrLabels(ids){
   var ds=db.devices.filter(function(d){return ids.indexOf(d.id)>=0;});
   if(!ds.length){alert("Ei valittuja laitteita.");return;}
-  var cells=ds.map(function(d){var url=qrTargetUrl(d);return '<div class="lbl"><img src="'+qrSrc(url,220)+'" alt="QR"><div class="c">'+esc(d.idr||"")+'</div><div class="t">'+esc(d.target||d.make||"")+'</div><div class="s">'+esc(qrTargetLabel(d))+'</div></div>';}).join("");
+  var cells=ds.map(function(d){var url=qrTargetUrl(d);return '<div class="lbl"><img src="'+qrSrc(url,220)+'" alt="QR"><div class="c">'+esc(d.tag||"")+'</div><div class="t">'+esc(d.target||d.make||"")+'</div><div class="s">'+esc(qrTargetLabel(d))+'</div></div>';}).join("");
   var w=window.open("","_blank");if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
   w.document.write('<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>QR-tarrat</title><style>@page{margin:10mm}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;padding:8mm}.lbl{border:1px solid #ccc;border-radius:8px;padding:6mm;text-align:center;page-break-inside:avoid}.lbl img{width:34mm;height:34mm}.lbl .c{font-weight:700;font-size:13px;margin-top:3mm}.lbl .t{font-size:11px;color:#444;margin-top:1mm}.lbl .s{font-size:9px;color:#888;margin-top:1mm}</style></head><body onload="window.print()"><div class="sheet">'+cells+'</div></body></html>');
   w.document.close();
 }
 function extractCode(raw){raw=(raw||"").trim();var m=raw.match(/[#?&]dev=([^&]+)/i);if(m)return decodeURIComponent(m[1]);try{var u=new URL(raw);var seg=u.pathname.split("/").filter(Boolean);if(seg.length)return decodeURIComponent(seg[seg.length-1]);}catch(e){}return raw;}
-function handleDeepLink(){var m=(location.hash||"").match(/[#&]dev=([^&]+)/i);if(!m)return;var code=decodeURIComponent(m[1]);var d=db.devices.find(function(x){return String(x.idr).toLowerCase()===code.toLowerCase();});history.replaceState(null,"",location.pathname+location.search);if(d&&currentUser)openDevice(d.id);}
+function handleDeepLink(){var m=(location.hash||"").match(/[#&]dev=([^&]+)/i);if(!m)return;var code=decodeURIComponent(m[1]);var d=db.devices.find(function(x){return String(x.tag).toLowerCase()===code.toLowerCase();});history.replaceState(null,"",location.pathname+location.search);if(d&&currentUser)openDevice(d.id);}
 let scanStream=null,scanTimer=null;
 async function openScan(){
   var ov=document.getElementById("scanOverlay");ov.classList.add("show");
@@ -1296,7 +1301,7 @@ async function openScan(){
   scanTimer=setInterval(async function(){try{var codes=await det.detect(v);if(codes&&codes.length)handleScan(codes[0].rawValue);}catch(e){}},400);
 }
 function closeScan(){var ov=document.getElementById("scanOverlay");if(ov)ov.classList.remove("show");if(scanTimer){clearInterval(scanTimer);scanTimer=null;}if(scanStream){scanStream.getTracks().forEach(function(t){t.stop();});scanStream=null;}var v=document.getElementById("scanVideo");if(v)v.srcObject=null;}
-function handleScan(raw){var code=extractCode(raw);closeScan();var d=db.devices.find(function(x){return String(x.idr).toLowerCase()===String(code).toLowerCase();});if(d){openDevice(d.id);return;}var s=document.getElementById("devSearch");if(s)s.value=code;go("list");renderList();alert("Ei täsmäävää laitetta koodille \""+code+"\". Haku täytettiin koodilla.");}
+function handleScan(raw){var code=extractCode(raw);closeScan();var d=db.devices.find(function(x){return String(x.tag).toLowerCase()===String(code).toLowerCase();});if(d){openDevice(d.id);return;}var s=document.getElementById("devSearch");if(s)s.value=code;go("list");renderList();alert("Ei täsmäävää laitetta koodille \""+code+"\". Haku täytettiin koodilla.");}
 function toggleMulti(){multiMode=!multiMode;selected.clear();
   document.getElementById("multiExtra").style.display=multiMode?"inline-flex":"none";
   document.getElementById("btnMulti").classList.toggle("active",multiMode);
@@ -1320,7 +1325,7 @@ function bulkDelete(){if(!confirm(`Poistetaanko ${selected.size} laitetta?`))ret
 document.addEventListener("click",()=>{const m=document.getElementById("bulkMenu");if(m)m.classList.remove("show");});
 
 /* ----- filters ----- */
-const FILTER_FIELDS=[["idr","Laitetunnus"],["make","Valmistaja/Malli/Tyyppi"],["target","Huoltosopimuskohde"],["group","Tuoteryhmä"],["site","Toimipiste"],["next","Seuraava määräaikaishuolto"]];
+const FILTER_FIELDS=[["tag","Laitetunnus"],["make","Valmistaja/Malli/Tyyppi"],["target","Huoltosopimuskohde"],["group","Tuoteryhmä"],["site","Toimipiste"],["next","Seuraava määräaikaishuolto"]];
 let draftFilters=[];
 function fieldVal(d,field){if(field==="site")return siteName(d.locId);if(field==="next")return d.next;return d[field]||"";}
 function filterMatch(d,f){
@@ -1328,8 +1333,8 @@ function filterMatch(d,f){
   if(f.field==="next"){if(!d.next)return false;return f.op==="before"?d.next<f.value:d.next>f.value;}
   const v=String(fieldVal(d,f.field)).toLowerCase(),q=String(f.value).toLowerCase();
   return f.op==="equals"?v===q:v.includes(q);}
-function openFilter(){draftFilters=activeFilters.map(f=>({...f}));if(!draftFilters.length)draftFilters.push({field:"idr",op:"contains",value:""});renderFilterRows();show("filterOverlay");}
-function addFilterRow(){draftFilters.push({field:"idr",op:"contains",value:""});renderFilterRows();}
+function openFilter(){draftFilters=activeFilters.map(f=>({...f}));if(!draftFilters.length)draftFilters.push({field:"tag",op:"contains",value:""});renderFilterRows();show("filterOverlay");}
+function addFilterRow(){draftFilters.push({field:"tag",op:"contains",value:""});renderFilterRows();}
 function removeFilterRow(i){draftFilters.splice(i,1);renderFilterRows();}
 function renderFilterRows(){
   document.getElementById("filterRows").innerHTML=draftFilters.map((f,i)=>{
@@ -1494,9 +1499,9 @@ function saveFile(){
 /* ---------- LINKITYKSET-välilehti ---------- */
 function devLinksTab(d){
   const linkRows=(d.links||[]).map(l=>{const t=db.devices.find(x=>x.id===l.targetId);if(!t)return"";
-    return `<tr><td><a href="#" onclick="openDevice('${t.id}');return false">${esc(t.idr)}</a></td><td>${esc(t.make||t.target)}</td><td>${esc(l.relation||"")}</td><td>${esc(siteName(t.locId))}</td></tr>`;}).join("");
+    return `<tr><td><a href="#" onclick="openDevice('${t.id}');return false">${esc(t.tag)}</a></td><td>${esc(t.make||t.target)}</td><td>${esc(l.relation||"")}</td><td>${esc(siteName(t.locId))}</td></tr>`;}).join("");
   const siblings=db.devices.filter(x=>x.id!==d.id&&!x.deleted&&x.locId===d.locId);
-  const sibRows=siblings.length?siblings.map(t=>`<tr><td><a href="#" onclick="openDevice('${t.id}');return false">${esc(t.idr)}</a></td><td>${esc(t.make||t.target)}</td><td>${esc(t.group||"")}</td></tr>`).join("")
+  const sibRows=siblings.length?siblings.map(t=>`<tr><td><a href="#" onclick="openDevice('${t.id}');return false">${esc(t.tag)}</a></td><td>${esc(t.make||t.target)}</td><td>${esc(t.group||"")}</td></tr>`).join("")
     :'<tr><td colspan="3" class="empty">Ei muita laitteita tällä toimipisteellä</td></tr>';
   return `<div class="panel"><div class="panel-h">Linkitetyt laitteet</div><div class="panel-b" style="padding:0">
       <table><thead><tr><th>Laitetunnus</th><th>Laite</th><th>Suhde</th><th>Sijainti</th></tr></thead><tbody>${linkRows||'<tr><td colspan="4" class="empty">Ei linkityksiä</td></tr>'}</tbody></table>
@@ -1511,7 +1516,7 @@ function openLink(devId){
   const d=db.devices.find(x=>x.id===devId);if(!d)return;
   document.getElementById("lkDevId").value=devId;
   document.getElementById("lkTarget").innerHTML=db.devices.filter(x=>x.id!==devId&&!x.deleted)
-    .map(t=>`<option value="${t.id}">${esc(t.idr)} – ${esc(t.make||t.target)}</option>`).join("");
+    .map(t=>`<option value="${t.id}">${esc(t.tag)} – ${esc(t.make||t.target)}</option>`).join("");
   document.getElementById("lkRel").value="Keskus";
   show("linkOverlay");
 }
@@ -1525,7 +1530,7 @@ function saveLink(){
 }
 /* ---------- NFC SKANNAUKSET -välilehti ---------- */
 function devNfcTab(d){
-  if(!d.nfcTag){d.nfcTag="NFC-"+String(d.idr||"").replace(/[^0-9A-Za-z]/g,"").slice(-6).toUpperCase();save();}
+  if(!d.nfcTag){d.nfcTag="NFC-"+String(d.tag||"").replace(/[^0-9A-Za-z]/g,"").slice(-6).toUpperCase();save();}
   const rows=d.nfcScans||[];
   const tr=rows.length?rows.map(s=>`<tr><td style="white-space:nowrap">${esc(s.datetime)}</td><td>${esc(s.by)}</td><td>${esc(s.type)}</td><td>${esc(s.comment||"")}</td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei skannauksia</td></tr>';
@@ -1582,7 +1587,7 @@ function deviceMainTab(d){
   if(d.isContract&&d.contract){
     const k=d.contract, cline=c=>c?[esc(c.nimi),esc(c.phone),esc(c.email)].filter(Boolean).join("<br>"):"";
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot (sopimus)</div><div class="panel-b" style="padding:0"><div class="kv">
-        ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
+        ${pair("Laitetunnus","<b>"+esc(d.tag)+"</b>")}
         ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Vartiointiliike ja yhteystiedot",esc(k.vartiointi))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
@@ -1605,7 +1610,7 @@ function deviceMainTab(d){
       </div></div></div>`;
   } else {
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot</div><div class="panel-b" style="padding:0"><div class="kv">
-        ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
+        ${pair("Laitetunnus","<b>"+esc(d.tag)+"</b>")}
         ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Toimituspäivä",fmt(d.delivery))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
@@ -1775,7 +1780,7 @@ function editDevice(id){
   asel.innerHTML='<option value="">– Ei osoitettu –</option>'+wlist.map(u=>`<option value="${u.id}">${esc(u.name)}${u.active?"":" (pois käytöstä)"}</option>`).join("");
   asel.value=curAssignee;
   const set=(f,v)=>document.getElementById(f).value=v||"";
-  set("dIdr",d?.idr);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);document.getElementById("dQrTarget").value=(d&&d.qrTarget)||"servalo";
+  set("dTag",d?.tag);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);document.getElementById("dQrTarget").value=(d&&d.qrTarget)||"servalo";
   lsel.value=d?d.locId:(selLoc&&locById(selLoc)?.type==="site"?selLoc:lsel.value);
   set("dValue",d?.value);set("dInterval",d?.interval);set("dDelivery",d?.delivery);
   set("dLast",d?.last);set("dNext",d?.next);set("dReq",d?d.req:0);set("dRepairs",d?d.repairs:0);set("dNotes",d?.notes);
@@ -1810,11 +1815,11 @@ function devAutoNextSetup(){
 function saveDevice(){
   const id=document.getElementById("dId").value;
   const g=f=>document.getElementById(f).value;
-  const data={idr:g("dIdr").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",
+  const data={tag:g("dTag").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",
     locId:g("dLoc"),customerId:g("dCustomer")||null,assignedTo:g("dAssignee")||null,value:+g("dValue")||0,interval:g("dInterval").trim(),delivery:g("dDelivery"),
     last:g("dLast"),next:g("dNext"),inspInterval:g("dInspInterval").trim(),inspLast:g("dInspLast"),inspNext:g("dInspNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,notes:g("dNotes").trim(),updated:today()};
   data.qrTarget=(g("dQrTarget")==="ohje24")?"ohje24":"servalo";
-  if(!data.idr)data.idr=genQrCode();
+  if(!data.tag)data.tag=genQrCode();
   if(id){const dv=db.devices.find(x=>x.id===id);logDeviceDiff(dv,data);Object.assign(dv,data);}
   else{const nd={id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
     expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038",...data};db.devices.unshift(nd);logHist("Luotu",nd,[]);}
@@ -1839,7 +1844,7 @@ function restoreDevice(id){const d=db.devices.find(x=>x.id===id);if(!d||!confirm
 function deleteDevice(id){const d=db.devices.find(x=>x.id===id);if(!d)return;
   if(d.deleted){alert("Laite on jo poistettu käytöstä.");return;}
   const reason=prompt("Poiston syy (esim. Käyttöaika, Rikkoutunut, Muu):","Muu");if(reason===null)return;
-  if(!confirm("Poistetaanko laite "+(d.idr||"")+" käytöstä? Laite siirtyy Poistetut-raporttiin ja voidaan palauttaa sieltä."))return;
+  if(!confirm("Poistetaanko laite "+(d.tag||"")+" käytöstä? Laite siirtyy Poistetut-raporttiin ja voidaan palauttaa sieltä."))return;
   d.deleted=true;d.delDate=today();d.delReason=(reason.trim()||"Muu");d.delComment=d.delComment||"";
   logHist("Poistettu",d,[{f:"Tila",from:"Käytössä",to:"Poistettu"}]);
   save();go("list");renderList();}
@@ -1848,11 +1853,11 @@ const reportDefs={
   huollot:{title:"Tulevat määräaikaishuollot",desc:"Näytetään laitteet joilla on huoltoväli ja seuraava määräaikaishuolto.",
     cols:["Laitetunnus","Huoltosopimuskohde","Seuraava määräaikaishuolto ↑","Valmistaja/Malli/Tyyppi","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().filter(d=>d.next&&inDateRange(d.next)).sort((a,b)=>a.next.localeCompare(b.next))
-      .map(d=>[d.idr,d.target,dateBadge(d.next),d.make,locPath(d.locId),statCell(d.next),openBtn(d.id)])},
+      .map(d=>[d.tag,d.target,dateBadge(d.next),d.make,locPath(d.locId),statCell(d.next),openBtn(d.id)])},
   tarkastukset:{title:"Tulevat tarkastukset",desc:"Näytetään laitteet joilla on tarkastusväli sekä toimituspäivä tai vähintään yksi tarkastus",
     cols:["Laitetunnus","Seuraava tarkastuspäivä ↑","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id&&inDateRange(x.id)).sort((a,b)=>a.id.localeCompare(b.id))
-      .map(({d,id})=>[d.idr,dateBadge(id),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),statCell(id),openBtn(d.id)])},
+      .map(({d,id})=>[d.tag,dateBadge(id),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),statCell(id),openBtn(d.id)])},
   pyynnot:{title:()=>repSub==="valmiit"?"Valmiit huoltopyynnöt":"Odottavat huoltopyynnöt",
     desc:()=>repSub==="valmiit"?"Näytetään huoltopyynnöt, jotka on merkitty tehdyiksi.":"Näytetään huoltopyynnöt, joita ei ole vielä merkitty tehdyiksi.",
     sub:true,
@@ -1861,13 +1866,13 @@ const reportDefs={
       devicesInScope().forEach(d=>(d.requests||[]).forEach(rq=>{
         const isOpen=rq.status!=="done";if(open!==isOpen)return;
         if(!inDateRange(rq.requested))return;
-        out.push([d.idr,fmt(rq.requested),rq.done?fmt(rq.done):"–",esc(rq.reason||""),esc(rq.comment||""),esc(d.locDetail||"–"),esc(rq.sentTo||"–"),locPath(d.locId),open?'<span class="stat-late"></span>':'<span class="chk">✔</span>',openBtn(d.id)]);}));
+        out.push([d.tag,fmt(rq.requested),rq.done?fmt(rq.done):"–",esc(rq.reason||""),esc(rq.comment||""),esc(d.locDetail||"–"),esc(rq.sentTo||"–"),locPath(d.locId),open?'<span class="stat-late"></span>':'<span class="chk">✔</span>',openBtn(d.id)]);}));
       return out.sort((a,b)=>String(b[1]).localeCompare(String(a[1])));}},
   koulutetut:{title:"Käyttökoulutetut henkilöt",desc:"Näytetään laitteiden viimeisin kirjattu käyttökoulutettu henkilö.",
     cols:["Laitetunnus","Valmistaja/Malli/Tyyppi","Käyttökoulutettu henkilö","Koul. henkilön lisäyspäivä","Huoltosopimuskohde","Sarjanumero","Laitteen sijainti","Toimipiste","Toiminnot"],
     rows:()=>{const out=[];
       devicesInScope().forEach(d=>(d.trained||[]).forEach(t=>{
-        out.push([d.idr,d.make,esc(t.name||""),fmt(t.date),esc(d.target||""),esc(d.serial||""),esc(d.locDetail||""),locPath(d.locId),openBtn(d.id)]);}));
+        out.push([d.tag,d.make,esc(t.name||""),fmt(t.date),esc(d.target||""),esc(d.serial||""),esc(d.locDetail||""),locPath(d.locId),openBtn(d.id)]);}));
       return out;}},
   vuokralaitteet:{title:"Vuokralaitteet",desc:"Tällä sivulla näytetään vuokralaitteet, joilla on sopimuksen alkamispäivä ja sopimusaika",rental:true,
     cols:["Valmistaja/Malli/Tyyppi","Sopimuksen alkamispäivä","Sopimusaika (kk)","Kuukausihinta (alv. 0%)","Sopimus päättyy ↑","Lunastushinta (alv. 0%)","Jäljellä olevat kustannukset","Toimipiste"],
@@ -1877,11 +1882,11 @@ const reportDefs={
   korjatut:{title:"Eniten korjatut laitteet",desc:"Näytetään eniten huolletut laitteet, järjestettynä korjausten määrällä keskimääräisesti vuodessa.",
     cols:["Laitetunnus","Korjauksia per vuosi ↓","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().filter(d=>d.repairs>0||d.repairsPerYear).map(d=>({d,r:d.repairsPerYear||d.repairs}))
-      .sort((a,b)=>b.r-a.r).map(({d,r})=>[d.idr,num2(r),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',openBtn(d.id)])},
+      .sort((a,b)=>b.r-a.r).map(({d,r})=>[d.tag,num2(r),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',openBtn(d.id)])},
   poistetut:{title:"Poistetut laitteet",desc:"Listalla näytetään laitteet, jotka on poistettu käytöstä.",
     cols:["Laitetunnus","Poistopäivä ↓","Kommentti","Syy","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>db.devices.filter(d=>d.deleted).sort((a,b)=>String(b.delDate||"").localeCompare(String(a.delDate||"")))
-      .map(d=>[d.idr,fmt(d.delDate),esc(d.delComment||""),esc(d.delReason||""),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',restoreBtn(d.id)])},
+      .map(d=>[d.tag,fmt(d.delDate),esc(d.delComment||""),esc(d.delReason||""),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',restoreBtn(d.id)])},
   patevyydet:{title:"Pätevyydet / vanhenevat kortit",desc:"Näytetään työntekijöiden pätevyydet ja korttien voimassaolo. Punainen = vanhentunut, keltainen = vanhenee 60 pv sisällä.",
     cols:["Henkilö","Rooli","Pätevyys","Myönnetty","Vanhenee ↑","Tila","Liite"],
     rows:()=>{const out=[];
@@ -2197,7 +2202,7 @@ function renderCustomerDetail(){
   const reqRows=[];devs.forEach(d=>(d.requests||[]).filter(r=>r.status!=="done").forEach(r=>reqRows.push({d,r})));
   const pair=(k,v)=>`<div class="pair"><div class="k">${k}</div><div class="v">${v||"–"}</div></div>`;
   const devRows=devs.length?devs.map(d=>`<tr>
-      <td><b>${esc(d.idr)}</b></td><td>${esc(d.make)}</td><td>${esc(d.target)}</td>
+      <td><b>${esc(d.tag)}</b></td><td>${esc(d.make)}</td><td>${esc(d.target)}</td>
       <td>${esc(siteName(d.locId))}</td><td>${d.next?dateBadge(d.next):"–"}</td>
       <td><button class="iconbtn" style="width:34px;height:34px;font-size:13px" title="Avaa" onclick="openDevice('${d.id}')">🔍</button></td></tr>`).join("")
     :'<tr><td colspan="6" class="empty">Ei laitteita.</td></tr>';
@@ -2207,7 +2212,7 @@ function renderCustomerDetail(){
     return `<tr><td>${esc(t.title)} ${badge}</td><td>${t.due?fmt(t.due):"–"}</td>
       <td style="white-space:nowrap"><button class="btn sm ghost" onclick="toggleCustTask('${t.id}')">${t.status==="done"?"Avaa":"Valmis"}</button> <button class="btn sm danger" onclick="deleteCustTask('${t.id}')">🗑</button></td></tr>`;}).join("")
     :'<tr><td colspan="3" class="empty">Ei tehtäviä.</td></tr>';
-  const reqList=reqRows.length?reqRows.map(({d,r})=>`<tr><td><b>${esc(d.idr)}</b></td><td>${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td>${esc(r.comment||"")}</td></tr>`).join("")
+  const reqList=reqRows.length?reqRows.map(({d,r})=>`<tr><td><b>${esc(d.tag)}</b></td><td>${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td>${esc(r.comment||"")}</td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei avoimia huoltopyyntöjä.</td></tr>';
   const contacts=c.contacts||[];
   const contactRows=contacts.length?contacts.map(ct=>`<tr>
@@ -2820,13 +2825,13 @@ function renderPortal(){
   const openReqs=[];devs.forEach(d=>(d.requests||[]).forEach(r=>{if(r.status!=="done")openReqs.push({d,r});}));
   const upcoming=devs.filter(d=>d.next).slice().sort((a,b)=>String(a.next).localeCompare(String(b.next)));
   const devRows=devs.length?devs.map(d=>`<tr>
-      <td><b>${esc(d.idr)}</b></td><td>${esc(d.target)}</td><td>${esc(d.make)}</td>
+      <td><b>${esc(d.tag)}</b></td><td>${esc(d.target)}</td><td>${esc(d.make)}</td>
       <td>${esc(siteName(d.locId))}</td><td>${d.next?dateBadge(d.next):"–"}</td>
       <td><button class="btn sm orange" onclick="openPortalRequest('${d.id}')">🔧 Huoltopyyntö</button></td></tr>`).join("")
     :'<tr><td colspan="6" class="empty">Ei laitteita kohteessa.</td></tr>';
-  const upcRows=upcoming.length?upcoming.slice(0,8).map(d=>`<tr><td><b>${esc(d.idr)}</b></td><td>${esc(d.target)}</td><td>${esc(siteName(d.locId))}</td><td>${dateBadge(d.next)}</td></tr>`).join("")
+  const upcRows=upcoming.length?upcoming.slice(0,8).map(d=>`<tr><td><b>${esc(d.tag)}</b></td><td>${esc(d.target)}</td><td>${esc(siteName(d.locId))}</td><td>${dateBadge(d.next)}</td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei tulevia huoltoja.</td></tr>';
-  const reqRows=openReqs.length?openReqs.map(({d,r})=>`<tr><td><b>${esc(d.idr)}</b></td><td>${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td><span class="ctag ct-lead">Käsittelyssä</span></td></tr>`).join("")
+  const reqRows=openReqs.length?openReqs.map(({d,r})=>`<tr><td><b>${esc(d.tag)}</b></td><td>${fmt(r.requested)}</td><td>${esc(r.reason||"")}</td><td><span class="ctag ct-lead">Käsittelyssä</span></td></tr>`).join("")
     :'<tr><td colspan="4" class="empty">Ei avoimia huoltopyyntöjä.</td></tr>';
   body.innerHTML=`
     <div class="topbar"><h2 style="margin:0">${esc(c.name)}</h2>
@@ -2870,7 +2875,7 @@ function openPortalRequest(devId){
   const c=portalCustomer();if(!c){alert("Ei kohdetta.");return;}
   const devs=devicesOfCustomer(c.id);
   const sel=document.getElementById("prDevice");
-  sel.innerHTML=devs.map(d=>`<option value="${d.id}">${esc(d.idr)} — ${esc(d.target)}</option>`).join("");
+  sel.innerHTML=devs.map(d=>`<option value="${d.id}">${esc(d.tag)} — ${esc(d.target)}</option>`).join("");
   if(devId)sel.value=devId;
   document.getElementById("prReason").value="";document.getElementById("prComment").value="";
   show("portalReqOverlay");
@@ -2895,19 +2900,19 @@ function downloadCsv(rows,fname){
 const PORTAL_REPORTS={
   laitteet:{name:"laiteluettelo",title:"Laiteluettelo",
     head:["Laitetunnus","Huoltosopimuskohde","Valmistaja/Malli/Tyyppi","Tuoteryhmä","Toimipiste","Huoltoväli","Viim. huolto","Seur. huolto","Avoimet pyynnöt"],
-    rows:devs=>devs.map(d=>[d.idr,d.target,d.make,d.group,siteName(d.locId),d.interval,fmt(d.last),fmt(d.next),d.req||0])},
+    rows:devs=>devs.map(d=>[d.tag,d.target,d.make,d.group,siteName(d.locId),d.interval,fmt(d.last),fmt(d.next),d.req||0])},
   huollot:{name:"tulevat-maaraaikaishuollot",title:"Tulevat määräaikaishuollot",
     head:["Laitetunnus","Huoltosopimuskohde","Seuraava määräaikaishuolto","Valmistaja/Malli/Tyyppi","Toimipiste"],
-    rows:devs=>devs.filter(d=>d.next).sort((a,b)=>a.next.localeCompare(b.next)).map(d=>[d.idr,d.target,fmt(d.next),d.make,siteName(d.locId)])},
+    rows:devs=>devs.filter(d=>d.next).sort((a,b)=>a.next.localeCompare(b.next)).map(d=>[d.tag,d.target,fmt(d.next),d.make,siteName(d.locId)])},
   tarkastukset:{name:"tulevat-tarkastukset",title:"Tulevat tarkastukset",
     head:["Laitetunnus","Seuraava tarkastuspäivä","Valmistaja/Malli/Tyyppi","Toimipiste"],
-    rows:devs=>devs.map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id).sort((a,b)=>a.id.localeCompare(b.id)).map(({d,id})=>[d.idr,fmt(id),d.make,siteName(d.locId)])},
+    rows:devs=>devs.map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id).sort((a,b)=>a.id.localeCompare(b.id)).map(({d,id})=>[d.tag,fmt(id),d.make,siteName(d.locId)])},
   pyynnot:{name:"huoltopyynnot",title:"Huoltopyynnöt",
     head:["Laitetunnus","Pyyntöpäivä","Tehty","Syy","Kommentti","Tila","Toimipiste"],
-    rows:devs=>{const out=[];devs.forEach(d=>(d.requests||[]).forEach(r=>out.push([d.idr,fmt(r.requested),r.done?fmt(r.done):"–",r.reason||"",r.comment||"",r.status==="done"?"Valmis":"Käsittelyssä",siteName(d.locId)])));return out;}},
+    rows:devs=>{const out=[];devs.forEach(d=>(d.requests||[]).forEach(r=>out.push([d.tag,fmt(r.requested),r.done?fmt(r.done):"–",r.reason||"",r.comment||"",r.status==="done"?"Valmis":"Käsittelyssä",siteName(d.locId)])));return out;}},
   koulutetut:{name:"kayttokoulutetut",title:"Käyttökoulutetut henkilöt",
     head:["Laitetunnus","Henkilö","Lisäyspäivä","Huoltosopimuskohde","Toimipiste"],
-    rows:devs=>{const out=[];devs.forEach(d=>(d.trained||[]).forEach(t=>out.push([d.idr,t.name||"",fmt(t.date),d.target,siteName(d.locId)])));return out;}}
+    rows:devs=>{const out=[];devs.forEach(d=>(d.trained||[]).forEach(t=>out.push([d.tag,t.name||"",fmt(t.date),d.target,siteName(d.locId)])));return out;}}
 };
 function portalReport(type){
   const c=portalCustomer();if(!c)return;
@@ -2922,7 +2927,7 @@ function portalPrint(){
   const devs=devicesOfCustomer(c.id);
   const late=devs.filter(d=>{const n=daysFromToday(d.next);return n!==null&&n<0;}).length;
   const rowsHtml=devs.length?devs.map(d=>{const n=daysFromToday(d.next);const col=n!==null&&n<0?"#c0392b":"#16a06b";
-    return `<tr><td><b>${esc(d.idr)}</b></td><td>${esc(d.target)}</td><td>${esc(d.make)}</td><td>${esc(siteName(d.locId))}</td><td>${fmt(d.last)}</td><td style="color:${col};font-weight:700">${fmt(d.next)}</td></tr>`;}).join("")
+    return `<tr><td><b>${esc(d.tag)}</b></td><td>${esc(d.target)}</td><td>${esc(d.make)}</td><td>${esc(siteName(d.locId))}</td><td>${fmt(d.last)}</td><td style="color:${col};font-weight:700">${fmt(d.next)}</td></tr>`;}).join("")
     :'<tr><td colspan="6" style="text-align:center;color:#888">Ei laitteita.</td></tr>';
   const w=window.open("","_blank");if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
   w.document.write(`<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Huoltoraportti – ${esc(c.name)}</title>
@@ -3122,7 +3127,7 @@ function renderCalendar(){
   for(let day=1;day<=days;day++){
     const iso=y+"-"+String(m+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
     const items=byDay[day]||[];
-    const chips=items.map(e=>'<button class="calchip '+calStatus(e.date)+'" title="'+esc(e.d.idr)+' – '+esc(e.d.make)+' ('+esc(siteName(e.d.locId))+')" onclick="openDevice(\''+e.d.id+'\')">'+(e.type==="huolto"?"🛠":"🔍")+" "+esc(e.d.idr)+"</button>").join("");
+    const chips=items.map(e=>'<button class="calchip '+calStatus(e.date)+'" title="'+esc(e.d.tag)+' – '+esc(e.d.make)+' ('+esc(siteName(e.d.locId))+')" onclick="openDevice(\''+e.d.id+'\')">'+(e.type==="huolto"?"🛠":"🔍")+" "+esc(e.d.tag)+"</button>").join("");
     cells+='<div class="calcell'+(iso===todayStr?" today":"")+'"><div class="cald">'+day+"</div>"+chips+"</div>";
   }
   body.innerHTML=
@@ -3162,7 +3167,7 @@ function renderMywork(){
   body.innerHTML=items.map(it=>{
     const d=it.d,site=esc(siteName(d.locId)),loc=esc(locPath(d.locId));
     if(it.type==="req"){
-      return `<div class="workcard req"><h4>🔧 Huoltopyyntö · ${esc(d.idr)}</h4>
+      return `<div class="workcard req"><h4>🔧 Huoltopyyntö · ${esc(d.tag)}</h4>
         <div class="wmeta">${esc(d.target)} — ${site}<br><b>Syy:</b> ${esc(it.r.reason||"")} · Pyydetty ${fmt(it.r.requested)}<br>${loc}</div>
         <div class="wact">
           <button class="bigbtn blue" onclick="completeRequest('${d.id}',${it.idx})">✔ Merkitse hoidetuksi</button>
@@ -3171,14 +3176,14 @@ function renderMywork(){
     const cls=it.type==="late"?"late":"soon";
     if(it.insp){
       const wi=it.days<0?`Myöhässä ${Math.abs(it.days)} pv (${fmt(d.inspNext)})`:`${it.days} pv kuluttua (${fmt(d.inspNext)})`;
-      return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🔍"} Tarkastus · ${esc(d.idr)}</h4>
+      return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🔍"} Tarkastus · ${esc(d.tag)}</h4>
         <div class="wmeta">${esc(d.target)} — ${site}<br><b>Eräpäivä:</b> ${wi}<br>${loc}</div>
         <div class="wact">
           <button class="bigbtn green" onclick="logInspection('${d.id}')">✔ Kuittaa tarkastus tehdyksi</button>
           <button class="bigbtn ghost2" onclick="openDevice('${d.id}')">Avaa laite</button></div></div>`;
     }
     const when=it.days<0?`Myöhässä ${Math.abs(it.days)} pv (${fmt(d.next)})`:`${it.days} pv kuluttua (${fmt(d.next)})`;
-    return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🗓"} Määräaikaishuolto · ${esc(d.idr)}</h4>
+    return `<div class="workcard ${cls}"><h4>${it.type==="late"?"⚠":"🗓"} Määräaikaishuolto · ${esc(d.tag)}</h4>
       <div class="wmeta">${esc(d.target)} — ${site}<br><b>Eräpäivä:</b> ${when}<br>${loc}</div>
       <div class="wact">
         <button class="bigbtn green" onclick="completeMaint('${d.id}')">✔ Kuittaa huolto tehdyksi</button>
@@ -3217,7 +3222,7 @@ function logInspection(devId){
 const BILL_TAG={avoin:["ct-lead","Avoin"],lisatieto:["ct-inactive","Odottaa lisätietoa"],laskutettu:["ct-active","Laskutettu"]};
 let billSub="avoin";
 function reportKohde(r){
-  if(r.deviceId){var d=db.devices.find(function(x){return x.id===r.deviceId;});if(d)return d.idr+(d.make?" · "+d.make:"");}
+  if(r.deviceId){var d=db.devices.find(function(x){return x.id===r.deviceId;});if(d)return d.tag+(d.make?" · "+d.make:"");}
   return "–";
 }
 function openReportModal(deviceId){
@@ -3225,7 +3230,7 @@ function openReportModal(deviceId){
   var cs=document.getElementById("rpCustomer");
   cs.innerHTML='<option value="">– Valitse asiakas –</option>'+db.customers.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join("");
   var ds=document.getElementById("rpDevice");
-  ds.innerHTML='<option value="">– Ei tiettyä laitetta –</option>'+db.devices.filter(function(d){return !d.deleted;}).map(function(d){return '<option value="'+d.id+'">'+esc(d.idr)+" · "+esc(d.make||d.target||"")+'</option>';}).join("");
+  ds.innerHTML='<option value="">– Ei tiettyä laitetta –</option>'+db.devices.filter(function(d){return !d.deleted;}).map(function(d){return '<option value="'+d.id+'">'+esc(d.tag)+" · "+esc(d.make||d.target||"")+'</option>';}).join("");
   document.getElementById("rpWork").value="";
   document.getElementById("rpMeta").textContent=(currentUser.name||"")+" · "+fmt(today());
   if(deviceId){var dv=db.devices.find(function(x){return x.id===deviceId;});ds.value=deviceId;if(dv&&dv.customerId)cs.value=dv.customerId;}
@@ -3325,7 +3330,7 @@ function renderDispatch(){
   const q=document.getElementById("dispSearch").value.toLowerCase();
   const fWho=who.value, onlyUn=document.getElementById("dispUnassigned").checked;
   let list=db.devices.filter(d=>!d.deleted)
-    .filter(d=>(d.idr+d.make+d.target+siteName(d.locId)).toLowerCase().includes(q));
+    .filter(d=>(d.tag+d.make+d.target+siteName(d.locId)).toLowerCase().includes(q));
   if(onlyUn||fWho==="__none")list=list.filter(d=>!d.assignedTo);
   else if(fWho)list=list.filter(d=>d.assignedTo===fWho);
   list.sort((a,b)=>String(a.next||"9999").localeCompare(String(b.next||"9999")));
@@ -3336,7 +3341,7 @@ function renderDispatch(){
     workers.map(w=>`<div class="stat"><div class="lbl">${esc(w.name)}</div><div class="num">${counts[w.id]}</div></div>`).join("")+
     `<div class="stat alert"><div class="lbl">Ei osoitettu</div><div class="num">${un}</div></div>`;
   document.getElementById("dispRows").innerHTML=list.length?list.map(d=>`<tr>
-    <td><b>${esc(d.idr)}</b></td><td>${esc(d.target)}</td><td>${esc(siteName(d.locId))}</td>
+    <td><b>${esc(d.tag)}</b></td><td>${esc(d.target)}</td><td>${esc(siteName(d.locId))}</td>
     <td>${d.next?dateBadge(d.next):"–"}</td>
     <td><select class="assignsel" onchange="assignWork('${d.id}',this.value)">${workerOptions(d.assignedTo)}</select></td></tr>`).join("")
     :'<tr><td colspan="5" class="empty">Ei laitteita.</td></tr>';
@@ -3445,7 +3450,7 @@ function deleteUser(id){
 }
 
 /* ---------- Laitehistoria (muutosloki) ---------- */
-const HIST_FIELDS={idr:"Laitetunnus",target:"Huoltosopimuskohde",make:"Valmistaja/Malli/Tyyppi",group:"Laiteryhmä",locId:"Toimipiste",customerId:"Asiakas",assignedTo:"Vastuuhenkilö",interval:"Huoltoväli",last:"Viimeisin määräaikaishuolto",next:"Seuraava määräaikaishuolto",inspInterval:"Tarkastusväli",inspLast:"Viimeisin tarkastus",inspNext:"Seuraava tarkastus",value:"Hankinta-arvo",req:"Huoltopyynnöt",repairs:"Korjaukset",notes:"Lisätiedot"};
+const HIST_FIELDS={tag:"Laitetunnus",target:"Huoltosopimuskohde",make:"Valmistaja/Malli/Tyyppi",group:"Laiteryhmä",locId:"Toimipiste",customerId:"Asiakas",assignedTo:"Vastuuhenkilö",interval:"Huoltoväli",last:"Viimeisin määräaikaishuolto",next:"Seuraava määräaikaishuolto",inspInterval:"Tarkastusväli",inspLast:"Viimeisin tarkastus",inspNext:"Seuraava tarkastus",value:"Hankinta-arvo",req:"Huoltopyynnöt",repairs:"Korjaukset",notes:"Lisätiedot"};
 const HIST_BADGE={"Luotu":"green","Päivitetty":"yellow","Huolto kuitattu":"green","Tarkastus kuitattu":"green","Poistettu":"red","Palautettu":"green"};
 function histVal(f,v){if(v==null||v==="")return"–";
   if(f==="locId")return locPath(v);
@@ -3455,14 +3460,14 @@ function histVal(f,v){if(v==null||v==="")return"–";
   if(["last","next","inspLast","inspNext"].includes(f))return fmt(v);
   return String(v);}
 function logHist(action,dev,changes){db.history=db.history||[];
-  db.history.unshift({id:uid(),ts:Date.now(),by:currentUser?currentUser.name:"järjestelmä",action,devId:(dev&&dev.id)||"",idr:(dev&&dev.idr)||"",target:(dev&&dev.target)||"",changes:changes||[]});
+  db.history.unshift({id:uid(),ts:Date.now(),by:currentUser?currentUser.name:"järjestelmä",action,devId:(dev&&dev.id)||"",tag:(dev&&dev.tag)||"",target:(dev&&dev.target)||"",changes:changes||[]});
   if(db.history.length>500)db.history.length=500;}
 function logDeviceDiff(old,data){const ch=[];for(const f in HIST_FIELDS){const a=old[f]==null?"":old[f],b=data[f]==null?"":data[f];if(String(a)!==String(b))ch.push({f:HIST_FIELDS[f],from:histVal(f,old[f]),to:histVal(f,data[f])});}if(ch.length)logHist("Päivitetty",old,ch);}
 function histDateTime(ts){const d=new Date(ts);const p=n=>String(n).padStart(2,"0");return p(d.getDate())+"."+p(d.getMonth()+1)+"."+d.getFullYear()+" "+p(d.getHours())+"."+p(d.getMinutes());}
 function renderHistory(){const body=document.getElementById("histBody");if(!body)return;
   const sEl=document.getElementById("histSearch");const q=(sEl?sEl.value:"").toLowerCase();
   const list=(db.history||[]).filter(h=>{
-    const txt=(h.idr+" "+h.target+" "+h.by+" "+h.action+" "+(h.changes||[]).map(c=>c.f+" "+c.from+" "+c.to).join(" ")).toLowerCase();
+    const txt=(h.tag+" "+h.target+" "+h.by+" "+h.action+" "+(h.changes||[]).map(c=>c.f+" "+c.from+" "+c.to).join(" ")).toLowerCase();
     return txt.includes(q);});
   if(!list.length){body.innerHTML='<p class="empty">Ei historiamerkintöjä.</p>';return;}
   const rows=list.map(h=>{
@@ -3472,7 +3477,7 @@ function renderHistory(){const body=document.getElementById("histBody");if(!body
       <td style="white-space:nowrap">${histDateTime(h.ts)}</td>
       <td>${esc(h.by||"")}</td>
       <td><span class="badge ${HIST_BADGE[h.action]||"yellow"}">${esc(h.action)}</span></td>
-      <td><b>${esc(h.idr||"–")}</b>${h.target?'<br><span class="hint">'+esc(h.target)+'</span>':''}</td>
+      <td><b>${esc(h.tag||"–")}</b>${h.target?'<br><span class="hint">'+esc(h.target)+'</span>':''}</td>
       <td>${ch}</td>
       <td>${h.devId&&db.devices.find(x=>x.id===h.devId)?act:""}</td>
     </tr>`;}).join("");
@@ -3488,9 +3493,9 @@ db.history=db.history||[];
 if(!db.history.length&&db.devices&&db.devices.length){
   const now=Date.now(),d0=db.devices[0],d1=db.devices[1]||db.devices[0];
   db.history=[
-    {id:uid(),ts:now-3600000*5,by:"Jari Mattila",action:"Päivitetty",devId:d0.id,idr:d0.idr,target:d0.target,changes:[{f:"Seuraava määräaikaishuolto",from:fmt(d0.last||today()),to:fmt(d0.next||today())},{f:"Vastuuhenkilö",from:"–",to:"Eetu Nieminen"}]},
-    {id:uid(),ts:now-3600000*27,by:"Jari Mattila",action:"Huolto kuitattu",devId:d0.id,idr:d0.idr,target:d0.target,changes:[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(today())}]},
-    {id:uid(),ts:now-3600000*52,by:"Sanna Mäkinen",action:"Luotu",devId:d1.id,idr:d1.idr,target:d1.target,changes:[]}
+    {id:uid(),ts:now-3600000*5,by:"Jari Mattila",action:"Päivitetty",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Seuraava määräaikaishuolto",from:fmt(d0.last||today()),to:fmt(d0.next||today())},{f:"Vastuuhenkilö",from:"–",to:"Eetu Nieminen"}]},
+    {id:uid(),ts:now-3600000*27,by:"Jari Mattila",action:"Huolto kuitattu",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(today())}]},
+    {id:uid(),ts:now-3600000*52,by:"Sanna Mäkinen",action:"Luotu",devId:d1.id,tag:d1.tag,target:d1.target,changes:[]}
   ];save();
 }
 function applyTitles(){
