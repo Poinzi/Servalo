@@ -305,6 +305,7 @@
       <div class="menu" id="moreMenu">
         <button id="navCustomers" data-go="customers">👥 Asiakkaat</button>
         <button id="navDispatch" data-go="dispatch">🗂 Työnjako</button>
+        <button id="navBilling" data-go="billing">🧾 Laskutus</button>
         <button data-report="patevyydet">🎫 Pätevyydet / kortit</button>
         <button id="navAdmin" data-go="admin">⚙ Käyttäjät & asetukset</button>
       </div>
@@ -501,7 +502,7 @@
 
     <!-- ===== OMAT TYÖT ===== -->
     <section id="view-mywork" class="view">
-      <div class="topbar"><h2 style="margin:0">Omat työt</h2><span class="hint" id="mwWho"></span></div>
+      <div class="topbar"><h2 style="margin:0">Omat työt</h2><span class="hint" id="mwWho"></span><button class="btn orange" style="margin-left:auto" onclick="openReportModal()">＋ Kirjaa työraportti</button></div>
       <div class="stats" style="margin-bottom:16px">
         <div class="stat alert"><div class="lbl">Myöhässä</div><div class="num">⚠ <span id="mwLate">0</span></div></div>
         <div class="stat"><div class="lbl">Tulossa (30 pv)</div><div class="num" id="mwSoon">0</div></div>
@@ -523,6 +524,22 @@
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Laitetunnus</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Seur. huolto</th><th>Vastuuasentaja</th></tr></thead>
           <tbody id="dispRows"></tbody></table></div>
+      </div></div>
+    </section>
+
+    <!-- ===== LASKUTUS ===== -->
+    <section id="view-billing" class="view">
+      <div class="topbar"><h2 style="margin:0">Laskutus</h2></div>
+      <div class="panel"><div class="panel-b">
+        <div class="stats" style="margin-bottom:16px">
+          <div class="stat"><div class="lbl">Avoimet</div><div class="num" id="blOpen">0</div></div>
+          <div class="stat alert"><div class="lbl">Odottaa lisätietoa</div><div class="num" id="blInfo">0</div></div>
+          <div class="stat ok"><div class="lbl">Laskutettu</div><div class="num" id="blDone">0</div></div>
+        </div>
+        <div class="subtabs" id="billTabs" style="margin-bottom:14px"></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Pvm</th><th>Asiakas</th><th>Kohde / laite</th><th>Tehty työ</th><th>Tekijä</th><th>Tila</th><th>Toiminnot</th></tr></thead>
+          <tbody id="billRows"></tbody></table></div>
       </div></div>
     </section>
 
@@ -584,6 +601,23 @@
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeOverlay('userOverlay')">Peruuta</button>
       <button class="btn orange" onclick="saveUser()">Tallenna</button>
+    </div>
+  </div>
+</div>
+
+<!-- TYÖRAPORTTI MODAL -->
+<div class="overlay" id="reportOverlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-h"><span>🧾 Uusi työraportti</span><span class="x" onclick="closeOverlay('reportOverlay')">×</span></div>
+    <div class="modal-b">
+      <div class="field"><label>Asiakas *</label><select class="f" id="rpCustomer"></select></div>
+      <div class="field"><label>Kohde / laite <span class="hint">(valinnainen)</span></label><select class="f" id="rpDevice"><option value="">– Ei tiettyä laitetta –</option></select></div>
+      <div class="field"><label>Tehty työ *</label><textarea class="f" id="rpWork" rows="4" placeholder="Kuvaa tehty työ…"></textarea></div>
+      <div class="hint">Tekijä ja päivämäärä tallentuvat automaattisesti: <b id="rpMeta"></b></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeOverlay('reportOverlay')">Peruuta</button>
+      <button class="btn orange" onclick="saveReport()">Tallenna laskutukseen</button>
     </div>
   </div>
 </div>
@@ -1082,6 +1116,15 @@ db.views=db.views||[];
 db.customers=db.customers||[];
 db.tasks=db.tasks||[];
 db.codes=db.codes||[];
+if(!Array.isArray(db.reports)){
+  var _rdev=function(idr){var x=db.devices.find(function(d){return d.idr===idr;});return x?x.id:null;};
+  db.reports=[
+    {id:uid(),created:"2026-06-18",by:"Mikko Virtanen",byId:"u3",customerId:"p1",deviceId:_rdev("601678"),work:"Vuosihuolto: paloilmoittimen ilmaisimet puhdistettu ja testattu, keskus OK.",status:"avoin",infoNote:"",invoicedDate:""},
+    {id:uid(),created:"2026-06-20",by:"Sanna Koskinen",byId:"u4",customerId:"p2",deviceId:_rdev("601698"),work:"Vikakäynti: vikavalon syy paikallistettu ja silmukka korjattu.",status:"lisatieto",infoNote:"Asiakkaan tilausnumero (PO) puuttuu — ei voi laskuttaa ennen kuin isännöitsijä toimittaa sen.",invoicedDate:""},
+    {id:uid(),created:"2026-06-10",by:"Jani Lehtonen",byId:"u5",customerId:"p3",deviceId:null,work:"Käsisammuttimien määräaikaishuolto, 6 kpl.",status:"laskutettu",infoNote:"",invoicedDate:"2026-06-15"}
+  ];
+  save();
+}
 db.users=db.users||[];
 db.settings=db.settings||{company:{name:"Servalo Oy",email:"info@servalo.fi",phone:"+358 29 000 1112",web:"www.servalo.fi"},groups:[],intervals:["6 kk","1 vuosi","2 vuotta"]};
 const cs=()=>db.settings.company;
@@ -1160,7 +1203,8 @@ function routeRender(v){
   else if(v==="admin")renderAdmin();
   else if(v==="portal")renderPortal();
   else if(v==="calendar")renderCalendar();
-  else if(v==="history")renderHistory();}
+  else if(v==="history")renderHistory();
+  else if(v==="billing")renderBilling();}
 document.getElementById("sideToggle").onclick=()=>document.getElementById("sidebar").classList.toggle("collapsed");
 document.getElementById("reportsBtn").onclick=e=>{e.stopPropagation();document.getElementById("reportsMenu").classList.toggle("show");};
 document.addEventListener("click",()=>document.getElementById("reportsMenu").classList.remove("show"));
@@ -2881,7 +2925,7 @@ function role(){return currentUser?currentUser.role:null;}
 function can(p){
   const r=role();
   if(r==="admin")return true;
-  if(r==="supervisor")return ["mywork","dispatch","customers","reports","devices_edit","view"].includes(p);
+  if(r==="supervisor")return ["mywork","dispatch","customers","reports","devices_edit","view","billing"].includes(p);
   if(r==="worker")return ["mywork","view","complete","devices_edit"].includes(p);
   if(r==="customer")return ["portal"].includes(p);
   return false;
@@ -3002,6 +3046,7 @@ function applyRole(){
   show("navCustomers", can("customers"));
   show("navReports", can("reports"));
   show("navDispatch", can("dispatch"));
+  show("navBilling", can("billing"));
   show("navAdmin", role()==="admin");
   show("navPortal", cust);
   show("navCalendar", !cust);
@@ -3012,7 +3057,7 @@ function applyRole(){
   document.querySelectorAll(".req-edit").forEach(el=>el.style.display=can("devices_edit")?"":"none");
   document.querySelectorAll(".req-cust").forEach(el=>el.style.display=can("customers")?"":"none");
   {const cal=document.getElementById("navCalendar");if(cal)cal.style.display=role()==="customer"?"none":"";}
-  {const mb=document.getElementById("navMore");if(mb){const any=["navCustomers","navDispatch","navAdmin"].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=="none";});mb.style.display=any?"":"none";}}
+  {const mb=document.getElementById("navMore");if(mb){const any=["navCustomers","navDispatch","navBilling","navAdmin"].some(id=>{const e=document.getElementById(id);return e&&e.style.display!=="none";});mb.style.display=any?"":"none";}}
 }
 
 /* ========== OMAT TYÖT (asentaja) ========== */
@@ -3142,6 +3187,99 @@ function logInspection(devId){
   logHist("Tarkastus kuitattu",d,[{f:"Viimeisin tarkastus",from:"–",to:fmt(iso)},{f:"Seuraava tarkastus",from:fmt(_oldIns),to:fmt(d.inspNext)}]);
   d.updated=iso;save();renderMywork();renderList();renderSummary();
 }
+
+/* ========== TYÖRAPORTTI + LASKUTUS ========== */
+const BILL_TAG={avoin:["ct-lead","Avoin"],lisatieto:["ct-inactive","Odottaa lisätietoa"],laskutettu:["ct-active","Laskutettu"]};
+let billSub="avoin";
+function reportKohde(r){
+  if(r.deviceId){var d=db.devices.find(function(x){return x.id===r.deviceId;});if(d)return d.idr+(d.make?" · "+d.make:"");}
+  return "–";
+}
+function openReportModal(deviceId){
+  if(!currentUser){alert("Kirjaudu ensin.");return;}
+  var cs=document.getElementById("rpCustomer");
+  cs.innerHTML='<option value="">– Valitse asiakas –</option>'+db.customers.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join("");
+  var ds=document.getElementById("rpDevice");
+  ds.innerHTML='<option value="">– Ei tiettyä laitetta –</option>'+db.devices.filter(function(d){return !d.deleted;}).map(function(d){return '<option value="'+d.id+'">'+esc(d.idr)+" · "+esc(d.make||d.target||"")+'</option>';}).join("");
+  document.getElementById("rpWork").value="";
+  document.getElementById("rpMeta").textContent=(currentUser.name||"")+" · "+fmt(today());
+  if(deviceId){var dv=db.devices.find(function(x){return x.id===deviceId;});ds.value=deviceId;if(dv&&dv.customerId)cs.value=dv.customerId;}
+  document.getElementById("reportOverlay").classList.add("show");
+}
+function saveReport(){
+  var cid=document.getElementById("rpCustomer").value;
+  var did=document.getElementById("rpDevice").value||null;
+  var work=document.getElementById("rpWork").value.trim();
+  if(!cid){alert("Valitse asiakas.");return;}
+  if(!work){alert("Kirjoita tehty työ.");return;}
+  db.reports=db.reports||[];
+  db.reports.unshift({id:uid(),created:today(),by:currentUser?currentUser.name:"",byId:currentUser?currentUser.id:null,customerId:cid,deviceId:did,work:work,status:"avoin",infoNote:"",invoicedDate:""});
+  save();closeOverlay("reportOverlay");
+  alert("Työraportti tallennettu laskutukseen.");
+  if(typeof renderBilling==="function"&&document.getElementById("view-billing")&&document.getElementById("view-billing").classList.contains("active"))renderBilling();
+}
+function billMarkInvoiced(id){
+  var r=(db.reports||[]).find(function(x){return x.id===id;});if(!r)return;
+  if(!confirm("Merkitäänkö laskutetuksi? Rivi siirtyy Laskutetut-välilehdelle."))return;
+  r.status="laskutettu";r.invoicedDate=today();save();renderBilling();
+}
+function billNeedInfo(id){
+  var r=(db.reports||[]).find(function(x){return x.id===id;});if(!r)return;
+  var note=prompt("Mikä ongelma estää laskutuksen? (näkyy laskutuslistalla)", r.infoNote||"");
+  if(note===null)return;
+  r.status="lisatieto";r.infoNote=note.trim();save();renderBilling();
+}
+function billReopen(id){
+  var r=(db.reports||[]).find(function(x){return x.id===id;});if(!r)return;
+  r.status="avoin";r.invoicedDate="";save();renderBilling();
+}
+function billDelete(id){
+  if(!confirm("Poistetaanko työraportti kokonaan? Tätä ei voi perua."))return;
+  db.reports=(db.reports||[]).filter(function(x){return x.id!==id;});save();renderBilling();
+}
+function renderBilling(){
+  if(!can("billing")){return;}
+  var reps=db.reports||[];
+  var nOpen=reps.filter(function(r){return r.status==="avoin";}).length;
+  var nInfo=reps.filter(function(r){return r.status==="lisatieto";}).length;
+  var nDone=reps.filter(function(r){return r.status==="laskutettu";}).length;
+  document.getElementById("blOpen").textContent=nOpen;
+  document.getElementById("blInfo").textContent=nInfo;
+  document.getElementById("blDone").textContent=nDone;
+  var tabs=[["avoin","Avoimet",nOpen],["lisatieto","Odottaa lisätietoa",nInfo],["laskutettu","Laskutetut",nDone]];
+  document.getElementById("billTabs").innerHTML=tabs.map(function(t){return '<button class="subtab '+(billSub===t[0]?"active":"")+'" onclick="billTab(\''+t[0]+'\')">'+t[1]+" ("+t[2]+")</button>";}).join("");
+  var list=reps.filter(function(r){return r.status===billSub;}).slice().sort(function(a,b){return String(b.created).localeCompare(String(a.created));});
+  var body=document.getElementById("billRows");
+  if(!list.length){body.innerHTML='<tr><td colspan="7" class="empty">Ei rivejä tällä välilehdellä.</td></tr>';return;}
+  body.innerHTML=list.map(function(r){
+    var c=db.customers.find(function(x){return x.id===r.customerId;});
+    var tg=BILL_TAG[r.status]||BILL_TAG.avoin;
+    var tila='<span class="ctag '+tg[0]+'">'+tg[1]+'</span>';
+    if(r.status==="laskutettu"&&r.invoicedDate)tila+='<br><span class="hint">'+fmt(r.invoicedDate)+'</span>';
+    var work=esc(r.work||"");
+    if(r.status==="lisatieto"&&r.infoNote)work+='<br><span class="badge red" style="white-space:normal">⏸ '+esc(r.infoNote)+'</span>';
+    var act="";
+    if(r.status==="avoin"){
+      act='<button class="btn sm orange" onclick="billMarkInvoiced(\''+r.id+'\')">✔ Laskutettu</button> '+
+          '<button class="btn sm ghost" onclick="billNeedInfo(\''+r.id+'\')">⏸ Lisätieto</button>';
+    }else if(r.status==="lisatieto"){
+      act='<button class="btn sm orange" onclick="billMarkInvoiced(\''+r.id+'\')">✔ Laskutettu</button> '+
+          '<button class="btn sm ghost" onclick="billNeedInfo(\''+r.id+'\')">✎ Muokkaa syytä</button> '+
+          '<button class="btn sm ghost" onclick="billReopen(\''+r.id+'\')">↩ Avoimeksi</button>';
+    }else{
+      act='<button class="btn sm ghost" onclick="billReopen(\''+r.id+'\')">↩ Palauta avoimeksi</button> '+
+          '<button class="btn sm danger" onclick="billDelete(\''+r.id+'\')">🗑</button>';
+    }
+    return '<tr><td style="white-space:nowrap">'+fmt(r.created)+'</td>'+
+      '<td>'+esc(c?c.name:"–")+'</td>'+
+      '<td>'+esc(reportKohde(r))+'</td>'+
+      '<td>'+work+'</td>'+
+      '<td>'+esc(r.by||"")+'</td>'+
+      '<td style="white-space:nowrap">'+tila+'</td>'+
+      '<td style="white-space:nowrap">'+act+'</td></tr>';
+  }).join("");
+}
+function billTab(k){billSub=k;renderBilling();}
 
 /* ========== TYÖNJAKO (työnjohtaja) ========== */
 function workerOptions(sel){
