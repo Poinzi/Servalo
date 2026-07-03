@@ -1025,6 +1025,7 @@
     <div class="modal-h"><span>Väestönsuojan tarkastus</span><span class="x" onclick="closeOverlay('vssOverlay')">×</span></div>
     <div class="modal-b" oninput="saveVsDraft()" onchange="saveVsDraft()">
       <input type="hidden" id="enVsDevId">
+      <div style="font-weight:700;margin:2px 0 6px;color:#c1121f">Tarkastuksen tiedot</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Päiväys</label><input class="f" id="enVsDate" type="date"></div>
         <div class="field" style="flex:1;min-width:150px"><label>Tarkastuslaji</label><select class="f" id="enVsLaji"><option value=""></option><option>Vuosittainen tarkastus</option><option>Käyttöönottotarkastus</option><option>Tiiveyskoe / perushuolto</option><option>Jälkitarkastus</option><option>Pyydetty tarkastus</option></select></div>
@@ -3545,16 +3546,24 @@ function vssPk(dev,ctx,ans){
     +'</style></head><body>'
     +'<div class="head"><div><div class="brand">SAVUKS</div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
     +'<div style="text-align:right"><h1>Tarkastuspöytäkirja</h1><div style="font-size:12px;color:#666">Väestönsuoja</div></div></div>'
+    +'<div class="sub">Kohteen tiedot</div>'
     +'<table class="meta">'
-    +'<tr><td class="k">Kohde / asiakas</td><td>'+esc(ctx.name||"–")+'</td><td class="k">Päiväys</td><td>'+fmt(ans.date||today())+'</td></tr>'
-    +'<tr><td class="k">Osoite</td><td>'+esc(ctx.address||"–")+'</td><td class="k">Tarkastuslaji</td><td>'+esc(ans.laji||"–")+'</td></tr>'
-    +'<tr><td class="k">Laitetunnus</td><td>'+esc(dev.tag||"–")+'</td><td class="k">Sijainti</td><td>'+site+'</td></tr>'
+    +'<tr><td class="k">Kohde / asiakas</td><td>'+esc(ctx.name||"–")+'</td><td class="k">Laitetunnus</td><td>'+esc(dev.tag||"–")+'</td></tr>'
+    +'<tr><td class="k">Osoite</td><td>'+esc(ctx.address||"–")+'</td><td class="k">Sijainti</td><td>'+site+'</td></tr>'
+    +'<tr><td class="k">Suojaluokka</td><td>'+esc(ans.luokka||"–")+'</td><td class="k">Henkilömäärä</td><td>'+esc(ans.henkilot||"–")+'</td></tr>'
+    +'<tr><td class="k">Pinta-ala</td><td>'+esc(ans.pinta||"–")+'</td><td class="k">Tarkastusväli</td><td>'+esc(dev.inspInterval||dev.interval||"–")+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">Tarkastuksen tiedot</div>'
+    +'<table class="meta">'
+    +'<tr><td class="k">Päiväys</td><td>'+fmt(ans.date||today())+'</td><td class="k">Tarkastuslaji</td><td>'+esc(ans.laji||"–")+'</td></tr>'
     +'<tr><td class="k">Tarkastusnro</td><td>'+esc(ans.nro||"–")+'</td><td class="k">Edellinen pöytäkirja</td><td>'+esc(ans.prev||"–")+'</td></tr>'
-    +'<tr><td class="k">Omistaja</td><td>'+esc(ans.omistaja||"–")+'</td><td class="k">Isännöitsijä</td><td>'+esc(ans.isannoitsija||"–")+'</td></tr>'
-    +'<tr><td class="k">Huoltomies</td><td>'+esc(ans.huoltomies||"–")+'</td><td class="k">Suojaluokka</td><td>'+esc(ans.luokka||"–")+'</td></tr>'
-    +'<tr><td class="k">Suojelulohko</td><td>'+esc(ans.lohko||"–")+'</td><td class="k">Suojeluyksikkö</td><td>'+esc(ans.yksikko||"–")+'</td></tr>'
-    +'<tr><td class="k">Henkilömäärä</td><td>'+esc(ans.henkilot||"–")+'</td><td class="k">Pinta-ala</td><td>'+esc(ans.pinta||"–")+'</td></tr>'
-    +'<tr><td class="k">Tarkastusväli</td><td>'+esc(dev.inspInterval||dev.interval||"–")+'</td><td class="k"></td><td></td></tr>'
+    +'<tr><td class="k">Tarkastaja / tekijä</td><td>'+esc(worker)+'</td><td class="k"></td><td></td></tr>'
+    +'</table>'
+    +'<div class="sub">Vastuuhenkilöt ja suojeluorganisaatio</div>'
+    +'<table class="meta">'
+    +'<tr><td class="k">Kiinteistön omistaja</td><td>'+esc(ans.omistaja||"–")+'</td><td class="k">Isännöitsijä</td><td>'+esc(ans.isannoitsija||"–")+'</td></tr>'
+    +'<tr><td class="k">Huoltomies</td><td>'+esc(ans.huoltomies||"–")+'</td><td class="k">Suojelulohko</td><td>'+esc(ans.lohko||"–")+'</td></tr>'
+    +'<tr><td class="k">Suojeluyksikkö</td><td>'+esc(ans.yksikko||"–")+'</td><td class="k"></td><td></td></tr>'
     +'</table>'
     +'<div class="sub">Tarkastuskohteet</div>'
     +'<table class="chk"><thead><tr><th>Osa-alue</th><th>Luokitus</th><th>Havainnot / toimenpiteet</th></tr></thead><tbody>'+crows+'</tbody></table>'
