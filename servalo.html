@@ -284,13 +284,13 @@
     <div class="dd" id="navReports">
       <button class="navlink" id="reportsBtn">☰ Raportit ▾</button>
       <div class="menu" id="reportsMenu">
-        <button data-report="huollot">▦ Tulevat määräaikaishuollot</button>
-        <button data-report="tarkastukset">▦ Tulevat tarkastukset</button>
+        <button data-report="huollot">▦ Erääntyvät huollot</button>
+        <button data-report="tarkastukset">▦ Erääntyvät tarkastukset</button>
         <button data-report="pyynnot">🔧 Huoltopyynnöt</button>
-        <button data-report="koulutetut">👥 Käyttökoulutetut henkilöt</button>
-        <button data-report="vuokralaitteet">⊞ Vuokralaitteet</button>
-        <button data-report="korjatut">🩹 Eniten korjatut laitteet</button>
-        <button data-report="poistetut">🗑 Poistetut laitteet</button>
+        <button data-report="koulutetut">👥 Koulutetut käyttäjät</button>
+        <button data-report="vuokralaitteet">⊞ Vuokrakalusto</button>
+        <button data-report="korjatut">🩹 Toistuvasti korjatut laitteet</button>
+        <button data-report="poistetut">🗑 Käytöstä poistetut laitteet</button>
       </div>
     </div>
     <div class="dd" id="navLog">
@@ -306,7 +306,7 @@
         <button id="navCustomers" data-go="customers">👥 Asiakkaat</button>
         <button id="navDispatch" data-go="dispatch">🗂 Työnjako</button>
         <button id="navBilling" data-go="billing">🧾 Laskutus</button>
-        <button data-report="patevyydet">🎫 Pätevyydet / kortit</button>
+        <button data-report="patevyydet">🎫 Pätevyydet ja kortit</button>
         <button id="navAdmin" data-go="admin">⚙ Käyttäjät & asetukset</button>
       </div>
     </div>
@@ -357,7 +357,7 @@
           </div>
           <div class="stats" style="grid-template-columns:1fr 1fr 1fr">
             <div class="stat alert"><div class="lbl">Myöhässä olevat määräaikaishuollot</div><div class="num">⚠ <span id="stLate">0</span></div></div>
-            <div class="stat alert"><div class="lbl">Tulevat määräaikaishuollot</div><div class="num">⚠ <span id="stUpcoming">0</span></div></div>
+            <div class="stat alert"><div class="lbl">Erääntyvät huollot</div><div class="num">⚠ <span id="stUpcoming">0</span></div></div>
             <div class="stat"><div class="lbl">Tuoteryhmäjakauma</div>
               <div class="donut-wrap" style="margin-top:8px">
                 <div id="donut"></div><div class="legend" id="donutLegend"></div>
@@ -522,7 +522,7 @@
           <label class="rtoggle" style="white-space:nowrap;display:flex;align-items:center;gap:6px"><input type="checkbox" id="dispUnassigned" onchange="renderDispatch()"> Vain osoittamattomat</label>
         </div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Laitetunnus</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Seur. huolto</th><th>Vastuuasentaja</th></tr></thead>
+          <thead><tr><th>Laitetunnus</th><th>Huoltokohde</th><th>Toimipiste</th><th>Seur. huolto</th><th>Vastuuasentaja</th></tr></thead>
           <tbody id="dispRows"></tbody></table></div>
       </div></div>
     </section>
@@ -671,7 +671,7 @@
       <div class="grid2">
         <div class="field"><label>QR-koodi <span class="hint">(tyhjä = luodaan automaattisesti)</span></label><input class="f" id="dTag" placeholder="Luodaan automaattisesti"></div>
         <div class="field"><label>QR-kohde</label><select class="f" id="dQrTarget"><option value="servalo">Savuks Oy:n oma tarkastettava laite → Servalo</option><option value="ohje24">Taloyhtiö / asukastila → ohje24.fi</option></select></div>
-        <div class="field"><label>Huoltosopimuskohde</label><input class="f" id="dTarget" placeholder="esim. Paloilmoitinjärjestelmä"></div>
+        <div class="field"><label>Huoltokohde</label><input class="f" id="dTarget" placeholder="esim. Paloilmoitinjärjestelmä"></div>
         <div class="field"><label>Valmistaja/Malli/Tyyppi</label><input class="f" id="dMake" placeholder="esim. Panasonic EBL G3"></div>
         <div class="field"><label>Tuoteryhmä</label><input class="f" id="dGroup" placeholder="esim. Paloilmoitin"></div>
         <div class="field"><label>Sijainti (kohde)</label><select class="f" id="dLoc"></select></div>
@@ -1244,7 +1244,7 @@ function renderList(){
     ${multiMode?'<th style="width:34px"><input type="checkbox" id="selAll" onclick="toggleAll(this)"></th>':''}
     <th style="width:30px">ⓘ</th>
     <th class="sortable" onclick="toggleSort()">QR-koodi ${sortDesc?'↓':'↑'}</th>
-    <th>Valmistaja/Malli/Tyyppi</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Toiminnot</th></tr>`;
+    <th>Valmistaja/Malli/Tyyppi</th><th>Huoltokohde</th><th>Toimipiste</th><th>Toiminnot</th></tr>`;
   const cols=multiMode?7:6;
   const tb=document.getElementById("devRows");
   if(!list.length){tb.innerHTML=`<tr><td colspan="${cols}" class="empty">Ei laitteita.</td></tr>`;}
@@ -1325,7 +1325,7 @@ function bulkDelete(){if(!confirm(`Poistetaanko ${selected.size} laitetta?`))ret
 document.addEventListener("click",()=>{const m=document.getElementById("bulkMenu");if(m)m.classList.remove("show");});
 
 /* ----- filters ----- */
-const FILTER_FIELDS=[["tag","Laitetunnus"],["make","Valmistaja/Malli/Tyyppi"],["target","Huoltosopimuskohde"],["group","Tuoteryhmä"],["site","Toimipiste"],["next","Seuraava määräaikaishuolto"]];
+const FILTER_FIELDS=[["tag","Laitetunnus"],["make","Valmistaja/Malli/Tyyppi"],["target","Huoltokohde"],["group","Tuoteryhmä"],["site","Toimipiste"],["next","Seuraava määräaikaishuolto"]];
 let draftFilters=[];
 function fieldVal(d,field){if(field==="site")return siteName(d.locId);if(field==="next")return d.next;return d[field]||"";}
 function filterMatch(d,f){
@@ -1590,11 +1590,11 @@ function deviceMainTab(d){
         ${pair("Laitetunnus","<b>"+esc(d.tag)+"</b>")}
         ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Vartiointiliike ja yhteystiedot",esc(k.vartiointi))}
-        ${pair("Huoltosopimuskohde",esc(d.target))}
+        ${pair("Huoltokohde",esc(d.target))}
         ${pair("Valvomot ja yhteystiedot",esc(k.valvomo))}
         ${pair("Sopimuksen tyyppi",esc(k.type))}
         ${pair("Huoltoyhtiö",esc(cs().name))}
-        ${pair("Ecom ID",esc(d.ecom||""))}
+        ${pair("Kustannuspaikka",esc(d.ecom||""))}
         ${pair("Luontipäivä",fmt(d.created))}
         ${pair("Laitteen hoitaja ja yhteystiedot",esc(k.hoitaja))}
         ${pair("Viimeksi päivitetty",fmt(d.updated))}
@@ -1613,7 +1613,7 @@ function deviceMainTab(d){
         ${pair("Laitetunnus","<b>"+esc(d.tag)+"</b>")}
         ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Toimituspäivä",fmt(d.delivery))}
-        ${pair("Huoltosopimuskohde",esc(d.target))}
+        ${pair("Huoltokohde",esc(d.target))}
         ${pair("Takuuaika","")}
         ${pair("Valmistaja/Malli/Tyyppi",esc(d.make))}
         ${pair("Takuuaika päättyy","")}
@@ -1639,7 +1639,7 @@ function deviceMainTab(d){
       <b>Asiakas:</b> ${d.customerId&&custById(d.customerId)?`<a href="#" onclick="openCustomer('${d.customerId}');return false" style="color:var(--orange);font-weight:700;text-decoration:none">${esc(custById(d.customerId).name)}</a>`:"–"}<br>
       ${d.customerId&&custById(d.customerId)&&custById(d.customerId).keys?'<b>🔑 Avainten nouto:</b> '+esc(custById(d.customerId).keys)+'<br>':''}
       <b>Yhteystiedot:</b> ${esc(locById(d.locId)?.addr||"")}${mapLink(locById(d.locId)?.addr)}<br>
-      <b>Kustannuspaikka:</b> Ecom ID: ${esc(d.ecom||"")}<br>
+      <b>Kustannuspaikka:</b> ${esc(d.ecom||"")}<br>
       <b>Lisätieto:</b> Servalo asiantuntija: ${esc(d.expert||"")}<br>
       <b>Lisätieto:</b> Servalo huoltopäällikkö: ${esc(d.manager||"")}
     </div>
@@ -1670,7 +1670,7 @@ function deviceMainTab(d){
       ${(d.notesLog&&d.notesLog.length)?entryRows(d.notesLog,d.id,'notesLog'):(d.notes?`<div style="padding:10px 14px">${esc(d.notes)}</div>`:'<p class="empty">Ei merkintöjä</p>')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','notesLog')">＋</button></div>
     </div></div>
-    <div class="panel"><div class="panel-h">Käyttökoulutetut henkilöt</div><div class="panel-b" style="padding:0">
+    <div class="panel"><div class="panel-h">Koulutetut käyttäjät</div><div class="panel-b" style="padding:0">
       ${entryRows(d.trained,d.id,'trained')}
       <div class="mini-add"><button class="iconbtn req-edit" onclick="openEntry('${d.id}','trained')">＋</button></div>
     </div></div>
@@ -1850,11 +1850,11 @@ function deleteDevice(id){const d=db.devices.find(x=>x.id===id);if(!d)return;
   save();go("list");renderList();}
 
 const reportDefs={
-  huollot:{title:"Tulevat määräaikaishuollot",desc:"Näytetään laitteet joilla on huoltoväli ja seuraava määräaikaishuolto.",
-    cols:["Laitetunnus","Huoltosopimuskohde","Seuraava määräaikaishuolto ↑","Valmistaja/Malli/Tyyppi","Toimipiste","ⓘ","Toiminnot"],
+  huollot:{title:"Erääntyvät huollot",desc:"Näytetään laitteet joilla on huoltoväli ja seuraava määräaikaishuolto.",
+    cols:["Laitetunnus","Huoltokohde","Seuraava määräaikaishuolto ↑","Valmistaja/Malli/Tyyppi","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().filter(d=>d.next&&inDateRange(d.next)).sort((a,b)=>a.next.localeCompare(b.next))
       .map(d=>[d.tag,d.target,dateBadge(d.next),d.make,locPath(d.locId),statCell(d.next),openBtn(d.id)])},
-  tarkastukset:{title:"Tulevat tarkastukset",desc:"Näytetään laitteet joilla on tarkastusväli sekä toimituspäivä tai vähintään yksi tarkastus",
+  tarkastukset:{title:"Erääntyvät tarkastukset",desc:"Näytetään laitteet joilla on tarkastusväli sekä toimituspäivä tai vähintään yksi tarkastus",
     cols:["Laitetunnus","Seuraava tarkastuspäivä ↑","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id&&inDateRange(x.id)).sort((a,b)=>a.id.localeCompare(b.id))
       .map(({d,id})=>[d.tag,dateBadge(id),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),statCell(id),openBtn(d.id)])},
@@ -1868,22 +1868,22 @@ const reportDefs={
         if(!inDateRange(rq.requested))return;
         out.push([d.tag,fmt(rq.requested),rq.done?fmt(rq.done):"–",esc(rq.reason||""),esc(rq.comment||""),esc(d.locDetail||"–"),esc(rq.sentTo||"–"),locPath(d.locId),open?'<span class="stat-late"></span>':'<span class="chk">✔</span>',openBtn(d.id)]);}));
       return out.sort((a,b)=>String(b[1]).localeCompare(String(a[1])));}},
-  koulutetut:{title:"Käyttökoulutetut henkilöt",desc:"Näytetään laitteiden viimeisin kirjattu käyttökoulutettu henkilö.",
-    cols:["Laitetunnus","Valmistaja/Malli/Tyyppi","Käyttökoulutettu henkilö","Koul. henkilön lisäyspäivä","Huoltosopimuskohde","Sarjanumero","Laitteen sijainti","Toimipiste","Toiminnot"],
+  koulutetut:{title:"Koulutetut käyttäjät",desc:"Näytetään laitteiden viimeisin kirjattu käyttökoulutettu henkilö.",
+    cols:["Laitetunnus","Valmistaja/Malli/Tyyppi","Käyttökoulutettu henkilö","Koul. henkilön lisäyspäivä","Huoltokohde","Sarjanumero","Laitteen sijainti","Toimipiste","Toiminnot"],
     rows:()=>{const out=[];
       devicesInScope().forEach(d=>(d.trained||[]).forEach(t=>{
         out.push([d.tag,d.make,esc(t.name||""),fmt(t.date),esc(d.target||""),esc(d.serial||""),esc(d.locDetail||""),locPath(d.locId),openBtn(d.id)]);}));
       return out;}},
-  vuokralaitteet:{title:"Vuokralaitteet",desc:"Tällä sivulla näytetään vuokralaitteet, joilla on sopimuksen alkamispäivä ja sopimusaika",rental:true,
+  vuokralaitteet:{title:"Vuokrakalusto",desc:"Tällä sivulla näytetään vuokralaitteet, joilla on sopimuksen alkamispäivä ja sopimusaika",rental:true,
     cols:["Valmistaja/Malli/Tyyppi","Sopimuksen alkamispäivä","Sopimusaika (kk)","Kuukausihinta (alv. 0%)","Sopimus päättyy ↑","Lunastushinta (alv. 0%)","Jäljellä olevat kustannukset","Toimipiste"],
     rows:()=>devicesInScope().filter(d=>d.rental).sort((a,b)=>String(a.rentalEnd).localeCompare(String(b.rentalEnd)))
       .map(d=>{const left=Math.max(0,monthsBetween(today(),d.rentalEnd))*(d.rentalMonthly||0);
         return [d.make,fmt(d.rentalStart),d.rentalMonths||"–",eur(d.rentalMonthly),fmt(d.rentalEnd),eur(d.rentalBuyout),eur(left),locPath(d.locId)];})},
-  korjatut:{title:"Eniten korjatut laitteet",desc:"Näytetään eniten huolletut laitteet, järjestettynä korjausten määrällä keskimääräisesti vuodessa.",
+  korjatut:{title:"Toistuvasti korjatut laitteet",desc:"Näytetään eniten huolletut laitteet, järjestettynä korjausten määrällä keskimääräisesti vuodessa.",
     cols:["Laitetunnus","Korjauksia per vuosi ↓","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>devicesInScope().filter(d=>d.repairs>0||d.repairsPerYear).map(d=>({d,r:d.repairsPerYear||d.repairs}))
       .sort((a,b)=>b.r-a.r).map(({d,r})=>[d.tag,num2(r),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',openBtn(d.id)])},
-  poistetut:{title:"Poistetut laitteet",desc:"Listalla näytetään laitteet, jotka on poistettu käytöstä.",
+  poistetut:{title:"Käytöstä poistetut laitteet",desc:"Listalla näytetään laitteet, jotka on poistettu käytöstä.",
     cols:["Laitetunnus","Poistopäivä ↓","Kommentti","Syy","Valmistaja/Malli/Tyyppi","Malli","Valmistaja","Toimipiste","ⓘ","Toiminnot"],
     rows:()=>db.devices.filter(d=>d.deleted).sort((a,b)=>String(b.delDate||"").localeCompare(String(a.delDate||"")))
       .map(d=>[d.tag,fmt(d.delDate),esc(d.delComment||""),esc(d.delReason||""),d.make,malliOf(d.make),valmOf(d.make),locPath(d.locId),'<span class="chk">✔</span>',restoreBtn(d.id)])},
@@ -2250,7 +2250,7 @@ function renderCustomerDetail(){
     </div></div>
     <div class="panel"><div class="panel-h">Laitteet (${devs.length})</div><div class="panel-b" style="padding:0">
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Laitetunnus</th><th>Valmistaja/Malli/Tyyppi</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Seur. määräaikaishuolto</th><th>Toiminnot</th></tr></thead>
+        <thead><tr><th>Laitetunnus</th><th>Valmistaja/Malli/Tyyppi</th><th>Huoltokohde</th><th>Toimipiste</th><th>Seur. määräaikaishuolto</th><th>Toiminnot</th></tr></thead>
         <tbody>${devRows}</tbody></table></div>
     </div></div>
     <div class="panel"><div class="panel-h">Koodit &amp; kohteet (${codesOf(c.id).length})</div><div class="panel-b">
@@ -2847,7 +2847,7 @@ function renderPortal(){
     </div>
     <div class="panel"><div class="panel-h">Laitteeni (${devs.length})</div><div class="panel-b" style="padding:0">
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Laitetunnus</th><th>Huoltosopimuskohde</th><th>Valmistaja/Malli</th><th>Toimipiste</th><th>Seur. huolto</th><th>Toiminnot</th></tr></thead>
+        <thead><tr><th>Laitetunnus</th><th>Huoltokohde</th><th>Valmistaja/Malli</th><th>Toimipiste</th><th>Seur. huolto</th><th>Toiminnot</th></tr></thead>
         <tbody>${devRows}</tbody></table></div>
     </div></div>
     <div class="cards2">
@@ -2863,10 +2863,10 @@ function renderPortal(){
       <p class="hint">Lataa kohteen ${esc(c.name)} raportit. Voit avata CSV-tiedostot Excelissä tai tulostaa tulostusnäkymän PDF:ksi.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
         <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('laitteet')">📋 Laiteluettelo</button>
-        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('huollot')">🛠 Tulevat määräaikaishuollot</button>
-        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('tarkastukset')">🔍 Tulevat tarkastukset</button>
+        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('huollot')">🛠 Erääntyvät huollot</button>
+        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('tarkastukset')">🔍 Erääntyvät tarkastukset</button>
         <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('pyynnot')">🔧 Huoltopyynnöt</button>
-        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('koulutetut')">👥 Käyttökoulutetut henkilöt</button>
+        <button class="btn ghost" style="justify-content:flex-start" onclick="portalReport('koulutetut')">👥 Koulutetut käyttäjät</button>
         <button class="btn orange" style="justify-content:flex-start" onclick="portalPrint()">🖨 Tulostettava huoltoraportti (PDF)</button>
       </div>
     </div></div>`;
@@ -2899,19 +2899,19 @@ function downloadCsv(rows,fname){
 }
 const PORTAL_REPORTS={
   laitteet:{name:"laiteluettelo",title:"Laiteluettelo",
-    head:["Laitetunnus","Huoltosopimuskohde","Valmistaja/Malli/Tyyppi","Tuoteryhmä","Toimipiste","Huoltoväli","Viim. huolto","Seur. huolto","Avoimet pyynnöt"],
+    head:["Laitetunnus","Huoltokohde","Valmistaja/Malli/Tyyppi","Tuoteryhmä","Toimipiste","Huoltoväli","Viim. huolto","Seur. huolto","Avoimet pyynnöt"],
     rows:devs=>devs.map(d=>[d.tag,d.target,d.make,d.group,siteName(d.locId),d.interval,fmt(d.last),fmt(d.next),d.req||0])},
-  huollot:{name:"tulevat-maaraaikaishuollot",title:"Tulevat määräaikaishuollot",
-    head:["Laitetunnus","Huoltosopimuskohde","Seuraava määräaikaishuolto","Valmistaja/Malli/Tyyppi","Toimipiste"],
+  huollot:{name:"tulevat-maaraaikaishuollot",title:"Erääntyvät huollot",
+    head:["Laitetunnus","Huoltokohde","Seuraava määräaikaishuolto","Valmistaja/Malli/Tyyppi","Toimipiste"],
     rows:devs=>devs.filter(d=>d.next).sort((a,b)=>a.next.localeCompare(b.next)).map(d=>[d.tag,d.target,fmt(d.next),d.make,siteName(d.locId)])},
-  tarkastukset:{name:"tulevat-tarkastukset",title:"Tulevat tarkastukset",
+  tarkastukset:{name:"tulevat-tarkastukset",title:"Erääntyvät tarkastukset",
     head:["Laitetunnus","Seuraava tarkastuspäivä","Valmistaja/Malli/Tyyppi","Toimipiste"],
     rows:devs=>devs.map(d=>({d,id:d.inspNext||d.next})).filter(x=>x.id).sort((a,b)=>a.id.localeCompare(b.id)).map(({d,id})=>[d.tag,fmt(id),d.make,siteName(d.locId)])},
   pyynnot:{name:"huoltopyynnot",title:"Huoltopyynnöt",
     head:["Laitetunnus","Pyyntöpäivä","Tehty","Syy","Kommentti","Tila","Toimipiste"],
     rows:devs=>{const out=[];devs.forEach(d=>(d.requests||[]).forEach(r=>out.push([d.tag,fmt(r.requested),r.done?fmt(r.done):"–",r.reason||"",r.comment||"",r.status==="done"?"Valmis":"Käsittelyssä",siteName(d.locId)])));return out;}},
-  koulutetut:{name:"kayttokoulutetut",title:"Käyttökoulutetut henkilöt",
-    head:["Laitetunnus","Henkilö","Lisäyspäivä","Huoltosopimuskohde","Toimipiste"],
+  koulutetut:{name:"kayttokoulutetut",title:"Koulutetut käyttäjät",
+    head:["Laitetunnus","Henkilö","Lisäyspäivä","Huoltokohde","Toimipiste"],
     rows:devs=>{const out=[];devs.forEach(d=>(d.trained||[]).forEach(t=>out.push([d.tag,t.name||"",fmt(t.date),d.target,siteName(d.locId)])));return out;}}
 };
 function portalReport(type){
@@ -2939,7 +2939,7 @@ function portalPrint(){
     <h1>Huoltoraportti</h1><p class="sub">${esc(c.name)} · ${esc(c.address||"")} · Tulostettu ${fmt(today())}</p>
     <div class="box"><b>Huoltoyhtiö:</b> ${esc(cs().name)} · ${esc(cs().phone)} · ${esc(cs().email)}<br>
       <b>Laitteita:</b> ${devs.length} · <b>Myöhässä olevia huoltoja:</b> ${late}</div>
-    <table><thead><tr><th>Laitetunnus</th><th>Huoltosopimuskohde</th><th>Valmistaja/Malli</th><th>Toimipiste</th><th>Viim. huolto</th><th>Seur. huolto</th></tr></thead>
+    <table><thead><tr><th>Laitetunnus</th><th>Huoltokohde</th><th>Valmistaja/Malli</th><th>Toimipiste</th><th>Viim. huolto</th><th>Seur. huolto</th></tr></thead>
     <tbody>${rowsHtml}</tbody></table>
     <p style="margin-top:24px"><button onclick="window.print()" style="background:#d42a2a;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>
     </body></html>`);
@@ -3413,7 +3413,7 @@ function renderCertList(){const w=document.getElementById("uCertsWrap");if(!w)re
       </div>
       <div class="topbar" style="margin:0"><span>${file}</span><button type="button" class="btn sm danger" onclick="certRemove(${i})">Poista</button></div>
     </div>`;}).join("");
-  w.innerHTML=`<div style="margin-top:8px"><label style="font-weight:700">Pätevyydet / kortit</label>${rows||'<p class="hint">Ei lisättyjä pätevyyksiä.</p>'}<button type="button" class="btn sm ghost" onclick="certAdd()">+ Lisää pätevyys</button></div>`;}
+  w.innerHTML=`<div style="margin-top:8px"><label style="font-weight:700">Pätevyydet ja kortit</label>${rows||'<p class="hint">Ei lisättyjä pätevyyksiä.</p>'}<button type="button" class="btn sm ghost" onclick="certAdd()">+ Lisää pätevyys</button></div>`;}
 function certAdd(){editCerts.push({type:CERT_TYPES[0],issued:"",expires:"",file:null});renderCertList();}
 function certRemove(i){if(!confirm("Poistetaanko pätevyys? Mahdollinen liite poistuu samalla."))return;editCerts.splice(i,1);renderCertList();}
 function certSet(i,f,v){editCerts[i][f]=v;if(f==="expires")renderCertList();}
@@ -3450,7 +3450,7 @@ function deleteUser(id){
 }
 
 /* ---------- Laitehistoria (muutosloki) ---------- */
-const HIST_FIELDS={tag:"Laitetunnus",target:"Huoltosopimuskohde",make:"Valmistaja/Malli/Tyyppi",group:"Laiteryhmä",locId:"Toimipiste",customerId:"Asiakas",assignedTo:"Vastuuhenkilö",interval:"Huoltoväli",last:"Viimeisin määräaikaishuolto",next:"Seuraava määräaikaishuolto",inspInterval:"Tarkastusväli",inspLast:"Viimeisin tarkastus",inspNext:"Seuraava tarkastus",value:"Hankinta-arvo",req:"Huoltopyynnöt",repairs:"Korjaukset",notes:"Lisätiedot"};
+const HIST_FIELDS={tag:"Laitetunnus",target:"Huoltokohde",make:"Valmistaja/Malli/Tyyppi",group:"Laiteryhmä",locId:"Toimipiste",customerId:"Asiakas",assignedTo:"Vastuuhenkilö",interval:"Huoltoväli",last:"Viimeisin määräaikaishuolto",next:"Seuraava määräaikaishuolto",inspInterval:"Tarkastusväli",inspLast:"Viimeisin tarkastus",inspNext:"Seuraava tarkastus",value:"Hankinta-arvo",req:"Huoltopyynnöt",repairs:"Korjaukset",notes:"Lisätiedot"};
 const HIST_BADGE={"Luotu":"green","Päivitetty":"yellow","Huolto kuitattu":"green","Tarkastus kuitattu":"green","Poistettu":"red","Palautettu":"green"};
 function histVal(f,v){if(v==null||v==="")return"–";
   if(f==="locId")return locPath(v);
@@ -3513,7 +3513,7 @@ function applyTitles(){
     userChip:"Käyttäjävalikko (vaihda käyttäjää)"
   };
   Object.keys(t).forEach(id=>{const e=document.getElementById(id);if(e&&!e.getAttribute("title"))e.setAttribute("title",t[id]);});
-  const rep={huollot:"Tulevat määräaikaishuollot",tarkastukset:"Tulevat tarkastukset",pyynnot:"Avoimet huoltopyynnöt",koulutetut:"Käyttökoulutetut henkilöt",vuokralaitteet:"Vuokralaitteet",korjatut:"Eniten korjatut laitteet",poistetut:"Poistetut laitteet"};
+  const rep={huollot:"Erääntyvät huollot",tarkastukset:"Erääntyvät tarkastukset",pyynnot:"Avoimet huoltopyynnöt",koulutetut:"Koulutetut käyttäjät",vuokralaitteet:"Vuokrakalusto",korjatut:"Toistuvasti korjatut laitteet",poistetut:"Käytöstä poistetut laitteet"};
   document.querySelectorAll("[data-report]").forEach(b=>{if(!b.getAttribute("title"))b.setAttribute("title","Avaa raportti: "+(rep[b.dataset.report]||(b.textContent||"").trim()));});
   const tab={laite:"Laitteen perustiedot",tiedostot:"Tiedostot ja raportit",linkitykset:"Linkitetyt laitteet",pyynnot:"Huoltopyynnöt",historia:"Historiatiedot",nfc:"NFC-skannaukset",kustannukset:"Kustannukset"};
   document.querySelectorAll("[data-tab]").forEach(b=>{if(!b.getAttribute("title"))b.setAttribute("title",tab[b.dataset.tab]||(b.textContent||"").trim());});
