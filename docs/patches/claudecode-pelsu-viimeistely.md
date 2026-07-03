@@ -1,12 +1,12 @@
-# Pelastussuunnitelma-työkalu – viimeistely + laatijan logo/branding
+# Pelastussuunnitelma-työkalu – viimeistely + logo + tekniset järjestelmät
 
-Aja tämä Claude Codessa Servalo-repossa. Kirjoittaa `pelastussuunnitelma-tyokalu.html` kokonaan uusiksi, validoi ja committaa.
+Aja tämä Claude Codessa Servalo-repossa. Kirjoittaa `pelastussuunnitelma-tyokalu.html` kokonaan uusiksi, validoi ja committaa. Sisältää KAIKKI viimeisimmät muutokset.
 
 ## Mitä muuttuu
-- **Laatija / palveluntarjoaja -lohko** (välilehti 1): lataa oma logo (kamera/galleria), laatijan nimi ja yhteystiedot. Tallentuu selaimeen – ei tarvitse ladata joka kerta.
-- **Logo kirjelomakkeena** valmiin suunnitelman ylätunnisteessa (oikea yläkulma, otsikon yllä).
-- **Laatijan tiedot alatunnisteessa** (toistuu joka tulostetulla sivulla) sekä loppuhuomautuksessa.
-- Sisältää myös aiemmat: pohjakartta (lataus + kameraotto), PNG-liitteet, muokattavat riskirivit.
+- **Tekniset järjestelmät ja erityisriskit (välilehti 1):** rastita mitä kohteessa on – aurinkopaneelit + akusto, paloilmoitin, sprinkleri, savunpoisto, kaasut, kemikaalit, tulityöt, latauspisteet, pelastustie, sammutusvesi, avainsäilö ym. **Vain rastitetut näkyvät valmiissa suunnitelmassa** → pienten kohteiden raportti pysyy siistinä. Palokunnan kannalta kriittisiin (aurinkopaneelit, akusto, kaasu, kemikaalit) tulee automaattinen turvahuomautus.
+- **Laatija / palveluntarjoaja:** oma logo (kamera/galleria) + nimi + yhteystiedot → kirjelomake ylätunnisteeseen ja tiedot alatunnisteeseen. Tallentuu selaimeen.
+- **Riskiarviolomakkeeseen lisätty 15 hallien ja liikekiinteistöjen vakioriviä** (aurinkopaneelit, akusto, latauspisteet, paloilmoitin, sprinkleri, savunpoisto, kemikaalit, kaasut, öljysäiliöt, kylmäaine, lastauslaiturit, korkeavarasto, poistumismitoitus). Ei-arvioidut rivit eivät näy valmiissa raportissa, joten pienten kohteiden raportti pysyy siistinä.
+- Aiemmat: pohjakartta (lataus + kameraotto), PNG-liitteet, muokattavat riskirivit, tulostuksen sivutus + oma alatunniste.
 
 ## 1. Kirjoita tiedosto
 
@@ -105,6 +105,16 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
   .stat{background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
   .stat b{display:block;font-size:22px}
   .stat span{font-size:12px;color:var(--muted)}
+  /* --- tekniset järjestelmät (valinnaiset) --- */
+  .teknsub{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:14px 0 8px}
+  .teknsub:first-child{margin-top:0}
+  .teknlist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:640px){.teknlist{grid-template-columns:1fr}}
+  .teknitem{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+  .teknitem.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .teknitem .teknhead{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;cursor:pointer;margin:0}
+  .teknitem .teknhead input{width:18px;height:18px;flex:none}
+  .teknitem .teknfield{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;font-size:13px}
   /* --- generoitu suunnitelma --- */
   .plan{background:#fff;border:1px solid var(--line);border-radius:12px;padding:34px 40px;line-height:1.6}
   .plan .planhead{display:flex;justify-content:flex-end;align-items:center;min-height:10px;margin-bottom:6px}
@@ -218,6 +228,14 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
           <div class="field"><label>Sähkön pääsulku (sijainti)</label><input data-k="sahkosulku" placeholder="Esim. teknisen tilan keskus"></div>
           <div class="field"><label>Veden pääsulku (sijainti)</label><input data-k="vesisulku" placeholder="Esim. lämmönjakohuone"></div>
         </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Tekniset järjestelmät ja erityisriskit</div>
+      <div class="panel-b">
+        <p class="hint">Rastita vain ne, joita kohteessa on (esim. hallit ja liikekiinteistöt). <b>Valitsemattomat eivät näy valmiissa suunnitelmassa</b>, joten pienten kohteiden raportti pysyy siistinä. Palokunnalle tärkeät tiedot (aurinkopaneelit, kaasut, kemikaalit, sammutusvesi…) merkitään tähän.</p>
+        <div id="teknLista"></div>
       </div>
     </div>
 
@@ -390,7 +408,22 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
  {"aihe":"Palo","riski":"Tulisijat ja lämmittäminen","kuvaus":"Häkämyrkytys, tulipalo","toimet":"Hiillos palanut ennen pellin sulkemista. Liiallinen lämmittäminen voi vaurioittaa hormia. Tuhkat poistetaan ja varastoidaan turvallisesti. Lattiasuojaus min. 40 cm eteen, 10 cm sivuille. Nuohous vuosittain."},
  {"aihe":"Piha","riski":"Leikki- ja oleskelualueiden kasvillisuus","kuvaus":"Myrkyllisyys, allergiat, tapaturmat","toimet":"Käytetään vain kasveja, joiden turvallisuus- ja terveysriski on pieni."},
  {"aihe":"Piha","riski":"Leikkialueet talvella","kuvaus":"Lumien ja jäiden putoaminen","toimet":"Talvella käytettävät alueet suojataan katolta putoavalta lumelta ja jäältä."},
- {"aihe":"Sähkö","riski":"Hissin hätäpuhelin","kuvaus":"Hissistä pelastaminen viivästyy","toimet":"Hississä ja sen ulkopuolella selkeä merkintä hätäpuhelinnumerosta (24/7)."}
+ {"aihe":"Sähkö","riski":"Hissin hätäpuhelin","kuvaus":"Hissistä pelastaminen viivästyy","toimet":"Hississä ja sen ulkopuolella selkeä merkintä hätäpuhelinnumerosta (24/7)."},
+ {"aihe":"Sähkö","riski":"Aurinkopaneelit ja invertteri","kuvaus":"Tulipalo, sähköisku sammutustyössä","toimet":"Paneelit tuottavat DC-jännitettä valossa myös pääkytkimen ollessa pois päältä. DC-turvakytkimen ja invertterin sijainti merkitään ja opastetaan palokunnalle (katolla oleva järjestelmä). Asennus ja määräaikaistarkastus pätevällä urakoitsijalla."},
+ {"aihe":"Sähkö","riski":"Akusto / energiavarasto","kuvaus":"Tulipalo, lämpökarkaaminen, myrkylliset kaasut","toimet":"Litiumakusto sijoitetaan omaan palo-osastoon; ilmanvaihto ja lämpötilan valvonta kunnossa. Sijainti ja akkutyyppi merkitään palokunnalle. Ei säilytystä poistumisreiteillä."},
+ {"aihe":"Sähkö","riski":"Sähköauton latauspisteet","kuvaus":"Tulipalo latauksen aikana","toimet":"Latauslaitteet pätevän asentajan asentamia, oma syöttö ja suojaus. Sijainti merkitään, palokuormaa ei varastoida lähelle. Vikatilanteiden valvonta."},
+ {"aihe":"Sähkö","riski":"Trukkien ja akkujen latauspaikka","kuvaus":"Tulipalo, räjähtävät kaasut (vety)","toimet":"Latauspaikka tuuletetaan, ei syttymislähteitä. Erotetaan palavasta materiaalista. Latureiden ja johtojen kunto tarkastetaan."},
+ {"aihe":"Palo","riski":"Automaattinen paloilmoitin ja keskukset","kuvaus":"Hälytys ei välity, sammutus viivästyy","toimet":"Paloilmoitinkeskusten (pää- ja alakeskukset) sijainti merkitään. Paloilmoittimen hoitajalla pätevyys; määräaikaishuollot ja kokeilut tehdään. Erheellisiä hälytyksiä seurataan."},
+ {"aihe":"Palo","riski":"Automaattinen sammutuslaitteisto (sprinkleri)","kuvaus":"Sammutus ei toimi","toimet":"Venttiiliryhmät merkitään, painetasot ja hälytykset valvotaan. Määräaikaishuolto ja tarkastus tehdään. Vesilähde varmistetaan."},
+ {"aihe":"Palo","riski":"Savunpoisto","kuvaus":"Savu estää poistumisen ja sammutuksen","toimet":"Savunpoistoluukut ja -laukaisimet merkitään ja huolletaan. Laukaisun toiminta testataan säännöllisesti; luukut pidetään toimintakuntoisina."},
+ {"aihe":"Palo","riski":"Palo-osastointi ja palo-ovet","kuvaus":"Palo ja savu leviävät osastojen välillä","toimet":"Palo-ovet pidetään suljettuina tai itsestään sulkeutuvina, ei kiilata auki. Osastoivat rakenteet ja läpiviennit pidetään ehjinä."},
+ {"aihe":"Kemikaalit","riski":"Kemikaalien varastointi","kuvaus":"Tulipalo, myrkylliset päästöt, ympäristövahinko","toimet":"Kemikaaliluettelo ja käyttöturvallisuustiedotteet pidetään ajan tasalla. Varastointi ohjeiden mukaan, yhteensopimattomat aineet erillään. Imeytysaine ja vuotojen keräys saatavilla."},
+ {"aihe":"Kemikaalit","riski":"Nestekaasu / kaasujärjestelmä","kuvaus":"Kaasuvuoto, räjähdys","toimet":"Pullot ja säiliöt sijoitetaan ohjeiden mukaan, tuuletus varmistetaan. Vuodonilmaisu ja sulkuventtiilit merkitään. Ei syttymislähteitä lähelle."},
+ {"aihe":"Kemikaalit","riski":"Öljy- ja polttoainesäiliöt","kuvaus":"Vuoto, ympäristövahinko, tulipalo","toimet":"Säiliöt tarkastetaan määräajoin; suoja-allas ja ylitäytön esto kunnossa. Sijainti ja tilavuus dokumentoidaan."},
+ {"aihe":"Kemikaalit","riski":"Kylmäainejärjestelmä (esim. ammoniakki)","kuvaus":"Kaasuvuoto, myrkytys","toimet":"Konehuoneen ilmanvaihto ja kaasuvaroittimet kunnossa. Sijainti ja hätäpysäytys merkitään. Huolto pätevällä kylmäasentajalla."},
+ {"aihe":"Tilat","riski":"Lastauslaiturit ja nostolaitteet","kuvaus":"Puristuminen, putoaminen, tapaturma","toimet":"Nosto-ovet ja laiturit huolletaan, turvarajat toimivat. Käyttäjillä perehdytys. Ajoneuvoliikenne erotellaan jalankulusta."},
+ {"aihe":"Tilat","riski":"Korkeavarasto ja hyllystöt","kuvaus":"Sortuminen, putoavat tavarat","toimet":"Hyllyt kiinnitetään ja kuormitusrajoja noudatetaan. Törmäyssuojat asennetaan ja kunto tarkastetaan säännöllisesti."},
+ {"aihe":"Poistuminen","riski":"Poistumisreitit ja henkilömäärä","kuvaus":"Ruuhkautuminen, poistuminen estyy","toimet":"Poistumisreitit mitoitetaan henkilömäärälle; merkki- ja turvavalaistus toimii. Reitit pidetään vapaina, ovet avattavissa sisältä ilman avainta."}
 ]
 </script>
 
@@ -411,7 +444,7 @@ function totClass(t){return t<=0?"tot-0":t<=3?"tot-low":t<=8?"tot-med":t<=14?"to
 function totLabel(t){return t<=0?"–":t<=3?"matala":t<=8?"kohtalainen":t<=14?"korkea":"kriittinen";}
 
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(M));return true;}catch(e){return false;}}
-function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";if(typeof M.pohjakartta!=="string")M.pohjakartta=M.pohjakartta||"";if(!M.laatija||typeof M.laatija!=="object")M.laatija={};if(typeof M.laatija.logo!=="string")M.laatija.logo="";if(typeof M.laatija.nimi!=="string")M.laatija.nimi="";if(typeof M.laatija.yhteys!=="string")M.laatija.yhteys="";}
+function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";if(typeof M.pohjakartta!=="string")M.pohjakartta=M.pohjakartta||"";if(!M.laatija||typeof M.laatija!=="object")M.laatija={};if(typeof M.laatija.logo!=="string")M.laatija.logo="";if(typeof M.laatija.nimi!=="string")M.laatija.nimi="";if(typeof M.laatija.yhteys!=="string")M.laatija.yhteys="";if(!M.tekniset||typeof M.tekniset!=="object")M.tekniset={};}
 function load(){try{var s=localStorage.getItem(LS_KEY);if(s){M=JSON.parse(s);normM();return true;}}catch(e){}return false;}
 
 // --- kuvat: pienennä canvasilla ja tallenna data-URLina ---
@@ -464,6 +497,65 @@ function bindLaatija(){
   var n=document.getElementById("laatija-nimi");if(n)n.value=M.laatija.nimi||"";
   var y=document.getElementById("laatija-yhteys");if(y)y.value=M.laatija.yhteys||"";
   renderLogo();
+}
+
+// --- tekniset järjestelmät ja erityisriskit (valinnaiset, näkyvät raportissa vain jos rastittu) ---
+var TEKN=[
+  {k:"aurinko",g:"jarj",label:"Aurinkopaneelit ja invertteri",ph:"Sijainti (esim. katto), invertterin ja DC-turvakytkimen paikka",warn:"Tuottaa DC-jännitettä valossa myös pääkytkimen ollessa pois päältä – palokunnan huomioitava."},
+  {k:"akusto",g:"jarj",label:"Akusto / energiavarasto",ph:"Tyyppi (esim. litium) ja sijainti",warn:"Litiumakuston lämpökarkaamisriski; sijainti merkittävä palokunnalle."},
+  {k:"paloilmoitin",g:"jarj",label:"Automaattinen paloilmoitin ja keskukset",ph:"Paloilmoitinkeskuksen (pää- ja alakeskukset) sijainti, paloilmoittimen hoitaja",warn:"Paloilmoitinkeskuksen sijainti merkittävä palokunnalle; hoitajan pätevyys ja huolto pidettävä ajan tasalla."},
+  {k:"sprinkleri",g:"jarj",label:"Automaattinen sammutuslaitteisto (sprinkleri)",ph:"Venttiiliryhmän sijainti, huoltoyhtiö"},
+  {k:"savunpoisto",g:"jarj",label:"Savunpoistojärjestelmä",ph:"Luukkujen sijainti ja laukaisu"},
+  {k:"ivpysaytys",g:"jarj",label:"Ilmanvaihdon hätäpysäytys",ph:"Pysäytyspainikkeen sijainti"},
+  {k:"paloosastointi",g:"jarj",label:"Palo-osastointi ja palo-ovet",ph:"Osastoivat rakenteet, palo-ovien sijainti"},
+  {k:"muuntamo",g:"jarj",label:"Muuntamo / sähköpääkeskus",ph:"Sijainti"},
+  {k:"varavoima",g:"jarj",label:"Varavoima (aggregaatti / UPS)",ph:"Tyyppi ja sijainti"},
+  {k:"evlataus",g:"jarj",label:"Sähköauton latauspisteet",ph:"Sijainti ja määrä"},
+  {k:"akkulataus",g:"jarj",label:"Trukkien / akkujen latauspaikka",ph:"Sijainti; latauksen paloriski"},
+  {k:"kaasu",g:"jarj",label:"Nestekaasu / kaasujärjestelmä",ph:"Kaasun tyyppi, säiliön/pullojen sijainti",warn:"Kaasuvuodon ja räjähdyksen vaara; syttymislähteet pois."},
+  {k:"oljysailio",g:"jarj",label:"Öljy- / polttoainesäiliö",ph:"Sijainti ja tilavuus"},
+  {k:"kemikaalit",g:"jarj",label:"Kemikaalien varastointi",ph:"Aineet ja määrät",warn:"Kemikaaliluettelo ja käyttöturvallisuustiedotteet (KTT) pidettävä ajan tasalla."},
+  {k:"kylmaaine",g:"jarj",label:"Kylmäainejärjestelmä",ph:"Kylmäaine (esim. ammoniakki), konehuoneen sijainti"},
+  {k:"tulityot",g:"jarj",label:"Tulityöt",ph:"Tulityöpaikat, tulityölupakäytäntö ja luvanmyöntäjä"},
+  {k:"pelastustie",g:"palo",label:"Pelastustie ja nostopaikat",ph:"Sijainti; pidettävä esteettömänä"},
+  {k:"sammutusvesi",g:"palo",label:"Sammutusveden saanti",ph:"Palopostit / palovesiasema / avovesi, sijainti"},
+  {k:"avainsailo",g:"palo",label:"Palokunnan avainsäilö / putkilukko",ph:"Sijainti sisäänkäynnillä"},
+  {k:"kohdekortti",g:"palo",label:"Kohdekortti / opastaulu",ph:"Sijainti ja sisältö"}
+];
+function teknState(k){var t=M.tekniset[k];return (t&&typeof t==="object")?t:{on:false,tieto:""};}
+function setTeknOn(k,on){var t=teknState(k);M.tekniset[k]={on:!!on,tieto:t.tieto||""};save();renderTekn();}
+function setTeknInfo(k,v){var t=teknState(k);M.tekniset[k]={on:t.on,tieto:v};save();}
+function av(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function renderTekn(){
+  var box=document.getElementById("teknLista");if(!box)return;
+  function group(g,title){
+    var items=TEKN.filter(function(x){return x.g===g;});
+    var cards=items.map(function(x){
+      var st=teknState(x.k);
+      return '<div class="teknitem'+(st.on?' on':'')+'">'+
+        '<label class="teknhead"><input type="checkbox"'+(st.on?' checked':'')+' onchange="setTeknOn(\''+x.k+'\',this.checked)"><span>'+av(x.label)+'</span></label>'+
+        (st.on?'<input class="teknfield" value="'+av(st.tieto)+'" placeholder="'+av(x.ph)+'" onchange="setTeknInfo(\''+x.k+'\',this.value)">':'')+
+      '</div>';
+    }).join("");
+    return '<div class="teknsub">'+title+'</div><div class="teknlist">'+cards+'</div>';
+  }
+  box.innerHTML=group("jarj","Tekniset järjestelmät ja erityisriskit")+group("palo","Palokunnan tiedot ja sammutusreitit");
+}
+function teknPlanHtml(){
+  var html='';
+  function sect(g,title){
+    var on=TEKN.filter(function(x){return x.g===g&&teknState(x.k).on;});
+    if(!on.length)return '';
+    var s='<h3>'+title+'</h3><ul>';
+    on.forEach(function(x){
+      var t=teknState(x.k);
+      s+='<li><b>'+esc(x.label)+':</b> '+(t.tieto?esc(t.tieto):'—')+(x.warn?(' <i>'+esc(x.warn)+'</i>'):'')+'</li>';
+    });
+    return s+'</ul>';
+  }
+  html+=sect("jarj","Tekniset järjestelmät ja erityisriskit");
+  html+=sect("palo","Palokunnan tiedot ja sammutusreitit");
+  return html;
 }
 // --- pohjakartta / asemapiirros (PNG, terävä) ---
 function pickPohja(input){
@@ -662,6 +754,7 @@ function renderPlan(){
   html+='<h3>Poistumisreitit ja opasteet</h3><ul><li>Kaikkiin asuntoihin on merkitty poistumisreitit</li><li>Poistumisopasteet valaistuja tai jälkivalaisevia sähkökatkon varalta</li><li>Reitit pidetään esteettöminä; kunto tarkastetaan vuosittain turvallisuuskävelyllä</li></ul>';
   html+='<h3>Ensiapuvälineet</h3><ul><li>'+val("ensiapu","ensiapuvälineet")+'</li><li>Vastuuhenkilö tarkistaa sisällön 2 kertaa vuodessa</li></ul>';
   html+='<h3>Väestönsuoja</h3><ul><li>Sijainti: '+val("vaestonsuoja","väestönsuojan sijainti")+'</li><li>Varustus tarkastetaan vuosittain tarkistuslistan mukaan (ilmanvaihto, tiivistysmateriaalit, WC-ratkaisut, vesikanisterit, viestintävälineet)</li></ul>';
+  html+=teknPlanHtml();
 
   html+='<h2>3. Toimintaohjeet vaaratilanteissa</h2>';
   html+='<h3>Tulipalo</h3><ul><li>Hälytä apua hätänumerosta 112</li><li>Poistu rakennuksesta välittömästi lähintä poistumisreittiä</li><li>Sulje ovet takanasi, mutta älä lukitse</li><li>Älä käytä hissiä</li><li>Ohjaa muut poistumaan ja siirry kokoontumispaikalle</li></ul>';
@@ -722,13 +815,13 @@ function loadJson(input){
 }
 function clearAll(){
   if(!confirm("Tyhjennetäänkö kaikki tiedot ja palautetaan vakioriskit?"))return;
-  M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""}};initRows();save();location.reload();
+  M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();save();location.reload();
 }
 
 // init
-if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""}};initRows();}
+if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();}
 normM();
-bindKohde();bindLaatija();renderRows();renderSummary();renderCover();renderPohja();renderLiitteet();
+bindKohde();bindLaatija();renderTekn();renderRows();renderSummary();renderCover();renderPohja();renderLiitteet();
 </script>
 </body>
 </html>
@@ -744,8 +837,10 @@ const h=fs.readFileSync("pelastussuunnitelma-tyokalu.html","utf8");
 const scripts=[...h.matchAll(/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
 try{ new Function(scripts); }catch(e){ console.log("JS ERROR: "+e.message); process.exit(1);} 
 const jm=h.match(/<script[^>]*application\/json[^>]*id="riskdata"[^>]*>([\s\S]*?)<\/script>/);
-if(JSON.parse(jm[1]).length!==52){console.log("riskdata != 52");process.exit(1);}
-const need=["pickLogo","removeLogo","renderLogo","setLaatija","bindLaatija","M.laatija","brandlogo","planhead","laatija-nimi","laatija-yhteys","pickPohja","capture=\"environment\"","rc-titleinput","image/png","mapfig"];
+if(JSON.parse(jm[1]).length!==67){console.log("riskdata != 67");process.exit(1);}
+const tm=h.match(/var TEKN=\[([\s\S]*?)\];/); const tc=(tm[1].match(/\{k:/g)||[]).length;
+if(tc!==20){console.log("TEKN items != 20: "+tc);process.exit(1);}
+const need=["var TEKN=","teknPlanHtml","renderTekn","setTeknOn","setTeknInfo","M.tekniset","teknLista","pickLogo","M.laatija","brandlogo","pickPohja","capture=\"environment\"","mapfig","image/png"];
 for(const t of need){ if(!h.includes(t)){console.log("MISSING "+t);process.exit(1);} }
 const forb=/PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638/;
 if(forb.test(h)){console.log("FORBIDDEN STRING PRESENT");process.exit(1);}
@@ -758,6 +853,6 @@ console.log("VALIDATION OK");
 ```bash
 rm -f .git/index.lock
 git add -A
-git commit -m "pelsu: laatijan logo/branding (kirjelomake + alatunniste)"
+git commit -m "pelsu: tekniset jarjestelmat (valinnaiset, ehdollinen nakyvyys) + laatijan logo/branding"
 git push origin main
 ```
