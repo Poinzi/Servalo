@@ -1,16 +1,17 @@
-# Pelastussuunnitelma-työkalu – viimeistely + logo + tekniset järjestelmät
+# Claude Code -prompti: Pelastussuunnitelma-työkalu (päivitys)
+Aja tämä **Servalo-repon juuressa**. Kirjoittaa `pelastussuunnitelma-tyokalu.html` kokonaan uusiksi, validoi ja pushaa.
 
-Aja tämä Claude Codessa Servalo-repossa. Kirjoittaa `pelastussuunnitelma-tyokalu.html` kokonaan uusiksi, validoi ja committaa. Sisältää KAIKKI viimeisimmät muutokset.
+Uutta tässä versiossa:
+- **Tontin opaste / pelastuskaavio** -kuvapaikka (oma lataus + tallennus).
+- **Varahenkilö** (nimi + puhelin) yhteystietoihin ja raportin yhteenvetoon.
+- **Alkusammutuskaluston sijainnit** ja **defibrillaattori (AED)** kohtaan 2 (näkyvät vain jos täytetty).
+- **Ylläpito- ja tarkastusloki** (pvm / vastuuhenkilö / muutos) — taulukko kohdassa 7, tyhjä loki ei näy.
 
-## Mitä muuttuu
-- **Tekniset järjestelmät ja erityisriskit (välilehti 1):** rastita mitä kohteessa on – aurinkopaneelit + akusto, paloilmoitin, sprinkleri, savunpoisto, kaasut, kemikaalit, tulityöt, latauspisteet, pelastustie, sammutusvesi, avainsäilö ym. **Vain rastitetut näkyvät valmiissa suunnitelmassa** → pienten kohteiden raportti pysyy siistinä. Palokunnan kannalta kriittisiin (aurinkopaneelit, akusto, kaasu, kemikaalit) tulee automaattinen turvahuomautus.
-- **Laatija / palveluntarjoaja:** oma logo (kamera/galleria) + nimi + yhteystiedot → kirjelomake ylätunnisteeseen ja tiedot alatunnisteeseen. Tallentuu selaimeen.
-- **Riskiarviolomakkeeseen lisätty 15 hallien ja liikekiinteistöjen vakioriviä** (aurinkopaneelit, akusto, latauspisteet, paloilmoitin, sprinkleri, savunpoisto, kemikaalit, kaasut, öljysäiliöt, kylmäaine, lastauslaiturit, korkeavarasto, poistumismitoitus). Ei-arvioidut rivit eivät näy valmiissa raportissa, joten pienten kohteiden raportti pysyy siistinä.
-- Aiemmat: pohjakartta (lataus + kameraotto), PNG-liitteet, muokattavat riskirivit, tulostuksen sivutus + oma alatunniste.
-
-## 1. Kirjoita tiedosto
+---
 
 ```bash
+set -e
+cd "$(git rev-parse --show-toplevel)"
 cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
 <!doctype html>
 <html lang="fi">
@@ -135,6 +136,11 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
   .plan figure img{width:100%;border:1px solid var(--line);border-radius:8px;display:block}
   .plan .mapfig img{width:auto;max-width:100%;max-height:480px;margin:0 auto}
   .plan figure figcaption{font-size:12px;color:var(--muted);margin-top:4px}
+  .plan .loktbl{width:100%;border-collapse:collapse;margin:8px 0}
+  .plan .loktbl th,.plan .loktbl td{border:1px solid #d0d0d0;padding:6px 8px;text-align:left;font-size:13px;vertical-align:top}
+  .plan .loktbl th{background:#f3f3f3}
+  .lokirow{display:grid;grid-template-columns:160px 1fr 1.6fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  @media(max-width:620px){.lokirow{grid-template-columns:1fr 1fr;}}
   .plan .note{font-size:12px;color:var(--muted);margin-top:30px;border-top:1px solid var(--line);padding-top:10px}
   .printfoot{display:none}
   @media print{
@@ -212,6 +218,8 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
           <div class="field"><label>Turvallisuusvastaava (nimi)</label><input data-k="vastuuhenkilo" placeholder="Etunimi Sukunimi"></div>
           <div class="field"><label>Titteli / rooli</label><input data-k="vastuutitteli" placeholder="Isännöitsijä / hallituksen pj."></div>
           <div class="field"><label>Vastuuhenkilön puhelin</label><input data-k="vastuupuhelin" placeholder="0XX XXX XXXX"></div>
+          <div class="field"><label>Varahenkilö (nimi)</label><input data-k="varahenkilo" placeholder="Etunimi Sukunimi"></div>
+          <div class="field"><label>Varahenkilön puhelin</label><input data-k="varapuhelin" placeholder="0XX XXX XXXX"></div>
           <div class="field"><label>Hätänumero</label><input data-k="hatanumero" value="112"></div>
         </div>
       </div>
@@ -224,7 +232,9 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
           <div class="field"><label>Kokoontumispaikka</label><input data-k="kokoontuminen" placeholder="Esim. pihan pohjoislaita, ilmoitustaulun luona"></div>
           <div class="field"><label>Väestönsuoja (sijainti)</label><input data-k="vaestonsuoja" placeholder="Esim. varastorakennus / ei väestönsuojaa"></div>
           <div class="field"><label>Sammutuskalusto</label><input data-k="sammutus" placeholder="Esim. jauhesammuttimet A-rappu / suositellaan hankittavaksi"></div>
+          <div class="field"><label>Alkusammutuskaluston sijainnit</label><input data-k="sammutussijainti" placeholder="Esim. jokaisen rapun eteinen, tekninen tila"></div>
           <div class="field"><label>Ensiapuvälineet</label><input data-k="ensiapu" placeholder="Esim. EA-piste teknisessä tilassa / suositellaan"></div>
+          <div class="field"><label>Defibrillaattori (AED) sijainti</label><input data-k="aed" placeholder="Esim. ei ole / aulan seinä 1. krs"></div>
           <div class="field"><label>Sähkön pääsulku (sijainti)</label><input data-k="sahkosulku" placeholder="Esim. teknisen tilan keskus"></div>
           <div class="field"><label>Veden pääsulku (sijainti)</label><input data-k="vesisulku" placeholder="Esim. lämmönjakohuone"></div>
         </div>
@@ -247,6 +257,15 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
           <div class="field"><label>Tarkastajan nimi</label><input data-k="tarkastaja" placeholder="Etunimi Sukunimi"></div>
         </div>
         <p class="hint" style="margin-top:12px">Kentät, jotka jätät tyhjäksi, näkyvät valmiissa suunnitelmassa keltaisena muistutuksena (<span class="todo">[täytä: …]</span>).</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Ylläpito- ja tarkastusloki</div>
+      <div class="panel-b">
+        <p class="hint">Kirjaa tähän suunnitelman tarkastukset ja muutokset: vuosittainen tarkastus, vastuuhenkilön vaihdos, remontin jälkeinen päivitys tms. Merkinnät näkyvät valmiin suunnitelman kohdassa 7. Tyhjä loki ei näy raportissa.</p>
+        <div id="lokilista"></div>
+        <button class="btn sm" onclick="addLoki()">＋ Lisää merkintä</button>
       </div>
     </div>
 
@@ -280,6 +299,22 @@ cat > pelastussuunnitelma-tyokalu.html <<'PELSU_EOF'
               <input type="file" id="pohjaFile" accept="image/*" style="display:none" onchange="pickPohja(this)">
               <input type="file" id="pohjaCam" accept="image/*" capture="environment" style="display:none" onchange="pickPohja(this)">
               <p class="hint" style="margin:6px 0 0">Kuvaa piirros kännykällä tai valitse tiedosto. Tallennetaan tarkkana (PNG). Näkyy suunnitelman kohdassa 5 ja on ladattavissa erillisenä kuvana.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label>Tontin opaste / pelastuskaavio</label>
+          <div class="imgrow">
+            <div class="imgprev" id="prev-opaste"></div>
+            <div>
+              <button class="btn sm" onclick="document.getElementById('opasteCam').click()">📷 Kamera</button>
+              <button class="btn sm" onclick="document.getElementById('opasteFile').click()">🖼 Galleria</button>
+              <button class="btn sm" id="opaste-dl" style="display:none" onclick="downloadOpaste()">⬇ Lataa kuva</button>
+              <button class="btn sm danger" onclick="removeOpaste()">Poista</button>
+              <input type="file" id="opasteFile" accept="image/*" style="display:none" onchange="pickOpaste(this)">
+              <input type="file" id="opasteCam" accept="image/*" capture="environment" style="display:none" onchange="pickOpaste(this)">
+              <p class="hint" style="margin:6px 0 0">Tontin opastetaulu / pelastuskaavio: rakennusten numerointi, pelastustie, palopostit, kokoontumispaikka. Tallennetaan tarkkana (PNG), näkyy kohdassa 5 ja on ladattavissa erillisenä kuvana. Voi jättää tyhjäksi pienissä kohteissa.</p>
             </div>
           </div>
         </div>
@@ -444,7 +479,7 @@ function totClass(t){return t<=0?"tot-0":t<=3?"tot-low":t<=8?"tot-med":t<=14?"to
 function totLabel(t){return t<=0?"–":t<=3?"matala":t<=8?"kohtalainen":t<=14?"korkea":"kriittinen";}
 
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(M));return true;}catch(e){return false;}}
-function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";if(typeof M.pohjakartta!=="string")M.pohjakartta=M.pohjakartta||"";if(!M.laatija||typeof M.laatija!=="object")M.laatija={};if(typeof M.laatija.logo!=="string")M.laatija.logo="";if(typeof M.laatija.nimi!=="string")M.laatija.nimi="";if(typeof M.laatija.yhteys!=="string")M.laatija.yhteys="";if(!M.tekniset||typeof M.tekniset!=="object")M.tekniset={};}
+function normM(){if(!M.kohde)M.kohde={};if(!Array.isArray(M.rows)||!M.rows.length)initRows();if(!Array.isArray(M.liitteet))M.liitteet=[];if(!Array.isArray(M.loki))M.loki=[];if(typeof M.kansi!=="string")M.kansi=M.kansi||"";if(typeof M.pohjakartta!=="string")M.pohjakartta=M.pohjakartta||"";if(typeof M.opaste!=="string")M.opaste=M.opaste||"";if(!M.laatija||typeof M.laatija!=="object")M.laatija={};if(typeof M.laatija.logo!=="string")M.laatija.logo="";if(typeof M.laatija.nimi!=="string")M.laatija.nimi="";if(typeof M.laatija.yhteys!=="string")M.laatija.yhteys="";if(!M.tekniset||typeof M.tekniset!=="object")M.tekniset={};}
 function load(){try{var s=localStorage.getItem(LS_KEY);if(s){M=JSON.parse(s);normM();return true;}}catch(e){}return false;}
 
 // --- kuvat: pienennä canvasilla ja tallenna data-URLina ---
@@ -576,6 +611,25 @@ function downloadPohja(){
   var nimi=(M.kohde.nimi||"pohjakartta").replace(/[^\wÀ-ſ -]/g,"").trim()||"pohjakartta";
   var a=document.createElement("a");a.href=M.pohjakartta;a.download=nimi+"-pohjakartta.png";a.click();
 }
+// --- tontin opaste / pelastuskaavio (PNG, terävä) ---
+function pickOpaste(input){
+  var f=input.files&&input.files[0];input.value="";if(!f)return;
+  resizeImage(f,1600,0.92,"image/png",function(url){
+    M.opaste=url;
+    if(!save()){M.opaste="";alert("Kuva on liian suuri selaimen muistiin. Kokeile pienempää kuvaa.");}
+    renderOpaste();
+  });
+}
+function removeOpaste(){M.opaste="";save();renderOpaste();}
+function renderOpaste(){
+  var p=document.getElementById("prev-opaste");if(p)p.style.backgroundImage=M.opaste?("url("+M.opaste+")"):"";
+  var dl=document.getElementById("opaste-dl");if(dl)dl.style.display=M.opaste?"":"none";
+}
+function downloadOpaste(){
+  if(!M.opaste){alert("Lisää ensin tontin opaste.");return;}
+  var nimi=(M.kohde.nimi||"tontin-opaste").replace(/[^\wÀ-ſ -]/g,"").trim()||"tontin-opaste";
+  var a=document.createElement("a");a.href=M.opaste;a.download=nimi+"-tontin-opaste.png";a.click();
+}
 function pickLiite(input){
   var f=input.files&&input.files[0];input.value="";if(!f)return;
   resizeImage(f,1400,0.92,"image/png",function(url){
@@ -586,6 +640,22 @@ function pickLiite(input){
 }
 function setLiiteCap(i,v){if(M.liitteet[i]){M.liitteet[i].cap=v;save();}}
 function delLiite(i){M.liitteet.splice(i,1);save();renderLiitteet();}
+// --- ylläpito- ja tarkastusloki ---
+function fmtPvm(s){if(!s)return"";var p=String(s).split("-");return p.length===3?(p[2]+"."+p[1]+"."+p[0]):s;}
+function addLoki(){M.loki.push({pvm:"",henkilo:"",muutos:""});save();renderLoki();}
+function setLoki(i,f,v){if(M.loki[i]){M.loki[i][f]=v;save();}}
+function delLoki(i){M.loki.splice(i,1);save();renderLoki();}
+function renderLoki(){
+  var g=document.getElementById("lokilista");if(!g)return;
+  if(!M.loki.length){g.innerHTML='<p class="hint" style="margin:0 0 8px">Ei merkintöjä vielä.</p>';return;}
+  g.innerHTML=M.loki.map(function(r,i){
+    return '<div class="lokirow">'+
+      '<input type="date" value="'+esc(r.pvm)+'" onchange="setLoki('+i+',\'pvm\',this.value)">'+
+      '<input value="'+esc(r.henkilo).replace(/"/g,"&quot;")+'" placeholder="Vastuuhenkilö" onchange="setLoki('+i+',\'henkilo\',this.value)">'+
+      '<input value="'+esc(r.muutos).replace(/"/g,"&quot;")+'" placeholder="Muutos / tarkastus" onchange="setLoki('+i+',\'muutos\',this.value)">'+
+      '<button class="btn sm danger" onclick="delLoki('+i+')">🗑</button></div>';
+  }).join("");
+}
 function renderLiitteet(){
   var g=document.getElementById("liitegrid");if(!g)return;
   g.innerHTML=M.liitteet.map(function(im,i){
@@ -733,6 +803,7 @@ function renderPlan(){
     '<div>Isännöinti</div><div>'+val("isannointi","isännöinti")+'</div>'+
     '<div>Huoltoyhtiö</div><div>'+val("huoltoyhtio","huoltoyhtiö")+'</div>'+
     '<div>Turvallisuusvastaava</div><div>'+val("vastuuhenkilo","vastuuhenkilö")+' '+(k.vastuutitteli?("("+esc(k.vastuutitteli)+")"):"")+' '+(k.vastuupuhelin?("· "+esc(k.vastuupuhelin)):"")+'</div>'+
+    '<div>Varahenkilö</div><div>'+val("varahenkilo","varahenkilö")+(k.varapuhelin?(" · "+esc(k.varapuhelin)):"")+'</div>'+
     '<div>Hätänumero</div><div>'+esc(k.hatanumero||"112")+'</div>'+
   '</div>';
   html+='<h3>Tärkeimmät turvallisuusjärjestelyt</h3><ul>'+
@@ -749,10 +820,10 @@ function renderPlan(){
   html+=riskTableHtml();
 
   html+='<h2>2. Turvallisuusjärjestelyt ja -kalusto</h2>';
-  html+='<h3>Sammutuskalusto</h3><ul><li>'+val("sammutus","sammutuskalusto")+'</li><li>Asunnoissa suositellaan sammutuspeitettä</li></ul>';
+  html+='<h3>Sammutuskalusto</h3><ul><li>'+val("sammutus","sammutuskalusto")+'</li>'+(M.kohde.sammutussijainti?('<li>Sijainnit: '+esc(M.kohde.sammutussijainti)+'</li>'):'')+'<li>Asunnoissa suositellaan sammutuspeitettä</li></ul>';
   html+='<h3>Varavalaistus ja turvavalot</h3><ul><li>Poistumisteiden turvavalot ja varavalaistus tarkastetaan osana huoltokierrosta 1–2 kertaa vuodessa</li></ul>';
   html+='<h3>Poistumisreitit ja opasteet</h3><ul><li>Kaikkiin asuntoihin on merkitty poistumisreitit</li><li>Poistumisopasteet valaistuja tai jälkivalaisevia sähkökatkon varalta</li><li>Reitit pidetään esteettöminä; kunto tarkastetaan vuosittain turvallisuuskävelyllä</li></ul>';
-  html+='<h3>Ensiapuvälineet</h3><ul><li>'+val("ensiapu","ensiapuvälineet")+'</li><li>Vastuuhenkilö tarkistaa sisällön 2 kertaa vuodessa</li></ul>';
+  html+='<h3>Ensiapuvälineet</h3><ul><li>'+val("ensiapu","ensiapuvälineet")+'</li>'+(M.kohde.aed?('<li>Defibrillaattori (AED): '+esc(M.kohde.aed)+'</li>'):'')+'<li>Vastuuhenkilö tarkistaa sisällön 2 kertaa vuodessa</li></ul>';
   html+='<h3>Väestönsuoja</h3><ul><li>Sijainti: '+val("vaestonsuoja","väestönsuojan sijainti")+'</li><li>Varustus tarkastetaan vuosittain tarkistuslistan mukaan (ilmanvaihto, tiivistysmateriaalit, WC-ratkaisut, vesikanisterit, viestintävälineet)</li></ul>';
   html+=teknPlanHtml();
 
@@ -774,6 +845,8 @@ function renderPlan(){
   html+='<h3>Pohjakartta / asemapiirros</h3><ul><li>Pohjakarttaan merkitään poistumisreitit, sammutuskalusto, ensiapupisteet, väestönsuoja sekä sähkön, kaasun ja veden pääsulut ja kokoontumispaikka</li></ul>';
   if(M.pohjakartta){html+='<figure class="mapfig"><img src="'+M.pohjakartta+'" alt="Pohjakartta"><figcaption>Pohjakartta / asemapiirros</figcaption></figure>';}
   else{html+='<p>'+todo("liitä pohjakartta välilehdellä 1 (Kuvat)")+'</p>';}
+  html+='<h3>Tontin opaste / pelastuskaavio</h3><ul><li>Tontin opasteeseen merkitään rakennusten sijainti ja numerointi, pelastustie ja nostopaikat, palopostit/vesiasemat, kokoontumispaikka sekä sähkön pääkytkin</li><li>Pelastustie pidetään esteettömänä ja merkittynä – pysäköinti pelastustiellä on kielletty</li></ul>';
+  if(M.opaste){html+='<figure class="mapfig"><img src="'+M.opaste+'" alt="Tontin opaste"><figcaption>Tontin opaste / pelastuskaavio</figcaption></figure>';}
   html+='<div class="kv"><div>Kokoontumispaikka</div><div>'+val("kokoontuminen","kokoontumispaikka")+'</div><div>Sähkön pääsulku</div><div>'+val("sahkosulku","sähkön pääsulku")+'</div><div>Veden pääsulku</div><div>'+val("vesisulku","veden pääsulku")+'</div></div>';
 
   html+='<h2>6. Tiedottaminen ja perehdytys</h2>';
@@ -782,6 +855,12 @@ function renderPlan(){
   html+='<h2>7. Suunnitelman ylläpito</h2>';
   html+='<ul><li>Suunnitelma tarkistetaan vähintään kerran vuodessa</li><li>Päivitys tehdään myös turvallisuusvastaavan vaihtuessa, merkittävän remontin jälkeen tai onnettomuuden/läheltä piti -tilanteen jälkeen</li><li>Kaikki tarkistukset dokumentoidaan (päivämäärä, vastuuhenkilö, muutokset) ja säilytetään sähköisesti</li><li>Asukkaille tiedotetaan päivityksistä ilmoitustaululla tai sähköpostitse</li></ul>';
   html+='<div class="kv"><div>Vastuuhenkilö</div><div>'+val("vastuuhenkilo","vastuuhenkilö")+'</div><div>Viimeisin tarkastus</div><div>'+(pvm?esc(pvm):todo("pvm"))+'</div><div>Tarkastaja</div><div>'+val("tarkastaja","tarkastaja")+'</div></div>';
+  var lokiRows=(M.loki||[]).filter(function(r){return (r.pvm||r.henkilo||r.muutos);});
+  if(lokiRows.length){
+    html+='<h3>Ylläpito- ja tarkastusloki</h3><table class="loktbl"><thead><tr><th>Päivämäärä</th><th>Vastuuhenkilö</th><th>Muutos / tarkastus</th></tr></thead><tbody>';
+    lokiRows.forEach(function(r){html+='<tr><td>'+esc(fmtPvm(r.pvm))+'</td><td>'+esc(r.henkilo||"")+'</td><td>'+esc(r.muutos||"")+'</td></tr>';});
+    html+='</tbody></table>';
+  }
 
   html+='<h2>8. Liitteet</h2><ul><li>Riskienarviointilomake (yllä osiossa 1 sekä erillisenä turvallisuuskävelyn lomakkeena)</li><li>Pelastussuunnitelman pohjakartta</li></ul>';
   if(M.liitteet&&M.liitteet.length){
@@ -815,44 +894,45 @@ function loadJson(input){
 }
 function clearAll(){
   if(!confirm("Tyhjennetäänkö kaikki tiedot ja palautetaan vakioriskit?"))return;
-  M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();save();location.reload();
+  M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",opaste:"",loki:[],laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();save();location.reload();
 }
 
 // init
-if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();}
+if(!load()){M={kohde:{},rows:[],liitteet:[],kansi:"",pohjakartta:"",opaste:"",loki:[],laatija:{logo:"",nimi:"",yhteys:""},tekniset:{}};initRows();}
 normM();
-bindKohde();bindLaatija();renderTekn();renderRows();renderSummary();renderCover();renderPohja();renderLiitteet();
+bindKohde();bindLaatija();renderTekn();renderRows();renderSummary();renderCover();renderPohja();renderOpaste();renderLiitteet();renderLoki();
 </script>
 </body>
 </html>
 PELSU_EOF
-```
 
-## 2. Validointi
-
-```bash
+echo "--- JS-syntaksin validointi ---"
 node -e '
 const fs=require("fs");
 const h=fs.readFileSync("pelastussuunnitelma-tyokalu.html","utf8");
-const scripts=[...h.matchAll(/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join("\n");
-try{ new Function(scripts); }catch(e){ console.log("JS ERROR: "+e.message); process.exit(1);} 
-const jm=h.match(/<script[^>]*application\/json[^>]*id="riskdata"[^>]*>([\s\S]*?)<\/script>/);
-if(JSON.parse(jm[1]).length!==67){console.log("riskdata != 67");process.exit(1);}
-const tm=h.match(/var TEKN=\[([\s\S]*?)\];/); const tc=(tm[1].match(/\{k:/g)||[]).length;
-if(tc!==20){console.log("TEKN items != 20: "+tc);process.exit(1);}
-const need=["var TEKN=","teknPlanHtml","renderTekn","setTeknOn","setTeknInfo","M.tekniset","teknLista","pickLogo","M.laatija","brandlogo","pickPohja","capture=\"environment\"","mapfig","image/png"];
-for(const t of need){ if(!h.includes(t)){console.log("MISSING "+t);process.exit(1);} }
-const forb=/PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638/;
-if(forb.test(h)){console.log("FORBIDDEN STRING PRESENT");process.exit(1);}
-console.log("VALIDATION OK");
+const re=/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g;
+let m,i=0,ok=true;
+while((m=re.exec(h))){i++;try{new Function(m[1]);}catch(e){ok=false;console.log("Lohko "+i+" FAIL: "+e.message);}}
+console.log(ok?("JS OK ("+i+" lohkoa)"):"JS FAILED");process.exit(ok?0:1);
 '
-```
 
-## 3. Committaa (aja vasta kun validointi tulostaa VALIDATION OK)
+echo "--- riskdata rivit (odotus 67) ---"
+node -e 'const fs=require("fs");const h=fs.readFileSync("pelastussuunnitelma-tyokalu.html","utf8");const m=h.match(/id="riskdata"[^>]*>([\s\S]*?)<\/script>/);const a=JSON.parse(m[1]);if(a.length!==67){console.log("VIRHE: riskirivit="+a.length);process.exit(1)}console.log("riskirivit OK: 67");'
 
-```bash
-rm -f .git/index.lock
+echo "--- Tärkeät tokenit ---"
+for t in "pickOpaste" "renderOpaste" "prev-opaste" "Tontin opaste" "varahenkilo" "varapuhelin" "sammutussijainti" "data-k="aed"" "addLoki" "renderLoki" "setLoki" "delLoki" "fmtPvm" "id="lokilista"" "loktbl" "mapfig" "teknPlanHtml" "renderLaatija"; do
+  grep -q "$t" pelastussuunnitelma-tyokalu.html && echo "OK: $t" || { echo "PUUTTUU: $t"; exit 1; }
+done
+
+echo "--- Kielletyt merkkijonot ---"
+if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" pelastussuunnitelma-tyokalu.html; then
+  echo "VIRHE: kielletty merkkijono"; exit 1
+else echo "Kielletyt: puhdas"; fi
+
+echo "--- Git ---"
+rm -f .git/index.lock 2>/dev/null || true
 git add -A
-git commit -m "pelsu: tekniset jarjestelmat (valinnaiset, ehdollinen nakyvyys) + laatijan logo/branding"
+git commit -m "Pelsu: varahenkilo, AED + alkusammutuksen sijainnit, yllapito-/tarkastusloki"
 git push origin main
+echo "VALMIS."
 ```
