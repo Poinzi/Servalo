@@ -1020,13 +1020,13 @@
 </div>
 
 <div class="overlay" id="vssOverlay">
-  <div class="modal" style="max-width:740px">
+  <div class="modal" style="max-width:760px">
     <div class="modal-h"><span>Väestönsuojan tarkastus</span><span class="x" onclick="closeOverlay('vssOverlay')">×</span></div>
     <div class="modal-b" oninput="saveVsDraft()" onchange="saveVsDraft()">
       <input type="hidden" id="enVsDevId">
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Päiväys</label><input class="f" id="enVsDate" type="date"></div>
-        <div class="field" style="flex:1;min-width:150px"><label>Tarkastuslaji</label><select class="f" id="enVsLaji"><option value=""></option><option>Käyttöönottotarkastus</option><option>Määräaikaistarkastus</option><option>Jälkitarkastus</option><option>Pyydetty tarkastus</option></select></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Tarkastuslaji</label><select class="f" id="enVsLaji"><option value=""></option><option>Vuosittainen tarkastus</option><option>Käyttöönottotarkastus</option><option>Tiiveyskoe / perushuolto</option><option>Jälkitarkastus</option><option>Pyydetty tarkastus</option></select></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Tarkastusnro</label><input class="f" id="enVsNro" placeholder="esim. 1"></div>
@@ -1045,14 +1045,28 @@
         <div class="field" style="flex:1;min-width:130px"><label>Henkilömäärä</label><input class="f" id="enVsHenkilot" placeholder="esim. 102 henk."></div>
         <div class="field" style="flex:1;min-width:130px"><label>Pinta-ala m²</label><input class="f" id="enVsPinta" placeholder="esim. 77 m²"></div>
       </div>
-      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Tarkastuskohteet</div>
-      <p class="hint" style="margin:0 0 8px">Tila: <b>Kunnossa</b> / <b>Puute</b> / <b>Ei koske</b> + lisätiedot.</p>
+      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Tarkastuskohteet (10 osa-aluetta)</div>
+      <p class="hint" style="margin:0 0 8px">Luokitus: <b>OK</b> / <b>HUOLTO</b> / <b>PUUTE</b> / <b>VAARATILANNE</b> (tai Ei koske) + havainnot. Avaa <b>Ohje</b> nähdäksesi tarkastusohjeen.</p>
       <div id="vsCheck"></div>
-      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Vanhenevat tuotteet</div>
-      <p class="hint" style="margin:0 0 8px">Tila (OK / Uusittava / Ei koske), viimeinen käyttöpäivä ja lisätiedot.</p>
+      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Tiiveyskoe (painekoe)</div>
+      <p class="hint" style="margin:0 0 8px">SPEK 2024: ylipaineen pysyttävä väh. 10 min (suositus 15–20 min), tavoite 100–300 Pa, U-putkimittari. Väli väh. 10 v tai peruskorjauksen jälkeen.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:180px"><label>Tiiveyskokeen tila</label><select class="f" id="enVsTkTehty"><option value=""></option><option>Tehty tässä tarkastuksessa</option><option>Ei tehty (ei ajankohtainen)</option><option>Erillinen huolto</option></select></div>
+        <div class="field" style="flex:1;min-width:130px"><label>Tulos</label><select class="f" id="enVsTkTulos"><option value=""></option><option>Hyväksytty</option><option>Hylätty</option><option>Ei tehty</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:110px"><label>Ylipaine (Pa)</label><input class="f" id="enVsTkPaine" placeholder="100–300"></div>
+        <div class="field" style="flex:1;min-width:110px"><label>Kesto (min)</label><input class="f" id="enVsTkKesto" placeholder="≥10"></div>
+        <div class="field" style="flex:1;min-width:140px"><label>Mittausväline</label><input class="f" id="enVsTkValine" placeholder="U-putkimittari"></div>
+      </div>
+      <div class="field" style="max-width:240px"><label>Seuraava tiiveyskoe</label><input class="f" id="enVsTkSeur" type="date"></div>
+      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Varusteluettelo</div>
+      <p class="hint" style="margin:0 0 8px">Tila (OK / Uusittava / Puuttuu / Ei koske), päiväys/vanhenee ja havainnot. ⏱ = seuraa päiväystä (rajallinen käyttöikä).</p>
       <div id="vsProd"></div>
+      <div style="font-weight:700;margin:16px 0 4px;color:#c1121f">Kokonaisarvio</div>
+      <div class="field" style="max-width:260px"><select class="f" id="enVsArvio"><option value=""></option><option>OK</option><option>HUOLTO</option><option>PUUTE</option><option>VAARATILANNE</option></select></div>
       <div class="field"><label>Tehdyt työt</label><textarea class="f" id="enVsTyot" rows="2" placeholder="Tarkastuksessa tehdyt työt…"></textarea></div>
-      <div class="field"><label>Lisätiedot / huomiot</label><textarea class="f" id="enVsLisa" rows="3" placeholder="Korjaussuositukset, huomiot…"></textarea></div>
+      <div class="field"><label>Lisätiedot / korjaussuositukset</label><textarea class="f" id="enVsLisa" rows="3" placeholder="Korjaussuositukset, huomiot…"></textarea></div>
       <div class="field"><label>Kiinteistön edustaja tarkastuksessa</label><input class="f" id="enVsEdustaja" placeholder="Nimi"></div>
       <div class="field"><label>📷 Kuva <span class="hint" style="font-weight:400">(sisäinen – asiakas ei näe)</span></label><input class="f" id="enVsPhoto" type="file" accept="image/*" capture="environment" onchange="previewVsPhoto()"><div id="enVsPhotoPrev" style="margin-top:8px"></div></div>
       <div class="field"><label>Liite (valmis raportti, valinnainen)</label><input class="f" id="enVsFile" type="file"></div>
@@ -3309,72 +3323,60 @@ function sprinkPk(dev,ctx,ans){
 const VSS_DRAFT_KEY="servalo_vss_drafts";
 let _vsPhoto=null;
 const VSS_CHECK=[
- {id:"c01",l:"suojaantulotie"},
- {id:"c02",l:"vss-merkit / viitoitus"},
- {id:"c03",l:"suojan ovet ja tiivisteet"},
- {id:"c04",l:"suojan k\u00e4ytt\u00f6tarkoitus"},
- {id:"c05",l:"sulkuhuone / -teltta ja rakenteet"},
- {id:"c06",l:"ylipaineventtiilit + tiivisteet"},
- {id:"c07",l:"normaali-ilmanvaihdon sulku"},
- {id:"c08",l:"vesijohtojen sulkuventtiilit"},
- {id:"c09",l:"l\u00e4mp\u00f6johtojen sulkuventtiilit"},
- {id:"c10",l:"vesipiste varusteineen"},
- {id:"c11",l:"padotusventtiili"},
- {id:"c12",l:"vuotovesien poistoj\u00e4rjestelm\u00e4"},
- {id:"c13",l:"ilmanjakokanavisto"},
- {id:"c14",l:"esisuodatin (c-lk. hiekkasuodatin)"},
- {id:"c15",l:"suodattimen luukut ja tiivisteet"},
- {id:"c16",l:"suojan materiaali / suojah\u00e4kin lukitus"},
- {id:"c17",l:"ilmanvaihtolaitteisto"},
- {id:"c18",l:"ylipainemittari + putkisto"},
- {id:"c19",l:"ilmanottoputki ja -kanava"},
- {id:"c20",l:"h\u00e4t\u00e4poistumisk\u00e4yt\u00e4v\u00e4"},
- {id:"c21",l:"k\u00e4yt\u00e4v\u00e4nluukku + tiivisteet"},
- {id:"c22",l:"tiiveyskoe"},
- {id:"c23",l:"varavesis\u00e4ili\u00f6t"},
- {id:"c24",l:"j\u00e4tevesis\u00e4ili\u00f6t"},
- {id:"c25",l:"kuivak\u00e4ym\u00e4l\u00e4t"},
- {id:"c26",l:"v\u00e4est\u00f6nsuojamateriaali"},
- {id:"c27",l:"viestilaitteet / antenni"},
- {id:"c28",l:"s\u00e4hk\u00f6asennukset"},
- {id:"c29",l:"k\u00e4ytt\u00f6-, huolto- ja purkusuunnitelma"},
- {id:"c30",l:"pelastussuunnitelma"},
- {id:"c31",l:"sirpale- ja s\u00e4teilysuojaus"},
- {id:"c32",l:"suojan siisteys"},
- {id:"c33",l:"koneen valaisin"}
+ {id:"o1",l:"1. Ovet ja sisäänkäynti",help:"Tarkasta oven sijainti, kunto ja kiinnitykset. Varmista, että kaikki ovikomponentit (kahvat, saranat, salvat, lukot) ovat tallessa ja ehjiä. Puhdista ja voitele liikkuvat osat kevyesti. Käyttöönotossa tai tiiveyskokeessa kirjaa purkutyöt ja tarvittavat muutokset."},
+ {id:"o2",l:"2. Ovien tiivisteet",help:"Tarkasta tiivisteiden kunto, halkeamat ja kovettumat. Puhdista ja rasvaa silikonilla, vaihda vaurioituneet tiivisteet. Kirjaa vaihdot ja mahdolliset puutteet."},
+ {id:"o3",l:"3. Yleinen siisteys",help:"Tarkasta, ettei tilassa ole ylimääräistä tavaraa, roskia tai esteitä. Varmista kulkureittien ja poistumisteiden esteettömyys. Kirjaa siivoustarve ja liitä kuva tarvittaessa."},
+ {id:"o4",l:"4. Ylipaineventtiilit ja mittari",help:"Tarkasta venttiilit, laipat ja tiivisteet. Tarkasta ylipainemittari (U-putkimittari): mittari ehjä, letkut kiinni, nesteen pinta näkyvissä — lisää tarvittaessa vettä tai glykoliseosta. Puhdista venttiilit ja vaihda tiivisteet tarvittaessa."},
+ {id:"o5",l:"5. Rakenteet ja merkinnät",help:"Tarkasta seinien, katon ja lattian kunto (halkeamat, kosteus, ruoste). Varmista sähkölaitteiden ja valaistuksen toiminta. Tarkasta merkit ja opasteet (luettavuus, sijainti). Testaa puhelin- ja TV-yhteydet sekä matkapuhelimen kuuluvuus; jos ei kuulu, kirjaa vahvistimen tarve."},
+ {id:"o6",l:"6. Käyttöönottosuunnitelma",help:"Tarkasta, että käyttöönottosuunnitelma on olemassa, ajantasainen ja helposti löydettävissä. Varmista, että siinä on ohjeet 72 tunnin käyttöönottoon. Kirjaa päiväys ja puuttuvat liitteet."},
+ {id:"o7",l:"7. Varusteet ja tarvikkeet",help:"Tarkasta, että SPEK 2024:n mukaiset perusvarusteet ovat olemassa, ehjiä ja käyttökunnossa. Tarkasta päiväykset ja arvioi uusimistarve. Erittele varusteet alla olevaan varusteluetteloon. Majoitus- ja ruokailutarvikkeet tuodaan vasta käyttöönoton yhteydessä."},
+ {id:"o8",l:"8. Padotusventtiili ja viemärit",help:"Tarkasta venttiilin liikkuvuus, tiivisteet ja vuotojen jäljet. Varmista, ettei venttiilipesässä tai ympäröivässä lattiassa ole vettä. Kevyt voitelu (CRC-tyyppinen aine), ettei venttiili ruostu. Testaa avaamalla ja sulkemalla kevyesti. Kirjaa vesihavaintojen syyt."},
+ {id:"o9",l:"9. Varapoistumistie",help:"Tarkasta käytävänluukun tiivisteet, esteettömyys ja opasteet. Testaa valaistus ja toimivuus. Kirjaa havainnot ja liitä kuva tarvittaessa."},
+ {id:"o10",l:"10. Ilmanvaihtokone / hiekkasuodatin",help:"Tarkasta aktiivihiilisuodattimen olemassaolo, päiväys ja kunto (uusittava, jos yli 10 v tai merkinnät puuttuvat). Yleiskunto ja puhtaus; pyöräytä roottori käsin (kevyt liike, ei ääntä); tarkasta johdotukset, liitokset ja maadoitus; koekäytä lyhyesti (melu, värinä, pyörimissuunta). Hiekkasuodatin: kansi ja tiivisteet ehjät, hiekkapinta tasainen, ei kosteutta tai paakkuja — hiekkaa ei lapioida rutiinitarkastuksessa. Puutteista PUUTE ja modernisointisuositus."}
 ];
 const VSS_PROD=[
- {id:"p01",l:"paristot"},
- {id:"p02",l:"suojasidepakkaus"},
- {id:"p03",l:"kyp\u00e4r\u00e4t"},
- {id:"p04",l:"joditabletit"},
- {id:"p05",l:"vedens\u00e4ilytysaine"},
- {id:"p06",l:"ensiapulaukku"},
- {id:"p07",l:"l\u00e4mp\u00f6peite"},
- {id:"p08",l:"s\u00e4teilymittari (kalibrointi)"},
- {id:"p09",l:"suojanaamarit"},
- {id:"p10",l:"suojanaamarin suodattimet"}
+ {id:"p01",l:"Vesisäiliöt (20–40 l, kannelliset)"},
+ {id:"p02",l:"Käsipumppu / vedenottoväline"},
+ {id:"p03",l:"Vedenpuhdistustabletit / -aine",exp:true},
+ {id:"p04",l:"Joditabletit",exp:true},
+ {id:"p05",l:"WC-astiat ja tarvikkeet"},
+ {id:"p06",l:"Jäteastiat / jätepussit"},
+ {id:"p07",l:"Lapio / rautakanki / sorkkarauta"},
+ {id:"p08",l:"Ensiapulaukku",exp:true},
+ {id:"p09",l:"Sidetarpeet ja desinfiointiaineet",exp:true},
+ {id:"p10",l:"Hengityssuojaimet",exp:true},
+ {id:"p11",l:"Suodattimet ja aktiivihiilisuodatin",exp:true},
+ {id:"p12",l:"Suojanaamarit ja suodatinpatruunat",exp:true},
+ {id:"p13",l:"Taskulamppu / ladattava valaisin"},
+ {id:"p14",l:"Paristot",exp:true},
+ {id:"p15",l:"Radiovastaanotin (paristokäyttöinen)"},
+ {id:"p16",l:"Opasteet ja merkinnät"},
+ {id:"p17",l:"Alkusammutuskalusto (sammutuspeite / vesitynnyri)"},
+ {id:"p18",l:"Suojakäsineet ja varoitusnauha"}
 ];
-function vsCheckOpts(){return '<option value=""></option><option>Kunnossa</option><option>Puute</option><option>Ei koske</option>';}
-function vsProdOpts(){return '<option value=""></option><option>OK</option><option>Uusittava</option><option>Ei koske</option>';}
+function vsCheckOpts(){return '<option value=""></option><option>OK</option><option>HUOLTO</option><option>PUUTE</option><option>VAARATILANNE</option><option>Ei koske</option>';}
+function vsProdOpts(){return '<option value=""></option><option>OK</option><option>Uusittava</option><option>Puuttuu</option><option>Ei koske</option>';}
 function vsCheckHtml(){
   return VSS_CHECK.map(function(it){
     return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px">'
       +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+'</label>'
+      +'<details style="margin-bottom:6px"><summary style="cursor:pointer;color:#c1121f;font-size:11px;font-weight:600">Ohje</summary>'
+      +'<div style="font-size:11px;color:#555;background:#faf5f5;border:1px solid #eddede;border-radius:6px;padding:6px 8px;margin-top:4px;line-height:1.5">'+esc(it.help)+'</div></details>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +'<select class="f" id="vsc_'+it.id+'_s" style="flex:0 0 150px">'+vsCheckOpts()+'</select>'
-      +'<input class="f" id="vsc_'+it.id+'_i" placeholder="Lis\u00e4tiedot" style="flex:1;min-width:160px">'
+      +'<select class="f" id="vsc_'+it.id+'_s" style="flex:0 0 160px">'+vsCheckOpts()+'</select>'
+      +'<input class="f" id="vsc_'+it.id+'_i" placeholder="Havainnot / toimenpiteet" style="flex:1;min-width:160px">'
       +'</div></div>';
   }).join("");
 }
 function vsProdHtml(){
   return VSS_PROD.map(function(it){
+    var mark=it.exp?' <span title="Seuraa päiväystä (rajallinen käyttöikä)" style="color:#b26a00">⏱</span>':'';
     return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px">'
-      +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+'</label>'
+      +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+mark+'</label>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<select class="f" id="vsp_'+it.id+'_s" style="flex:0 0 150px">'+vsProdOpts()+'</select>'
-      +'<input class="f" id="vsp_'+it.id+'_d" type="date" style="flex:0 0 150px" title="Viimeinen k\u00e4ytt\u00f6p\u00e4iv\u00e4">'
-      +'<input class="f" id="vsp_'+it.id+'_i" placeholder="Lis\u00e4tiedot" style="flex:1;min-width:150px">'
+      +'<input class="f" id="vsp_'+it.id+'_d" type="date" style="flex:0 0 150px" title="Päiväys / vanhenee">'
+      +'<input class="f" id="vsp_'+it.id+'_i" placeholder="Havainnot" style="flex:1;min-width:150px">'
       +'</div></div>';
   }).join("");
 }
@@ -3395,12 +3397,21 @@ function collectVss(){
     luokka:document.getElementById("enVsLuokka").value,
     henkilot:document.getElementById("enVsHenkilot").value,
     pinta:document.getElementById("enVsPinta").value,
+    tkTehty:document.getElementById("enVsTkTehty").value,
+    tkTulos:document.getElementById("enVsTkTulos").value,
+    tkPaine:document.getElementById("enVsTkPaine").value,
+    tkKesto:document.getElementById("enVsTkKesto").value,
+    tkValine:document.getElementById("enVsTkValine").value,
+    tkSeur:document.getElementById("enVsTkSeur").value,
+    arvio:document.getElementById("enVsArvio").value,
     tyot:document.getElementById("enVsTyot").value,
     lisa:document.getElementById("enVsLisa").value,
     edustaja:document.getElementById("enVsEdustaja").value,
     check:chk,prod:prod,photo:_vsPhoto
   };
 }
+var VS_FIELDS=["enVsDate","enVsLaji","enVsNro","enVsPrev","enVsOmistaja","enVsIsannoitsija","enVsHuoltomies","enVsLohko","enVsYksikko","enVsLuokka","enVsHenkilot","enVsPinta","enVsTkTehty","enVsTkTulos","enVsTkPaine","enVsTkKesto","enVsTkValine","enVsTkSeur","enVsArvio","enVsTyot","enVsLisa","enVsEdustaja"];
+var VS_MAP={date:"enVsDate",laji:"enVsLaji",nro:"enVsNro",prev:"enVsPrev",omistaja:"enVsOmistaja",isannoitsija:"enVsIsannoitsija",huoltomies:"enVsHuoltomies",lohko:"enVsLohko",yksikko:"enVsYksikko",luokka:"enVsLuokka",henkilot:"enVsHenkilot",pinta:"enVsPinta",tkTehty:"enVsTkTehty",tkTulos:"enVsTkTulos",tkPaine:"enVsTkPaine",tkKesto:"enVsTkKesto",tkValine:"enVsTkValine",tkSeur:"enVsTkSeur",arvio:"enVsArvio",tyot:"enVsTyot",lisa:"enVsLisa",edustaja:"enVsEdustaja"};
 function saveVsDraft(){
   var id=document.getElementById("enVsDevId").value;if(!id)return;
   var all=readVsDrafts();var a=collectVss();a.ts=Date.now();all[id]=a;
@@ -3421,15 +3432,15 @@ function openVssPk(devId){
   document.getElementById("enVsDevId").value=devId;
   document.getElementById("vsCheck").innerHTML=vsCheckHtml();
   document.getElementById("vsProd").innerHTML=vsProdHtml();
-  ["enVsDate","enVsLaji","enVsNro","enVsPrev","enVsOmistaja","enVsIsannoitsija","enVsHuoltomies","enVsLohko","enVsYksikko","enVsLuokka","enVsHenkilot","enVsPinta","enVsTyot","enVsLisa","enVsEdustaja"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  VS_FIELDS.forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   document.getElementById("enVsDate").value=today();
+  document.getElementById("enVsTkValine").value="U-putkimittari";
   var pf=document.getElementById("enVsPhoto"),pp=document.getElementById("enVsPhotoPrev"),ff=document.getElementById("enVsFile");
   if(pf)pf.value="";if(pp)pp.innerHTML="";if(ff)ff.value="";_vsPhoto=null;
   var dr=readVsDrafts()[devId];
   if(dr){
-    ["date","laji","nro","prev","omistaja","isannoitsija","huoltomies","lohko","yksikko","luokka","henkilot","pinta","tyot","lisa","edustaja"].forEach(function(k){
-      var map={date:"enVsDate",laji:"enVsLaji",nro:"enVsNro",prev:"enVsPrev",omistaja:"enVsOmistaja",isannoitsija:"enVsIsannoitsija",huoltomies:"enVsHuoltomies",lohko:"enVsLohko",yksikko:"enVsYksikko",luokka:"enVsLuokka",henkilot:"enVsHenkilot",pinta:"enVsPinta",tyot:"enVsTyot",lisa:"enVsLisa",edustaja:"enVsEdustaja"};
-      if(dr[k]!=null&&dr[k]!==""){var el=document.getElementById(map[k]);if(el)el.value=dr[k];}
+    Object.keys(VS_MAP).forEach(function(k){
+      if(dr[k]!=null&&dr[k]!==""){var el=document.getElementById(VS_MAP[k]);if(el)el.value=dr[k];}
     });
     if(dr.check)VSS_CHECK.forEach(function(it){var v=dr.check[it.id];if(!v)return;var se=document.getElementById("vsc_"+it.id+"_s"),ie=document.getElementById("vsc_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(ie&&v.i!=null)ie.value=v.i;});
     if(dr.prod)VSS_PROD.forEach(function(it){var v=dr.prod[it.id];if(!v)return;var se=document.getElementById("vsp_"+it.id+"_s"),de=document.getElementById("vsp_"+it.id+"_d"),ie=document.getElementById("vsp_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(de&&v.d!=null)de.value=v.d;if(ie&&v.i!=null)ie.value=v.i;});
@@ -3441,7 +3452,7 @@ function saveVssPk(){
   var devId=document.getElementById("enVsDevId").value;
   var d=db.devices.find(function(x){return x.id===devId;});if(!d)return;
   var ans=collectVss();
-  var entry={date:ans.date,pohja:"V\u00e4est\u00f6nsuojan tarkastus",comment:(ans.lisa||"").trim(),checklist:ans};
+  var entry={date:ans.date,pohja:"Väestönsuojan tarkastus",comment:(ans.lisa||"").trim(),checklist:ans};
   if(_vsPhoto)entry.photo=_vsPhoto;
   var finalize=function(){
     d.inspections=d.inspections||[];
@@ -3457,7 +3468,7 @@ function saveVssPk(){
     if(fl.size>4*1024*1024){alert("Tiedosto on liian suuri (max ~4 MB).");return;}
     var r=new FileReader();
     r.onload=function(){entry.file={name:fl.name,type:fl.type,data:r.result};finalize();};
-    r.onerror=function(){alert("Tiedoston luku ep\u00e4onnistui.");};
+    r.onerror=function(){alert("Tiedoston luku epäonnistui.");};
     r.readAsDataURL(fl);
   } else finalize();
 }
@@ -3465,19 +3476,33 @@ function vssPk(dev,ctx,ans){
   ctx=ctx||{name:"",address:""};ans=ans||{check:{},prod:{}};
   var w=window.open("","_blank");
   if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
+  var dash='<span style="color:#bbb">–</span>';
   var cstat=function(v){
-    if(v==="Kunnossa")return '<span style="color:#1a7f37;font-weight:700">Kunnossa</span>';
-    if(v==="Puute")return '<span style="color:#c1121f;font-weight:700">Puute</span>';
+    if(v==="OK")return '<span style="color:#1a7f37;font-weight:700">OK</span>';
+    if(v==="HUOLTO")return '<span style="color:#b26a00;font-weight:700">HUOLTO</span>';
+    if(v==="PUUTE")return '<span style="color:#c1121f;font-weight:700">PUUTE</span>';
+    if(v==="VAARATILANNE")return '<span style="color:#a30000;font-weight:800">VAARATILANNE</span>';
     if(v==="Ei koske")return '<span style="color:#888">Ei koske</span>';
     if(v)return esc(v);
-    return '<span style="color:#bbb">\u2013</span>';
+    return dash;
   };
   var pstat=function(v){
     if(v==="OK")return '<span style="color:#1a7f37;font-weight:700">OK</span>';
     if(v==="Uusittava")return '<span style="color:#b26a00;font-weight:700">Uusittava</span>';
+    if(v==="Puuttuu")return '<span style="color:#c1121f;font-weight:700">Puuttuu</span>';
     if(v==="Ei koske")return '<span style="color:#888">Ei koske</span>';
     if(v)return esc(v);
-    return '<span style="color:#bbb">\u2013</span>';
+    return dash;
+  };
+  var tkTulos=function(v){
+    if(v==="Hyväksytty")return '<span style="color:#1a7f37;font-weight:700">Hyväksytty</span>';
+    if(v==="Hylätty")return '<span style="color:#c1121f;font-weight:700">Hylätty</span>';
+    if(v)return esc(v);
+    return dash;
+  };
+  var arvioBadge=function(v){
+    var c={"OK":"#1a7f37","HUOLTO":"#b26a00","PUUTE":"#c1121f","VAARATILANNE":"#a30000"}[v]||"#888";
+    return v?('<span style="display:inline-block;padding:4px 14px;border-radius:6px;background:'+c+';color:#fff;font-weight:800;letter-spacing:1px">'+esc(v)+'</span>'):dash;
   };
   var crows=VSS_CHECK.map(function(it){
     var v=(ans.check&&ans.check[it.id])||{};
@@ -3485,16 +3510,18 @@ function vssPk(dev,ctx,ans){
   }).join("");
   var prows=VSS_PROD.map(function(it){
     var v=(ans.prod&&ans.prod[it.id])||{};
-    var dd=v.d?fmt(v.d):'<span style="color:#bbb">\u2013</span>';
-    return '<tr><td>'+esc(it.l)+'</td><td class="v">'+pstat(v.s||"")+'</td><td class="d">'+dd+'</td><td>'+(v.i?esc(v.i):"")+'</td></tr>';
+    var dd=v.d?fmt(v.d):dash;
+    var lbl=esc(it.l)+(it.exp?' <span style="color:#b26a00" title="Seuraa päiväystä">⏱</span>':'');
+    return '<tr><td>'+lbl+'</td><td class="v">'+pstat(v.s||"")+'</td><td class="d">'+dd+'</td><td>'+(v.i?esc(v.i):"")+'</td></tr>';
   }).join("");
   var ph=(dev.inspections&&dev.inspections[0]&&dev.inspections[0].photo&&dev.inspections[0].photo.data)||(ans.photo&&ans.photo.data)||"";
   var photoHtml=ph?('<div style="margin-top:16px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">Kuva</div><img src="'+ph+'" style="max-width:300px;max-height:300px;border:1px solid #ccc;border-radius:6px"></div>'):"";
   var worker=currentUser?currentUser.name:"";
   var site=esc(dev.locDetail||siteName(dev.locId)||"");
-  var vastuu="V\u00e4est\u00f6nsuojan kunnosta vastaa lopullisesti rakennuksen omistaja tai haltija. V\u00e4est\u00f6nsuojan on oltava samassa kunnossa kuin se oli rakennuksen valmistuessa. Palotarkastaja suorittaa viranomaisvalvonnan palotarkastuksen yhteydess\u00e4.";
-  var laki="Annetut korjaussuositukset perustuvat pelastuslakiin sek\u00e4 VN:n ja SM:n asetuksiin.";
-  var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>V\u00e4est\u00f6nsuojan tarkastusp\u00f6yt\u00e4kirja</title>'
+  var vastuu="Väestönsuojan kunnosta vastaa lopullisesti rakennuksen omistaja tai haltija. Suoja on pidettävä sellaisessa kunnossa, että se voidaan ottaa käyttöön 72 tunnin kuluessa viranomaisen määräyksestä. Palotarkastaja suorittaa viranomaisvalvonnan palotarkastuksen yhteydessä.";
+  var luok="Luokitus: OK = kunnossa · HUOLTO = huoltotarve · PUUTE = korjattava puute · VAARATILANNE = välitön vaara / käyttökelvoton.";
+  var laki="Tarkastus perustuu SPEK 2024 -ohjeeseen ja RT 92-11173-S1 -korttiin sekä pelastuslakiin (379/2011 §71–75) ja valtioneuvoston asetukseen väestönsuojista (409/2011). Annetut korjaussuositukset perustuvat mainittuun lainsäädäntöön ja asetuksiin.";
+  var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Väestönsuojan tarkastuspöytäkirja</title>'
     +'<style>'
     +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}'
     +'h1{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.4px;margin:0}'
@@ -3506,7 +3533,7 @@ function vssPk(dev,ctx,ans){
     +'table.chk{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}'
     +'table.chk th{background:#c1121f;color:#fff;font-family:Georgia,serif;text-align:left;padding:6px 8px;font-size:11px}'
     +'table.chk td{padding:5px 8px;border-bottom:1px solid #e6e6e6;vertical-align:top}'
-    +'table.chk td.v{width:110px}table.chk td.d{width:100px;white-space:nowrap}'
+    +'table.chk td.v{width:120px}table.chk td.d{width:100px;white-space:nowrap}'
     +'.huom{margin-top:10px;border:1px solid #bbb;border-radius:6px;min-height:44px;padding:10px;font-size:12px}'
     +'.note{font-size:11px;color:#444;background:#faf5f5;border:1px solid #eddede;border-radius:6px;padding:8px 10px;margin:12px 0;line-height:1.5}'
     +'.foot{display:flex;justify-content:space-between;gap:24px;margin-top:22px}'
@@ -3516,31 +3543,39 @@ function vssPk(dev,ctx,ans){
     +'@media print{button{display:none}}'
     +'</style></head><body>'
     +'<div class="head"><div><div class="brand">SAVUKS</div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
-    +'<div style="text-align:right"><h1>Tarkastusp\u00f6yt\u00e4kirja</h1><div style="font-size:12px;color:#666">V\u00e4est\u00f6nsuoja</div></div></div>'
+    +'<div style="text-align:right"><h1>Tarkastuspöytäkirja</h1><div style="font-size:12px;color:#666">Väestönsuoja</div></div></div>'
     +'<table class="meta">'
-    +'<tr><td class="k">Kohde / asiakas</td><td>'+esc(ctx.name||"\u2013")+'</td><td class="k">P\u00e4iv\u00e4ys</td><td>'+fmt(ans.date||today())+'</td></tr>'
-    +'<tr><td class="k">Osoite</td><td>'+esc(ctx.address||"\u2013")+'</td><td class="k">Tarkastuslaji</td><td>'+esc(ans.laji||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Laitetunnus</td><td>'+esc(dev.tag||"\u2013")+'</td><td class="k">Sijainti</td><td>'+site+'</td></tr>'
-    +'<tr><td class="k">Tarkastusnro</td><td>'+esc(ans.nro||"\u2013")+'</td><td class="k">Edellinen p\u00f6yt\u00e4kirja</td><td>'+esc(ans.prev||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Omistaja</td><td>'+esc(ans.omistaja||"\u2013")+'</td><td class="k">Is\u00e4nn\u00f6itsij\u00e4</td><td>'+esc(ans.isannoitsija||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Huoltomies</td><td>'+esc(ans.huoltomies||"\u2013")+'</td><td class="k">Suojaluokka</td><td>'+esc(ans.luokka||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Suojelulohko</td><td>'+esc(ans.lohko||"\u2013")+'</td><td class="k">Suojeluyksikk\u00f6</td><td>'+esc(ans.yksikko||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Henkil\u00f6m\u00e4\u00e4r\u00e4</td><td>'+esc(ans.henkilot||"\u2013")+'</td><td class="k">Pinta-ala</td><td>'+esc(ans.pinta||"\u2013")+'</td></tr>'
-    +'<tr><td class="k">Tarkastusv\u00e4li</td><td>'+esc(dev.inspInterval||dev.interval||"\u2013")+'</td><td class="k"></td><td></td></tr>'
+    +'<tr><td class="k">Kohde / asiakas</td><td>'+esc(ctx.name||"–")+'</td><td class="k">Päiväys</td><td>'+fmt(ans.date||today())+'</td></tr>'
+    +'<tr><td class="k">Osoite</td><td>'+esc(ctx.address||"–")+'</td><td class="k">Tarkastuslaji</td><td>'+esc(ans.laji||"–")+'</td></tr>'
+    +'<tr><td class="k">Laitetunnus</td><td>'+esc(dev.tag||"–")+'</td><td class="k">Sijainti</td><td>'+site+'</td></tr>'
+    +'<tr><td class="k">Tarkastusnro</td><td>'+esc(ans.nro||"–")+'</td><td class="k">Edellinen pöytäkirja</td><td>'+esc(ans.prev||"–")+'</td></tr>'
+    +'<tr><td class="k">Omistaja</td><td>'+esc(ans.omistaja||"–")+'</td><td class="k">Isännöitsijä</td><td>'+esc(ans.isannoitsija||"–")+'</td></tr>'
+    +'<tr><td class="k">Huoltomies</td><td>'+esc(ans.huoltomies||"–")+'</td><td class="k">Suojaluokka</td><td>'+esc(ans.luokka||"–")+'</td></tr>'
+    +'<tr><td class="k">Suojelulohko</td><td>'+esc(ans.lohko||"–")+'</td><td class="k">Suojeluyksikkö</td><td>'+esc(ans.yksikko||"–")+'</td></tr>'
+    +'<tr><td class="k">Henkilömäärä</td><td>'+esc(ans.henkilot||"–")+'</td><td class="k">Pinta-ala</td><td>'+esc(ans.pinta||"–")+'</td></tr>'
+    +'<tr><td class="k">Tarkastusväli</td><td>'+esc(dev.inspInterval||dev.interval||"–")+'</td><td class="k"></td><td></td></tr>'
     +'</table>'
     +'<div class="sub">Tarkastuskohteet</div>'
-    +'<table class="chk"><thead><tr><th>Tarkastuskohde</th><th>Tila</th><th>Lis\u00e4tiedot</th></tr></thead><tbody>'+crows+'</tbody></table>'
-    +'<div class="sub">Vanhenevat tuotteet</div>'
-    +'<table class="chk"><thead><tr><th>Tuote</th><th>Tila</th><th>Viimeinen k\u00e4ytt\u00f6p\u00e4iv\u00e4</th><th>Lis\u00e4tiedot</th></tr></thead><tbody>'+prows+'</tbody></table>'
-    +'<div style="margin-top:16px;font-size:12px;font-weight:700">Tehdyt ty\u00f6t</div><div class="huom">'+esc(ans.tyot||"")+'</div>'
-    +'<div style="margin-top:12px;font-size:12px;font-weight:700">Lis\u00e4tiedot / korjaussuositukset</div><div class="huom">'+esc(ans.lisa||"")+'</div>'
+    +'<table class="chk"><thead><tr><th>Osa-alue</th><th>Luokitus</th><th>Havainnot / toimenpiteet</th></tr></thead><tbody>'+crows+'</tbody></table>'
+    +'<div class="sub">Tiiveyskoe (painekoe)</div>'
+    +'<table class="meta">'
+    +'<tr><td class="k">Tila</td><td>'+esc(ans.tkTehty||"–")+'</td><td class="k">Tulos</td><td>'+tkTulos(ans.tkTulos||"")+'</td></tr>'
+    +'<tr><td class="k">Ylipaine</td><td>'+(ans.tkPaine?esc(ans.tkPaine)+" Pa":"–")+'</td><td class="k">Kesto</td><td>'+(ans.tkKesto?esc(ans.tkKesto)+" min":"–")+'</td></tr>'
+    +'<tr><td class="k">Mittausväline</td><td>'+esc(ans.tkValine||"–")+'</td><td class="k">Seuraava tiiveyskoe</td><td>'+(ans.tkSeur?fmt(ans.tkSeur):"–")+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">Varusteluettelo</div>'
+    +'<table class="chk"><thead><tr><th>Varuste / tarvikeryhmä</th><th>Tila</th><th>Päiväys / vanhenee</th><th>Havainnot</th></tr></thead><tbody>'+prows+'</tbody></table>'
+    +'<div class="sub">Kokonaisarvio</div><div style="margin:6px 0 4px">'+arvioBadge(ans.arvio||"")+'</div>'
+    +'<div style="margin-top:16px;font-size:12px;font-weight:700">Tehdyt työt</div><div class="huom">'+esc(ans.tyot||"")+'</div>'
+    +'<div style="margin-top:12px;font-size:12px;font-weight:700">Lisätiedot / korjaussuositukset</div><div class="huom">'+esc(ans.lisa||"")+'</div>'
     +photoHtml
+    +'<div class="note">'+esc(luok)+'</div>'
     +'<div class="note">'+esc(vastuu)+'<br>'+esc(laki)+'</div>'
-    +'<div class="foot"><div class="sign"><div style="margin-bottom:14px"><div style="font-size:11px;color:#666">Kiinteist\u00f6n edustaja tarkastuksessa</div><div class="line"></div>'+esc(ans.edustaja||"")+'</div>'
-    +'<div><div style="font-size:11px;color:#666">Tarkastuksen laatija / tekij\u00e4</div><div class="line"></div>'+esc(worker)+'</div></div>'
-    +'<div class="sign"><div><div style="font-size:11px;color:#666">P\u00e4iv\u00e4m\u00e4\u00e4r\u00e4</div><div class="line"></div>'+fmt(ans.date||today())+'</div></div></div>'
+    +'<div class="foot"><div class="sign"><div style="margin-bottom:14px"><div style="font-size:11px;color:#666">Kiinteistön edustaja tarkastuksessa</div><div class="line"></div>'+esc(ans.edustaja||"")+'</div>'
+    +'<div><div style="font-size:11px;color:#666">Tarkastuksen laatija / tekijä</div><div class="line"></div>'+esc(worker)+'</div></div>'
+    +'<div class="sign"><div><div style="font-size:11px;color:#666">Päivämäärä</div><div class="line"></div>'+fmt(ans.date||today())+'</div></div></div>'
     +'<div class="company"><span class="n">SAVUKS</span> &nbsp; puh. 044 3665638 &nbsp; info@savuks.com &nbsp; www.savuks.com<br>Santalankulmantie 8, 21290 Rusko &nbsp; Y-tunnus 3465682-5</div>'
-    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">\U0001f5a8 Tulosta / Tallenna PDF</button></p>'
+    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>'
     +'</body></html>';
   w.document.write(html);
   w.document.close();
