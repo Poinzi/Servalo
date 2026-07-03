@@ -371,6 +371,7 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M6.5 6.5l11 11"/></svg></button>
               <div class="bulkmenu" id="bulkMenu">
                 <button onclick="bulkExport()">⬇ Vie valitut tiedot</button>
+                <button onclick="bulkPrintQr()">🖨 Tulosta QR-tarrat</button>
                 <button onclick="bulkDelete()">🗑 Poista valitut</button>
               </div>
             </span>
@@ -622,7 +623,8 @@
     <div class="modal-b">
       <input type="hidden" id="dId">
       <div class="grid2">
-        <div class="field"><label>Laitetunnus</label><input class="f" id="dIdr" placeholder="esim. 601708"></div>
+        <div class="field"><label>QR-koodi <span class="hint">(tyhjä = luodaan automaattisesti)</span></label><input class="f" id="dIdr" placeholder="Luodaan automaattisesti"></div>
+        <div class="field"><label>QR-kohde</label><select class="f" id="dQrTarget"><option value="servalo">Savuks Oy:n oma tarkastettava laite → Servalo</option><option value="ohje24">Taloyhtiö / asukastila → ohje24.fi</option></select></div>
         <div class="field"><label>Huoltosopimuskohde</label><input class="f" id="dTarget" placeholder="esim. Paloilmoitinjärjestelmä"></div>
         <div class="field"><label>Valmistaja/Malli/Tyyppi</label><input class="f" id="dMake" placeholder="esim. Panasonic EBL G3"></div>
         <div class="field"><label>Tuoteryhmä</label><input class="f" id="dGroup" placeholder="esim. Paloilmoitin"></div>
@@ -1180,7 +1182,7 @@ function renderList(){
   head.innerHTML=`<tr>
     ${multiMode?'<th style="width:34px"><input type="checkbox" id="selAll" onclick="toggleAll(this)"></th>':''}
     <th style="width:30px">ⓘ</th>
-    <th class="sortable" onclick="toggleSort()">Laitetunnus ${sortDesc?'↓':'↑'}</th>
+    <th class="sortable" onclick="toggleSort()">QR-koodi ${sortDesc?'↓':'↑'}</th>
     <th>Valmistaja/Malli/Tyyppi</th><th>Huoltosopimuskohde</th><th>Toimipiste</th><th>Toiminnot</th></tr>`;
   const cols=multiMode?7:6;
   const tb=document.getElementById("devRows");
@@ -1188,7 +1190,7 @@ function renderList(){
   else tb.innerHTML=list.map(d=>`<tr>
     ${multiMode?`<td><input type="checkbox" ${selected.has(d.id)?'checked':''} onclick="toggleSel('${d.id}',this)"></td>`:''}
     <td class="chk">✔</td>
-    <td><b>${esc(d.idr)}</b></td>
+    <td>${qrThumb(d)}</td>
     <td>${esc(d.make)}</td>
     <td>${esc(d.target)}</td>
     <td>${esc(siteName(d.locId))}</td>
@@ -1205,9 +1207,25 @@ function renderList(){
 /* ----- multi-select ----- */
 let multiMode=false, selected=new Set(), activeFilters=[], sortDesc=true;
 function toggleSort(){sortDesc=!sortDesc;renderList();}
-/* --- QR: linkki, näyttö ja kameraskannaus --- */
+/* --- QR: linkki, näyttö, tarrat ja kameraskannaus --- */
+var OHJE24_URL="https://ohje24.fi/";
 function devLink(code){return location.origin+location.pathname+"#dev="+encodeURIComponent((code||"").trim());}
-function qrImg(code){code=(code||"").trim();if(!code)return"";var u="https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data="+encodeURIComponent(devLink(code));return '<img src="'+u+'" width="120" height="120" alt="QR '+esc(code)+'" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" loading="lazy"><div class="hint" style="margin-top:4px">Skannaa avataksesi laitteen</div>';}
+function qrTargetOf(d){return (d&&d.qrTarget==="ohje24")?"ohje24":"servalo";}
+function qrTargetUrl(d){var code=(d&&d.idr||"").trim();if(!code)return"";return qrTargetOf(d)==="ohje24"?OHJE24_URL+"?k="+encodeURIComponent(code):devLink(code);}
+function qrTargetLabel(d){return qrTargetOf(d)==="ohje24"?"ohje24.fi (julkinen turvallisuustieto)":"Servalo (oma tarkastettava laite)";}
+function qrSrc(url,size){return "https://api.qrserver.com/v1/create-qr-code/?size="+size+"x"+size+"&margin=0&data="+encodeURIComponent(url);}
+function qrImgFor(d){var url=qrTargetUrl(d);if(!url)return"";return '<img src="'+qrSrc(url,160)+'" width="140" height="140" alt="QR '+esc(d.idr)+'" style="border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px" loading="lazy"><div class="hint" style="margin-top:4px">Skannaamalla avautuu: '+esc(qrTargetLabel(d))+'</div>';}
+function qrThumb(d){var url=qrTargetUrl(d);if(!url)return esc(d.idr||"");return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><img src="'+qrSrc(url,80)+'" width="42" height="42" alt="QR" style="background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px" loading="lazy"><b style="font-size:11px">'+esc(d.idr||"")+'</b></div>';}
+function qrImg(code){return qrImgFor({idr:code,qrTarget:"servalo"});}
+function genQrCode(){var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",c;do{c="SVL-";for(var i=0;i<5;i++)c+=chars.charAt(Math.floor(Math.random()*chars.length));}while(db.devices.some(function(x){return String(x.idr).toUpperCase()===c;}));return c;}
+function printQrLabels(ids){
+  var ds=db.devices.filter(function(d){return ids.indexOf(d.id)>=0;});
+  if(!ds.length){alert("Ei valittuja laitteita.");return;}
+  var cells=ds.map(function(d){var url=qrTargetUrl(d);return '<div class="lbl"><img src="'+qrSrc(url,220)+'" alt="QR"><div class="c">'+esc(d.idr||"")+'</div><div class="t">'+esc(d.target||d.make||"")+'</div><div class="s">'+esc(qrTargetLabel(d))+'</div></div>';}).join("");
+  var w=window.open("","_blank");if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
+  w.document.write('<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>QR-tarrat</title><style>@page{margin:10mm}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;padding:8mm}.lbl{border:1px solid #ccc;border-radius:8px;padding:6mm;text-align:center;page-break-inside:avoid}.lbl img{width:34mm;height:34mm}.lbl .c{font-weight:700;font-size:13px;margin-top:3mm}.lbl .t{font-size:11px;color:#444;margin-top:1mm}.lbl .s{font-size:9px;color:#888;margin-top:1mm}</style></head><body onload="window.print()"><div class="sheet">'+cells+'</div></body></html>');
+  w.document.close();
+}
 function extractCode(raw){raw=(raw||"").trim();var m=raw.match(/[#?&]dev=([^&]+)/i);if(m)return decodeURIComponent(m[1]);try{var u=new URL(raw);var seg=u.pathname.split("/").filter(Boolean);if(seg.length)return decodeURIComponent(seg[seg.length-1]);}catch(e){}return raw;}
 function handleDeepLink(){var m=(location.hash||"").match(/[#&]dev=([^&]+)/i);if(!m)return;var code=decodeURIComponent(m[1]);var d=db.devices.find(function(x){return String(x.idr).toLowerCase()===code.toLowerCase();});history.replaceState(null,"",location.pathname+location.search);if(d&&currentUser)openDevice(d.id);}
 let scanStream=null,scanTimer=null;
@@ -1235,6 +1253,7 @@ function updateSelCount(){const c=document.getElementById("selCount");if(c)c.tex
 function toggleBulkMenu(e){e.stopPropagation();
   if(!selected.size){alert("Valitse ensin laitteita.");return;}
   document.getElementById("bulkMenu").classList.toggle("show");}
+function bulkPrintQr(){printQrLabels(Array.from(selected));document.getElementById("bulkMenu").classList.remove("show");}
 function bulkExport(){const sel=db.devices.filter(d=>selected.has(d.id));
   const blob=new Blob([JSON.stringify(sel,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="valitut-laitteet-"+today()+".json";a.click();
@@ -1508,7 +1527,7 @@ function deviceMainTab(d){
     const k=d.contract, cline=c=>c?[esc(c.nimi),esc(c.phone),esc(c.email)].filter(Boolean).join("<br>"):"";
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot (sopimus)</div><div class="panel-b" style="padding:0"><div class="kv">
         ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
-        ${pair("QR-koodi",qrImg(d.idr))}
+        ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Vartiointiliike ja yhteystiedot",esc(k.vartiointi))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
         ${pair("Valvomot ja yhteystiedot",esc(k.valvomo))}
@@ -1531,7 +1550,7 @@ function deviceMainTab(d){
   } else {
     infoPanel=`<div class="panel"><div class="panel-h">Laitetiedot</div><div class="panel-b" style="padding:0"><div class="kv">
         ${pair("Laitetunnus","<b>"+esc(d.idr)+"</b>")}
-        ${pair("QR-koodi",qrImg(d.idr))}
+        ${pair("QR-koodi",qrImgFor(d)+'<div style="margin-top:6px"><button class="btn ghost sm" onclick="printQrLabels([\''+d.id+'\'])">🖨 Tulosta QR-tarra</button></div>')}
         ${pair("Toimituspäivä",fmt(d.delivery))}
         ${pair("Huoltosopimuskohde",esc(d.target))}
         ${pair("Takuuaika","")}
@@ -1700,7 +1719,7 @@ function editDevice(id){
   asel.innerHTML='<option value="">– Ei osoitettu –</option>'+wlist.map(u=>`<option value="${u.id}">${esc(u.name)}${u.active?"":" (pois käytöstä)"}</option>`).join("");
   asel.value=curAssignee;
   const set=(f,v)=>document.getElementById(f).value=v||"";
-  set("dIdr",d?.idr);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);
+  set("dIdr",d?.idr);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);document.getElementById("dQrTarget").value=(d&&d.qrTarget)||"servalo";
   lsel.value=d?d.locId:(selLoc&&locById(selLoc)?.type==="site"?selLoc:lsel.value);
   set("dValue",d?.value);set("dInterval",d?.interval);set("dDelivery",d?.delivery);
   set("dLast",d?.last);set("dNext",d?.next);set("dReq",d?d.req:0);set("dRepairs",d?d.repairs:0);set("dNotes",d?.notes);
@@ -1713,7 +1732,8 @@ function saveDevice(){
   const data={idr:g("dIdr").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",
     locId:g("dLoc"),customerId:g("dCustomer")||null,assignedTo:g("dAssignee")||null,value:+g("dValue")||0,interval:g("dInterval").trim(),delivery:g("dDelivery"),
     last:g("dLast"),next:g("dNext"),inspInterval:g("dInspInterval").trim(),inspLast:g("dInspLast"),inspNext:g("dInspNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,notes:g("dNotes").trim(),updated:today()};
-  if(!data.idr){alert("Anna Laitetunnus.");return;}
+  data.qrTarget=(g("dQrTarget")==="ohje24")?"ohje24":"servalo";
+  if(!data.idr)data.idr=genQrCode();
   if(id){const dv=db.devices.find(x=>x.id===id);logDeviceDiff(dv,data);Object.assign(dv,data);}
   else{const nd={id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
     expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038",...data};db.devices.unshift(nd);logHist("Luotu",nd,[]);}
