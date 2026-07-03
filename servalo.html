@@ -1780,7 +1780,32 @@ function editDevice(id){
   set("dValue",d?.value);set("dInterval",d?.interval);set("dDelivery",d?.delivery);
   set("dLast",d?.last);set("dNext",d?.next);set("dReq",d?d.req:0);set("dRepairs",d?d.repairs:0);set("dNotes",d?.notes);
   set("dInspInterval",d?(d.inspInterval||d.interval):"");set("dInspLast",d?.inspLast);set("dInspNext",d?.inspNext);
+  devAutoNextSetup();
   document.getElementById("devOverlay").classList.add("show");
+}
+// --- automaattinen "seuraava"-paiva valista + edellisesta paivasta ---
+let _devAuto={next:{on:false,val:""},inspNext:{on:false,val:""}};
+function devAutoRecalc(lastId,ivId,nextId,key){
+  var st=_devAuto[key];if(!st||!st.on)return;
+  var last=document.getElementById(lastId).value;
+  var nx=document.getElementById(nextId);
+  if(!last)return;
+  if(nx.value && nx.value!==st.val)return; // kasin muutettu -> ei ylikirjoiteta
+  var v=addInterval(last,document.getElementById(ivId).value);
+  nx.value=v;st.val=v;
+}
+function devAutoNextSetup(){
+  var nEmpty=!document.getElementById("dNext").value;
+  var iEmpty=!document.getElementById("dInspNext").value;
+  _devAuto={next:{on:nEmpty,val:""},inspNext:{on:iEmpty,val:""}};
+  if(devAutoNextSetup._wired)return;
+  devAutoNextSetup._wired=true;
+  var h=function(){devAutoRecalc("dLast","dInterval","dNext","next");};
+  document.getElementById("dLast").addEventListener("input",h);
+  document.getElementById("dInterval").addEventListener("input",h);
+  var hi=function(){devAutoRecalc("dInspLast","dInspInterval","dInspNext","inspNext");};
+  document.getElementById("dInspLast").addEventListener("input",hi);
+  document.getElementById("dInspInterval").addEventListener("input",hi);
 }
 function saveDevice(){
   const id=document.getElementById("dId").value;
