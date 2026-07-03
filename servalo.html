@@ -549,6 +549,7 @@
       <div class="tabs" id="adminTabs">
         <button class="active" data-atab="users">👥 Käyttäjät</button>
         <button data-atab="settings">⚙ Asetukset</button>
+        <button data-atab="perms">🔐 Oikeudet</button>
       </div>
       <div id="adminBody"></div>
     </section>
@@ -596,6 +597,7 @@
         <div class="field"><label>Sähköposti</label><input class="f" id="uEmailF" type="email" placeholder="nimi@servalo.fi"></div>
       </div>
       <label class="rtoggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="uActiveF" checked> Aktiivinen (voi kirjautua)</label>
+      <div class="field"><label>Toimipisterajaus</label><div id="uLocsWrap" style="max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px"></div><p class="hint">Valitse kohteet joihin k\u00e4ytt\u00e4j\u00e4 p\u00e4\u00e4see. Tyhj\u00e4 valinta = kaikki kohteet. P\u00e4\u00e4k\u00e4ytt\u00e4j\u00e4\u00e4 ei rajata.</p></div>
       <div id="uCertsWrap"></div>
     </div>
     <div class="modal-foot">
@@ -1117,6 +1119,7 @@ function seed(){
   return {locs,devices:dev,customers,tasks,users,settings};
 }
 if(!db){db=seed();save();}
+ensurePerms();
 db.views=db.views||[];
 db.customers=db.customers||[];
 db.tasks=db.tasks||[];
@@ -1140,8 +1143,13 @@ function mapLink(addr){addr=(addr||"").trim();if(!addr)return"";return ' · <a c
 function locPath(id){const out=[];let c=locById(id);while(c){out.unshift(c.name);c=locById(c.parent);}return out.join(" - ");}
 function siteName(id){const l=locById(id);return l?l.name:"";}
 function descendants(id){if(!id)return null;const set=new Set([id]);let added=true;while(added){added=false;db.locs.forEach(l=>{if(l.parent&&set.has(l.parent)&&!set.has(l.id)){set.add(l.id);added=true;}});}return set;}
+function userLocSet(){const u=currentUser;if(!u||u.role==="admin")return null;const ls=(u.locs||[]).filter(Boolean);if(!ls.length)return null;const set=new Set();ls.forEach(function(id){const d=descendants(id);if(d)d.forEach(function(x){set.add(x);});});return set.size?set:null;}
+function inUserScope(d){const us=userLocSet();return !us||us.has(d.locId);}
+function renderUserLocs(sel){const w=document.getElementById("uLocsWrap");if(!w)return;const chosen=new Set(sel||[]);const nodes=db.locs.filter(function(l){return l.type!=="company";});w.innerHTML=nodes.map(function(l){const depth=l.type==="site"?1:0;return '<label style="display:flex;align-items:center;gap:8px;padding:2px 0;margin-left:'+(depth*16)+'px"><input type="checkbox" value="'+l.id+'"'+(chosen.has(l.id)?' checked':'')+'> '+esc(l.name)+'</label>';}).join("")||'<span class="hint">Ei kohteita.</span>';}
 function devicesInScope(){
   let list=db.devices.filter(d=>!d.deleted);
+  const us=userLocSet();
+  if(us)list=list.filter(d=>us.has(d.locId));
   if(selLoc){const set=descendants(selLoc);list=list.filter(d=>set.has(d.locId)||set.has(locById(d.locId)?.parent));}
   return list;
 }
@@ -2952,14 +2960,12 @@ const ROLE_COLOR={admin:"#7c3aed",supervisor:"#1d4ed8",worker:"#0d9488",customer
 let currentUser=null;
 function initials(n){return (n||"?").trim().split(/\s+/).map(x=>x[0]).slice(0,2).join("").toUpperCase();}
 function role(){return currentUser?currentUser.role:null;}
-function can(p){
-  const r=role();
-  if(r==="admin")return true;
-  if(r==="supervisor")return ["mywork","dispatch","customers","reports","devices_edit","view","billing"].includes(p);
-  if(r==="worker")return ["mywork","view","complete","devices_edit"].includes(p);
-  if(r==="customer")return ["portal"].includes(p);
-  return false;
-}
+const PERM_DEFS=[["view","Laitteiden katselu"],["devices_edit","Laitteiden muokkaus"],["complete","Huoltojen ja tarkastusten kuittaus"],["mywork","Omat ty\u00f6t"],["dispatch","Ty\u00f6njako"],["customers","Asiakkaat"],["reports","Raportit"],["billing","Laskutus"],["portal","Asiakasportaali (oma kohde)"]];
+const PERM_ROLES=[["supervisor","Ty\u00f6njohtaja"],["worker","Asentaja"],["customer","Asiakas"]];
+function defaultPerms(){return {supervisor:{view:true,devices_edit:true,mywork:true,dispatch:true,customers:true,reports:true,billing:true},worker:{view:true,devices_edit:true,complete:true,mywork:true},customer:{portal:true}};}
+function ensurePerms(){if(!db.perms||typeof db.perms!=="object")db.perms=defaultPerms();const d=defaultPerms();Object.keys(d).forEach(function(rl){if(!db.perms[rl])db.perms[rl]=d[rl];});}
+function can(p){const r=role();if(!r)return false;if(r==="admin")return true;const pm=(db.perms&&db.perms[r])||{};return !!pm[p];}
+function savePerms(){PERM_ROLES.forEach(function(r){db.perms[r[0]]=db.perms[r[0]]||{};PERM_DEFS.forEach(function(pd){const el=document.getElementById("perm_"+r[0]+"_"+pd[0]);db.perms[r[0]][pd[0]]=!!(el&&el.checked);});});save();if(currentUser)applyRole();alert("Oikeudet tallennettu.");}
 function loadUser(){const id=localStorage.getItem(UKEY);return id?db.users.find(u=>u.id===id&&u.active):null;}
 function defaultView(){return role()==="customer"?"portal":role()==="worker"?"mywork":"list";}
 /* --- kirjautuminen --- */
@@ -3329,14 +3335,14 @@ function renderDispatch(){
   }
   const q=document.getElementById("dispSearch").value.toLowerCase();
   const fWho=who.value, onlyUn=document.getElementById("dispUnassigned").checked;
-  let list=db.devices.filter(d=>!d.deleted)
+  let list=db.devices.filter(d=>!d.deleted&&inUserScope(d))
     .filter(d=>(d.tag+d.make+d.target+siteName(d.locId)).toLowerCase().includes(q));
   if(onlyUn||fWho==="__none")list=list.filter(d=>!d.assignedTo);
   else if(fWho)list=list.filter(d=>d.assignedTo===fWho);
   list.sort((a,b)=>String(a.next||"9999").localeCompare(String(b.next||"9999")));
   const workers=db.users.filter(u=>u.role==="worker"&&u.active);
   const counts={};workers.forEach(w=>counts[w.id]=0);let un=0;
-  db.devices.filter(d=>!d.deleted).forEach(d=>{if(d.assignedTo&&counts[d.assignedTo]!=null)counts[d.assignedTo]++;else un++;});
+  db.devices.filter(d=>!d.deleted&&inUserScope(d)).forEach(d=>{if(d.assignedTo&&counts[d.assignedTo]!=null)counts[d.assignedTo]++;else un++;});
   document.getElementById("dispStats").innerHTML=
     workers.map(w=>`<div class="stat"><div class="lbl">${esc(w.name)}</div><div class="num">${counts[w.id]}</div></div>`).join("")+
     `<div class="stat alert"><div class="lbl">Ei osoitettu</div><div class="num">${un}</div></div>`;
@@ -3368,6 +3374,15 @@ function renderAdmin(){
       <div class="panel"><div class="panel-b" style="padding:0"><div style="overflow-x:auto"><table>
       <thead><tr><th>Nimi</th><th>Rooli</th><th>Sähköposti</th><th>Tila</th><th>Toiminnot</th></tr></thead>
       <tbody>${rows}</tbody></table></div></div></div>`;
+  } else if(adminTab==="perms"){
+    const rl=PERM_ROLES;
+    const head='<th style="text-align:left">Oikeus</th>'+rl.map(function(r){return '<th style="text-align:center">'+esc(r[1])+'</th>';}).join("");
+    const prows=PERM_DEFS.map(function(pd){
+      const cells=rl.map(function(r){const on=!!(db.perms[r[0]]&&db.perms[r[0]][pd[0]]);return '<td style="text-align:center"><input type="checkbox" id="perm_'+r[0]+'_'+pd[0]+'"'+(on?' checked':'')+'></td>';}).join("");
+      return '<tr><td>'+esc(pd[1])+'</td>'+cells+'</tr>';
+    }).join("");
+    body.innerHTML='<div class="topbar" style="margin-bottom:12px"><span class="hint">Valitse mit\u00e4 kukin rooli n\u00e4kee ja voi tehd\u00e4. P\u00e4\u00e4k\u00e4ytt\u00e4j\u00e4ll\u00e4 on aina kaikki oikeudet.</span><button class="btn orange" onclick="savePerms()">\ud83d\udcbe Tallenna oikeudet</button></div>'
+      +'<div class="panel"><div class="panel-b" style="padding:0"><div style="overflow-x:auto"><table><thead><tr>'+head+'</tr></thead><tbody>'+prows+'</tbody></table></div></div></div>';
   } else {
     const c=db.settings.company;
     body.innerHTML=`<div class="panel"><div class="panel-h">Yritystiedot</div><div class="panel-b">
@@ -3429,13 +3444,15 @@ function editUser(id){
   document.getElementById("uActiveF").checked=u?!!u.active:true;
   editCerts=u&&u.certs?JSON.parse(JSON.stringify(u.certs)):[];
   renderCertList();
+  renderUserLocs(u?u.locs:[]);
   document.getElementById("userOverlay").classList.add("show");
 }
 function saveUser(){
   const g=f=>document.getElementById(f).value;
   const name=g("uNameF").trim();if(!name){alert("Anna nimi.");return;}
   const id=document.getElementById("uId").value;
-  const data={name,role:g("uRoleF"),email:g("uEmailF").trim(),active:document.getElementById("uActiveF").checked,certs:editCerts.slice()};
+  const locs=Array.from(document.querySelectorAll("#uLocsWrap input:checked")).map(function(x){return x.value;});
+  const data={name,role:g("uRoleF"),email:g("uEmailF").trim(),active:document.getElementById("uActiveF").checked,certs:editCerts.slice(),locs};
   if(id)Object.assign(db.users.find(x=>x.id===id),data);
   else db.users.push({id:uid(),...data});
   save();closeOverlay("userOverlay");renderAdmin();
