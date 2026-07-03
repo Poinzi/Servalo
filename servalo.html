@@ -388,12 +388,12 @@
               </div>
             </span>
             <button class="tbtn orange" id="btnFilter" title="Suodata" onclick="openFilter()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18a1 1 0 0 1 .8 1.6L15 14v5.2a1 1 0 0 1-1.45.9l-3-1.5A1 1 0 0 1 10 17.7V14L2.2 6.1A1 1 0 0 1 3 4.5z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.3" fill="currentColor"/><circle cx="15" cy="12" r="2.3" fill="currentColor"/><circle cx="8" cy="17" r="2.3" fill="currentColor"/></svg>
               <span class="dot" id="filterDot" style="display:none">0</span></button>
             <button class="tbtn orange" id="btnViews" title="Tallennetut näkymät" onclick="openViews()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18a1 1 0 0 1 .8 1.6L15 14v5.2a1 1 0 0 1-1.45.9l-3-1.5A1 1 0 0 1 10 17.7V14L2.2 6.1A1 1 0 0 1 3 4.5z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z"/></svg>
               <span class="dot">!</span></button>
-            <button class="tbtn orange" id="btnScan" title="Skannaa QR-koodi kameralla" onclick="openScan()">📷</button>
+            <button class="tbtn orange" id="btnScan" title="Skannaa QR-koodi kameralla" onclick="openScan()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5a1.5 1.5 0 0 1 1.5-1.5H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></button>
             <div class="search-box" style="flex:1"><input id="devSearch" placeholder="Etsi" oninput="renderList()"></div>
           </div>
           <p class="hint" style="margin:-6px 0 14px">Etsitään laitetaulukon aktiivisista tiedoista. Laajenna hakua painikkeesta.</p>
@@ -440,9 +440,9 @@
             <button class="tbtn orange" id="btnRepDate" title="Suodata tapahtumapäivällä" onclick="openDateFilter(event)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/><circle cx="16.5" cy="15" r="3"/><path d="M19 17.5l1.5 1.5"/></svg></button>
             <button class="tbtn orange" id="btnRepFilter" title="Suodata" onclick="openRepFilter()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18a1 1 0 0 1 .8 1.6L15 14v5.2a1 1 0 0 1-1.45.9l-3-1.5A1 1 0 0 1 10 17.7V14L2.2 6.1A1 1 0 0 1 3 4.5z"/></svg></button>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.3" fill="currentColor"/><circle cx="15" cy="12" r="2.3" fill="currentColor"/><circle cx="8" cy="17" r="2.3" fill="currentColor"/></svg></button>
             <button class="tbtn orange" id="btnRepViews" title="Tallennetut näkymät" onclick="openViews()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4.5h18a1 1 0 0 1 .8 1.6L15 14v5.2a1 1 0 0 1-1.45.9l-3-1.5A1 1 0 0 1 10 17.7V14L2.2 6.1A1 1 0 0 1 3 4.5z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z"/></svg>
               <span class="dot">!</span></button>
             <button class="tbtn white" id="btnRepCols" title="Sarakeasetukset" onclick="openColsMenu(event)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7.7 1.6 1.6 0 0 0-1.1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1.1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H8a1.6 1.6 0 0 0 1-1.5V2a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V8a1.6 1.6 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
@@ -2251,7 +2251,7 @@ function renderCustomerDetail(){
     <div class="panel"><div class="panel-h">Koodit &amp; kohteet (${codesOf(c.id).length})</div><div class="panel-b">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <input id="ncCode" placeholder="Koodi (tarrasta)" style="flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:8px">
-        <button class="btn ghost" type="button" onclick="scanCode()">📷 Skannaa</button>
+        <button class="btn ghost" type="button" onclick="scanCode()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5a1.5 1.5 0 0 1 1.5-1.5H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Skannaa</button>
         <select id="ncType" onchange="ncTypeChange()" style="min-width:120px;padding:9px;border:1px solid var(--line);border-radius:8px">
           <option value="asukas">Asukas</option>
           <option value="aula">Aula</option>
