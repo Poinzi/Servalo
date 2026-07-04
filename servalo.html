@@ -678,6 +678,7 @@
         <input type="file" id="aiImgs" accept="image/*" capture="environment" multiple class="f" style="margin-bottom:6px">
         <div class="field" style="margin-bottom:6px"><label>Anthropic API-avain <span class="hint">(tallentuu vain tähän selaimeen)</span></label><input class="f" id="aiKey" type="password" placeholder="sk-ant-..."></div>
         <button type="button" class="btn orange" id="aiRunBtn" onclick="aiFillFromPhoto()">Analysoi kuva</button>
+        <button type="button" class="btn ghost" id="aiMicBtn" onclick="aiDictate()" style="margin-left:8px">🎤 Sanele tiedot</button>
         <span id="aiStatus" style="margin-left:10px;font-size:13px;color:#555"></span>
       </div>
       <div class="grid2">
@@ -3833,6 +3834,58 @@ function saveDevice(){
 function closeOverlay(id){document.getElementById(id).classList.remove("show");}
 var AI_KEY_LS="SAVUKS_AI_KEY", AI_MODEL_LS="SAVUKS_AI_MODEL";
 function aiModel(){return localStorage.getItem(AI_MODEL_LS)||"claude-sonnet-4-6";}
+function aiSupportsSpeech(){return !!(window.SpeechRecognition||window.webkitSpeechRecognition);}
+function aiSetField(id,val){var el=document.getElementById(id);if(el&&val){el.value=val;return true;}return false;}
+function aiTitle(s){return s.replace(/\b\w/g,function(c){return c.toUpperCase();});}
+function aiParseSpeech(text){
+  var t=(" "+text+" ").toLowerCase();
+  var keys=[
+    {re:/\bmerkki\b|\bvalmistaja\b/g,slot:"brand"},
+    {re:/\btyyppi\b|\bsammutelaji\b|\blaji\b/g,slot:"type"},
+    {re:/\bkoko\b/g,slot:"size"},
+    {re:/\bvalmistusvuosi\b|\bvuosi\b/g,slot:"year"},
+    {re:/\bsarjanumero\b|\bsarja\b/g,slot:"serial"}
+  ];
+  var hits=[];
+  keys.forEach(function(k){var m;while((m=k.re.exec(t))){hits.push({slot:k.slot,start:m.index,end:m.index+m[0].length});}});
+  hits.sort(function(a,b){return a.start-b.start;});
+  var vals={};
+  for(var i=0;i<hits.length;i++){
+    var seg=t.slice(hits[i].end, i+1<hits.length?hits[i+1].start:t.length);
+    seg=seg.replace(/^[\s:,\.]+|[\s:,\.]+$/g,"").trim();
+    if(seg&&!vals[hits[i].slot])vals[hits[i].slot]=seg;
+  }
+  var filled=[];
+  var brand=vals.brand||"", typ=vals.type||"";
+  var makeV=(brand+" "+typ).trim();
+  if(makeV){aiSetField("dMake",aiTitle(makeV));filled.push("merkki/tyyppi");}
+  if(vals.size){aiSetField("dSize",vals.size);filled.push("koko");}
+  if(vals.year){var y=(vals.year.match(/(19|20)\d{2}/)||[])[0]||vals.year;aiSetField("dYear",y);filled.push("vuosi");}
+  if(vals.serial){aiSetField("dSerial",vals.serial.toUpperCase().replace(/\s+/g,""));filled.push("sarjanro");}
+  return filled;
+}
+function aiDictate(){
+  if(!aiSupportsSpeech()){aiSetStatus("Sanelu ei ole tuettu tässä selaimessa.","#c1121f");return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=new SR();rec.lang="fi-FI";rec.interimResults=false;rec.maxAlternatives=1;
+  var btn=document.getElementById("aiMicBtn");
+  aiSetStatus("Kuuntelen… sano esim. merkki Presto, tyyppi jauhe, koko 6 kg, vuosi 2019, sarjanumero AB123","#555");
+  if(btn){btn.disabled=true;btn.textContent="🎤 Kuuntelen…";}
+  rec.onerror=function(e){aiSetStatus("Sanelu epäonnistui: "+((e&&e.error)||""),"#c1121f");if(btn){btn.disabled=false;btn.textContent="🎤 Sanele tiedot";}};
+  rec.onend=function(){if(btn){btn.disabled=false;btn.textContent="🎤 Sanele tiedot";}};
+  rec.onresult=function(ev){
+    var txt="";for(var i=0;i<ev.results.length;i++){txt+=ev.results[i][0].transcript+" ";}
+    txt=txt.trim();
+    var filled=aiParseSpeech(txt);
+    var extra=(typeof aiMarkEmpty==="function")?aiMarkEmpty():[];
+    var msg='Kuultu: "'+txt+'". ';
+    msg+=filled.length?("Täytetty: "+filled.join(", ")+"."):"Ei tunnistettuja kenttiä — kokeile: merkki, tyyppi, koko, vuosi, sarjanumero.";
+    if(extra.length)msg+=" Täytä käsin: "+extra.join(", ")+".";
+    aiSetStatus(msg, filled.length?"#1a7f37":"#c1121f");
+  };
+  try{rec.start();}catch(e){aiSetStatus("Sanelua ei voitu käynnistää.","#c1121f");if(btn){btn.disabled=false;btn.textContent="🎤 Sanele tiedot";}}
+}
+(function(){function h(){var b=document.getElementById("aiMicBtn");if(b&&!aiSupportsSpeech())b.style.display="none";}if(document.readyState!=="loading")h();else document.addEventListener("DOMContentLoaded",h);})();
 function aiSetStatus(t,c){var e=document.getElementById("aiStatus");if(e){e.textContent=t;e.style.color=c||"#555";}}
 function aiFieldDefs(){return [["dMake","merkki/tyyppi"],["dSize","koko"],["dYear","vuosi"],["dSerial","sarjanro"]];}
 function aiClearMark(id){var el=document.getElementById(id);if(el)el.classList.remove("ai-need");}
