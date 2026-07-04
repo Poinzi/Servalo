@@ -4947,6 +4947,10 @@ function sammutinPk(devs,ctx){
   var w=window.open("","_blank");
   if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
   var typeOf=function(d){var m=String(d.make||"").toUpperCase();if(m.indexOf("CO2")>=0||m.indexOf("HIILIDIOKS")>=0)return"CO2";if(m.indexOf("NESTE")>=0)return"Neste";if(m.indexOf("VAAHTO")>=0)return"Vaahto";return"Jauhe";};
+  var dash='<span style="color:#bbb">–</span>';
+  var tehoOf=function(d){var t=String(d.make||"").toUpperCase().replace(/\s+/g,"");var o=[];var a=t.match(/\d+A/);if(a)o.push(a[0]);var b=t.match(/\d+B/);if(b)o.push(b[0]);if(/[AB0-9]C/.test(t))o.push("C");return o.join(" ");};
+  var yearOf=function(d){var m=String((d.serial||"")+" "+(d.make||"")).match(/(19|20)\d{2}/);return m?m[0]:"";};
+  var koeOf=function(d){var y=yearOf(d);return y?String(parseInt(y,10)+10):"";};
   var mmYY=function(iso){if(!iso)return"";var p=String(iso).slice(0,10).split("-");return p.length>=2?(p[1]+"/"+p[0].slice(2)):"";};
   var photoOf=function(d){var a=d.inspections||[];for(var i=0;i<a.length;i++){if(a[i].photo&&a[i].photo.data)return a[i].photo.data;}return"";};
   var rows=(devs||[]).map(function(d,i){
@@ -4957,19 +4961,26 @@ function sammutinPk(devs,ctx){
       +'<td>'+esc(d.locDetail||siteName(d.locId)||"")+'</td>'
       +'<td>'+esc(d.make||"")+'</td>'
       +'<td class="c">'+typeOf(d)+'</td>'
-      +'<td class="c">'+(d.inspLast?"✓":"")+'</td>'
-      +'<td class="c">'+esc(d.pressureTest||"")+'</td>'
-      +'<td class="c">'+esc(mmYY(d.last))+'</td>'
+      +'<td class="c">'+(tehoOf(d)||dash)+'</td>'
+      +'<td class="c">'+(yearOf(d)||dash)+'</td>'
+      +'<td class="c">'+(d.inspLast?fmt(d.inspLast):dash)+'</td>'
+      +'<td class="c">'+(d.inspNext?fmt(d.inspNext):dash)+'</td>'
+      +'<td class="c">'+(mmYY(d.last)||dash)+'</td>'
+      +'<td class="c">'+(koeOf(d)||dash)+'</td>'
       +'<td class="c">'+esc(d.serial||valmOf(d.make)||"")+'</td>'
-      +'<td class="c">'+esc(d.inspInterval||d.interval||"")+'</td>'
       +'<td>'+esc(d.notes||"")+'</td>'
       +'<td class="c">'+img+'</td>'
       +'</tr>';
-  }).join("")||'<tr><td colspan="11" style="text-align:center;color:#999;padding:18px">Ei käsisammuttimia valinnassa.</td></tr>';
+  }).join("")||'<tr><td colspan="13" style="text-align:center;color:#999;padding:18px">Ei käsisammuttimia valinnassa.</td></tr>';
   var worker=currentUser?currentUser.name:"";
   var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Sammutinpöytäkirja</title>'
     +'<style>'
+    +'@page{size:A4 landscape;margin:12mm}'
     +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px}'
+    +'.sub{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:13px;margin:14px 0 4px}'
+    +'.metah{border-collapse:collapse;font-size:12px;margin:2px 0 4px}'
+    +'.metah td{padding:3px 8px;border-bottom:1px solid #eee}.metah td.k{color:#666}'
+    +'.legend{font-size:10px;color:#666;margin:6px 0 0;font-style:italic}'
     +'h1{font-family:Georgia,"Times New Roman",serif;font-size:21px;letter-spacing:.5px;margin:0}'
     +'.brand{font-family:Georgia,serif;font-size:26px;font-weight:700;color:#c1121f;letter-spacing:3px}'
     +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c1121f;padding-bottom:12px}'
@@ -4987,10 +4998,16 @@ function sammutinPk(devs,ctx){
     +'</style></head><body>'
     +'<div class="head"><div><div class="brand">SAVUKS</div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
     +'<div style="text-align:right"><h1>Tarkastuspöytäkirja</h1><div style="font-size:12px;color:#666">Käsisammuttimet</div></div></div>'
-    +'<div class="meta"><b>Asiakas:</b> '+esc(ctx.name||"–")+' &nbsp; <b>Osoite:</b> '+esc(ctx.address||"–")+' &nbsp; <b>Päiväys:</b> '+fmt(today())+' &nbsp; <b>Sammuttimia:</b> '+(devs?devs.length:0)+'</div>'
+    +'<div class="sub">Kohteen tiedot</div>'
+    +'<table class="metah">'
+    +'<tr><td class="k">Kohde / asiakas</td><td>'+esc(ctx.name||"–")+'</td><td class="k">Päiväys</td><td>'+fmt(today())+'</td></tr>'
+    +'<tr><td class="k">Osoite</td><td>'+esc(ctx.address||"–")+'</td><td class="k">Sammuttimia</td><td>'+(devs?devs.length:0)+'</td></tr>'
+    +'<tr><td class="k">Tarkastaja</td><td>'+esc(worker)+'</td><td class="k"></td><td></td></tr>'
+    +'</table>'
     +'<table><thead><tr>'
-    +'<th class="c">#</th><th>Sijainti</th><th>Merkki / Malli</th><th class="c">Tyyppi</th><th class="c">Tark.</th><th class="c">Koeponn.</th><th class="c">Huolto kk/vv</th><th class="c">Valm.nro</th><th class="c">Tarkastusväli</th><th>Lisätiedot</th><th class="c">Kuva</th>'
+    +'<th class="c">#</th><th>Sijainti</th><th>Merkki / Malli</th><th class="c">Tyyppi</th><th class="c">Teholuokka</th><th class="c">Valm.vuosi</th><th class="c">Tark. pvm</th><th class="c">Seur. tark.</th><th class="c">Huolto</th><th class="c">Koeponn.</th><th class="c">Valm.nro</th><th>Lisätiedot</th><th class="c">Kuva</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="legend">Tyyppi ja teholuokka päätellään mallista. Valm.vuosi luetaan sarja-/mallitiedoista jos saatavilla. Koeponn. = seuraava koeponnistus (valm.vuosi + 10 v). – = tieto puuttuu / täytä käsin.</div>'
     +'<div class="foot"><div style="flex:1"><div style="font-size:12px;font-weight:700;margin-bottom:4px">Huomioita</div><div class="notes"></div></div>'
     +'<div class="sign"><div style="margin-bottom:14px"><div style="font-size:11px;color:#666">Päivämäärä</div><div class="line"></div>'+fmt(today())+'</div>'
     +'<div><div style="font-size:11px;color:#666">Työn suorittaja</div><div class="line"></div>'+esc(worker)+'</div></div></div>'
