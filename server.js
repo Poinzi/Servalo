@@ -20,6 +20,34 @@ const TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  // Anthropic-proxy: AI-kuva-analyysi. Avain vain palvelimella (ANTHROPIC_API_KEY),
+  // oletusmalli Haiku. Kevyt suoja: vaatii X-User-Id-otsakkeen (sovellus lahettaa sen).
+  if (req.url.startsWith("/api/analyze")) {
+    const jt = { "Content-Type": "application/json; charset=utf-8" };
+    if (req.method !== "POST") { res.writeHead(405, jt); return res.end(JSON.stringify({ error: "POST vaaditaan" })); }
+    if (!String(req.headers["x-user-id"] || "").trim()) { res.writeHead(401, jt); return res.end(JSON.stringify({ error: "kirjautuminen vaaditaan" })); }
+    const aiKey = process.env.ANTHROPIC_API_KEY;
+    if (!aiKey) { res.writeHead(503, jt); return res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY puuttuu palvelimelta" })); }
+    let raw = "";
+    req.on("data", (c) => { raw += c; if (raw.length > 8 * 1024 * 1024) req.destroy(); });
+    req.on("end", () => {
+      let body;
+      try { body = JSON.parse(raw || "{}"); } catch (e) { res.writeHead(400, jt); return res.end(JSON.stringify({ error: "virheellinen JSON" })); }
+      const ALLOWED = new Set(["claude-haiku-4-5", "claude-sonnet-4-6"]);
+      const model = ALLOWED.has(body.model) ? body.model : "claude-haiku-4-5";
+      const content = Array.isArray(body.content) ? body.content : null;
+      if (!content) { res.writeHead(400, jt); return res.end(JSON.stringify({ error: "content vaaditaan" })); }
+      fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": aiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: model, max_tokens: 400, messages: [{ role: "user", content: content }] }),
+      })
+        .then((r) => r.text().then((t) => { res.writeHead(r.status, jt); res.end(t); }))
+        .catch((err) => { res.writeHead(502, jt); res.end(JSON.stringify({ error: "AI-kutsu epaonnistui", detail: String(err) })); });
+    });
+    return;
+  }
+
   // Servalon oma QR-API (kaikki muu /api/* paitsi YTJ-proxy).
   if (req.url.startsWith("/api/") && !req.url.startsWith("/api/ytj")) {
     return api.handle(req, res);
