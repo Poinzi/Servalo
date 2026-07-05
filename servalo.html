@@ -3864,9 +3864,14 @@ function aiParseSpeech(text){
     if(seg&&!vals[hits[i].slot])vals[hits[i].slot]=seg;
   }
   var filled=[];
-  var brand=vals.brand||"", typ=vals.type||"";
+  var brand=(vals.brand||"").trim(), typ=(vals.type||"").trim();
+  if(brand)brand=aiTitle(brand);
+  if(typ){
+    if(/\d/.test(typ)&&/[a-z]/i.test(typ))typ=typ.toUpperCase().replace(/\s+/g,"");
+    else typ=aiTitle(typ);
+  }
   var makeV=(brand+" "+typ).trim();
-  if(makeV){aiSetField("dMake",aiTitle(makeV));filled.push("merkki/tyyppi");}
+  if(makeV){aiSetField("dMake",makeV);filled.push("merkki/tyyppi");}
   if(vals.size){aiSetField("dSize",vals.size);filled.push("koko");}
   if(vals.year){var y=(vals.year.match(/(19|20)\d{2}/)||[])[0]||vals.year;aiSetField("dYear",y);filled.push("vuosi");}
   if(vals.serial){aiSetField("dSerial",vals.serial.toUpperCase().replace(/\s+/g,""));filled.push("sarjanro");}
@@ -3877,7 +3882,7 @@ function aiDictate(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   var rec=new SR();rec.lang="fi-FI";rec.interimResults=false;rec.maxAlternatives=1;
   var btn=document.getElementById("aiMicBtn");
-  aiSetStatus("Kuuntelen… sano esim. merkki Presto, tyyppi jauhe, koko 6 kg, vuosi 2019, sarjanumero AB123","#555");
+  aiSetStatus("Kuuntelen… sano esim. merkki Presto, tyyppi P6GS, koko 6 kg, vuosi 2019, sarjanumero AB123","#555");
   if(btn){btn.disabled=true;btn.textContent="🎤 Kuuntelen…";}
   rec.onerror=function(e){aiSetStatus("Sanelu epäonnistui: "+((e&&e.error)||""),"#c1121f");if(btn){btn.disabled=false;btn.textContent="🎤 Sanele tiedot";}};
   rec.onend=function(){if(btn){btn.disabled=false;btn.textContent="🎤 Sanele tiedot";}};
