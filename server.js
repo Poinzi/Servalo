@@ -86,6 +86,9 @@ const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split("?")[0]);
   // QR-koodilinkit (esim. /k/82FA66) -> aina julkinen sivu; sivu lukee koodin URL:sta
   if (urlPath === "/k" || urlPath.startsWith("/k/")) urlPath = "/ohje24.html";
+  // Kirjanpito: vain sisainen sovellus, ei koskaan julkisella ohje24-domainilla.
+  if (isPublic && /kirjanpito/i.test(urlPath)) urlPath = "/ohje24.html";
+  else if (urlPath === "/kirjanpito") urlPath = "/kirjanpito.html";
   if (urlPath === "/") urlPath = defaultFile;
 
   const filePath = path.normalize(path.join(ROOT, urlPath));

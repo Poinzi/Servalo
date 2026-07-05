@@ -309,6 +309,7 @@
         <button id="navBilling" data-go="billing">🧾 Laskutus</button>
         <button data-report="patevyydet">🎫 Pätevyydet ja kortit</button>
         <button id="navAdmin" data-go="admin">⚙ Käyttäjät & asetukset</button>
+        <button id="navKirjanpito" onclick="openKirjanpito()" style="display:none">📒 Kirjanpito</button>
       </div>
     </div>
   </nav>
@@ -5639,6 +5640,10 @@ function changePassword(){
   alert("Salasana vaihdettu (demo).");
 }
 function toggleMfa(on){currentUser.mfa=on;save();renderSettings();}
+function openKirjanpito(){
+  if(role()!=="admin"){alert("Kirjanpito on vain pääkäyttäjälle.");return;}
+  window.open("/kirjanpito","_blank","noopener");
+}
 /* --- oikeuksien soveltaminen näkymään --- */
 function applyRole(){
   const cust=role()==="customer";
@@ -5650,6 +5655,7 @@ function applyRole(){
   show("navDispatch", can("dispatch"));
   show("navBilling", can("billing"));
   show("navAdmin", role()==="admin");
+  show("navKirjanpito", role()==="admin");
   show("navPortal", cust);
   show("navCalendar", !cust);
   show("navLog", !cust);

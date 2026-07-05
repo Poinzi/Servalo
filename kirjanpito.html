@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Savuks Oy — Kirjanpito</title>
+<style>
+  :root { --red:#c1121f; --line:#e6e6e6; --hint:#666; --bg:#fafafa; --card:#fff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; font-family:"Trebuchet MS",Verdana,Geneva,sans-serif; color:#1b1b1b; background:var(--bg); }
+  h1,h2,h3 { font-family:Georgia,"Times New Roman",serif; margin:0; }
+  h1 { font-size:22px; }
+  h2 { font-size:18px; color:var(--red); margin:14px 0 8px; }
+  h3 { font-size:15px; color:var(--red); margin:10px 0 6px; }
+  a { color:var(--red); }
+  .brand { font-family:Georgia,serif; font-size:22px; font-weight:700; color:var(--red); letter-spacing:2px; }
+  .hint { color:var(--hint); font-size:12px; }
+  .muted { color:#999; font-size:12px; }
+  button.btn { background:var(--red); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; }
+  button.btn.ghost { background:#eee; color:#1b1b1b; }
+  button.btn.small { padding:5px 10px; font-size:12px; }
+  button.link { background:none; border:0; color:var(--red); cursor:pointer; padding:2px 4px; font-size:12px; }
+  input.f, select.f, textarea.f { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; background:#fff; }
+  textarea.f { resize:vertical; min-height:60px; }
+  label { font-size:12px; color:#333; display:block; margin-bottom:2px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > * { flex:1; min-width:120px; }
+  .field { margin-bottom:8px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
+  th { background:#1b1b1b; color:#fff; padding:8px 10px; text-align:left; font-weight:600; font-size:12px; }
+  td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
+  td.right, th.right { text-align:right; }
+  td.center, th.center { text-align:center; }
+
+  /* Lukitusnäyttö */
+  #lockScreen { position:fixed; inset:0; background:linear-gradient(135deg,#faf0f0,#fff); display:flex; align-items:center; justify-content:center; z-index:1000; }
+  #lockScreen .lock-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:30px 34px; max-width:420px; width:92%; box-shadow:0 6px 20px rgba(0,0,0,0.05); }
+  #lockScreen .brand { font-size:32px; letter-spacing:4px; display:block; text-align:center; margin-bottom:6px; }
+  #lockScreen h1 { text-align:center; margin-bottom:16px; font-size:18px; color:var(--red); }
+  #lockScreen .field { margin-bottom:12px; }
+  #lockScreen .btn { width:100%; padding:11px 14px; font-size:14px; margin-top:6px; }
+  #lockScreen .warn { background:#fff8f8; border:1px solid #f0dede; border-radius:6px; padding:8px 10px; font-size:12px; color:#7a1f1f; margin-top:12px; line-height:1.5; }
+  #lockScreen .flame { display:block; margin:0 auto 8px; }
+
+  /* Sovellus */
+  #app { min-height:100vh; }
+  header.top { background:#1b1b1b; color:#fff; padding:10px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header.top .brand { color:var(--red); }
+  header.top .tag { color:#bbb; font-size:12px; }
+  header.top nav { display:flex; gap:2px; margin-left:14px; flex-wrap:wrap; }
+  header.top nav button { background:transparent; color:#ccc; border:0; padding:6px 12px; font-size:13px; cursor:pointer; border-radius:4px; }
+  header.top nav button:hover { color:#fff; background:#333; }
+  header.top nav button.active { color:#fff; background:var(--red); }
+  header.top .actions { margin-left:auto; display:flex; gap:8px; }
+  header.top .actions button { background:#333; color:#fff; border:0; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
+
+  main { padding:20px 22px 20px; max-width:1200px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:14px; }
+  .card h2:first-child { margin-top:0; }
+  .kpi { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:14px; }
+  .kpi .cell { background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .kpi .cell .k { font-size:11px; color:var(--hint); text-transform:uppercase; letter-spacing:1px; }
+  .kpi .cell .v { font-size:20px; font-weight:700; margin-top:4px; }
+  .kpi .cell .v.pos { color:#1a7f37; }
+  .kpi .cell .v.neg { color:var(--red); }
+  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .disclaimer { max-width:1200px; margin:20px auto 30px; padding:12px 18px; background:#fff8f8; border:1px solid #f0dede; border-radius:8px; font-size:12px; color:#5a1a1a; line-height:1.55; }
+  .disclaimer b { color:var(--red); }
+  .status-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .status-badge.paid { background:#e6f4ea; color:#1a7f37; }
+  .status-badge.open { background:#fff5cc; color:#7a5c00; }
+  .status-badge.late { background:#fce8e8; color:#c1121f; }
+
+  /* Modal */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:800; padding:20px; }
+  .overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:10px; max-width:760px; width:100%; max-height:90vh; overflow:auto; }
+  .modal-h { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  .modal-h span:first-child { font-weight:600; }
+  .modal-h .x { cursor:pointer; font-size:22px; color:#666; }
+  .modal-b { padding:14px 18px; }
+  .modal-f { padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
+  .row-line { display:grid; grid-template-columns:2fr 80px 100px 80px 100px 40px; gap:6px; align-items:center; margin-bottom:6px; }
+  .row-line input { padding:6px 8px; font-size:12px; }
+  .row-line .del { background:#eee; border:0; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:14px; }
+  .totals { border-top:2px solid var(--red); padding-top:8px; margin-top:10px; text-align:right; font-size:13px; }
+  .totals .grand { font-size:16px; font-weight:700; margin-top:4px; }
+
+  /* Print */
+  @media print {
+    body { background:#fff; }
+    header.top, .no-print, .disclaimer, nav, button, .toolbar { display:none !important; }
+    #app { padding:0; }
+    .card { border:0; box-shadow:none; padding:0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-card">
+    <svg class="flame" viewBox="0 0 16 16" width="46" height="46" fill="#c1121f" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/>
+    </svg>
+    <span class="brand">SAVUKS</span>
+    <h1>Kirjanpito</h1>
+    <div id="lockBody"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="top">
+    <span class="brand">SAVUKS</span>
+    <span class="tag">Kirjanpito</span>
+    <nav id="tabs"></nav>
+    <div class="actions">
+      <button onclick="changePassword()">🔑 Vaihda salasana</button>
+      <button onclick="lockNow()">🔒 Lukitse</button>
+    </div>
+  </header>
+  <main>
+    <div id="tabContent"></div>
+    <div class="disclaimer">
+      <b>Vastuunrajaus:</b> Työkalu laskee ja välittää; ei korvaa kirjanpitäjää. Yhtiö vastaa kirjanpidon, tilinpäätöksen ja veroilmoituksen oikeellisuudesta.
+      <b>ALV-ilmoitus OmaVeroon</b> ja <b>palkkojen tulorekisteri-ilmoitus</b> tehdään käsin — tämä työkalu ei lähetä ilmoituksia viranomaisille.
+      Sivukuluprosentit vahvistetaan omasta eläke-/vakuutusyhtiöstä.
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="modalOverlay">
+  <div class="modal" id="modalCard">
+    <div class="modal-h"><span id="modalTitle">Otsikko</span><span class="x" onclick="closeModal()">×</span></div>
+    <div class="modal-b" id="modalBody"></div>
+    <div class="modal-f" id="modalFoot"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ========== CRYPTO ========== */
+const STORAGE_KEY = "kevytkirjanpito_v2";
+const PBKDF2_ROUNDS = 150000;
+let sessionKey = null;
+let db = null;
+
+function b64Encode(u8){ let s=""; for(let i=0;i<u8.length;i++) s+=String.fromCharCode(u8[i]); return btoa(s); }
+function b64Decode(s){ const bin=atob(s); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+
+async function deriveKey(password, salt){
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name:"PBKDF2", salt, iterations:PBKDF2_ROUNDS, hash:"SHA-256" },
+    km,
+    { name:"AES-GCM", length:256 },
+    false,
+    ["encrypt","decrypt"]
+  );
+}
+
+async function encryptEnvelope(data, key, salt){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ct = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, enc.encode(JSON.stringify(data)));
+  return {
+    enc:1,
+    salt: b64Encode(salt),
+    iv: b64Encode(iv),
+    ct: b64Encode(new Uint8Array(ct))
+  };
+}
+
+async function decryptEnvelope(env, key){
+  const iv = b64Decode(env.iv);
+  const ct = b64Decode(env.ct);
+  const pt = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+async function saveDb(){
+  if (!sessionKey || !db) return;
+  let salt;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { try { salt = b64Decode(JSON.parse(raw).salt); } catch(e){ salt = crypto.getRandomValues(new Uint8Array(16)); } }
+  else salt = crypto.getRandomValues(new Uint8Array(16));
+  const env = await encryptEnvelope(db, sessionKey, salt);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(env));
+}
+
+/* ========== DEFAULTS ========== */
+function defaultAccounts(){
+  return [
+    { code:"1700", name:"Myyntisaamiset", type:"vastaavaa" },
+    { code:"1763", name:"ALV-saatava", type:"vastaavaa" },
+    { code:"1900", name:"Pankki", type:"vastaavaa" },
+    { code:"1910", name:"Käteinen", type:"vastaavaa" },
+    { code:"2251", name:"Ostovelat", type:"vastattavaa" },
+    { code:"2939", name:"Suoritettava ALV", type:"vastattavaa" },
+    { code:"2960", name:"Oma pääoma / yksityistili", type:"vastattavaa" },
+    { code:"3000", name:"Myyntitulot (25,5 %)", type:"tulot", vat:25.5 },
+    { code:"3020", name:"Myyntitulot (13,5 %)", type:"tulot", vat:13.5 },
+    { code:"3040", name:"Myyntitulot (10 %)", type:"tulot", vat:10 },
+    { code:"3060", name:"Myyntitulot (0 %)", type:"tulot", vat:0 },
+    { code:"4000", name:"Ostot ja hankinnat", type:"menot" },
+    { code:"4300", name:"Toimistotarvikkeet", type:"menot" },
+    { code:"4400", name:"Vuokrat ja tilat", type:"menot" },
+    { code:"4500", name:"IT ja ohjelmistot", type:"menot" },
+    { code:"4700", name:"Matkakulut", type:"menot" },
+    { code:"4800", name:"Muut liiketoiminnan kulut", type:"menot" },
+    { code:"5000", name:"Palkat", type:"menot" }
+  ];
+}
+
+function defaultDb(){
+  const year = new Date().getFullYear();
+  return {
+    company: {
+      name:"Savuks Oy", ytunnus:"3465682-5",
+      address:"Santalankulmantie 8", city:"21290 Rusko",
+      iban:"", bic:"",
+      email:"info@savuks.com", terms:"14 päivää netto",
+      fyStart: year+"-01-01", fyEnd: year+"-12-31",
+      ovt:"003734656825", operatorId:"003708599126"
+    },
+    vatRates: [25.5, 13.5, 10, 0],
+    accounts: defaultAccounts(),
+    customers: [], suppliers: [], products: [],
+    sales: [], purch: [],
+    entries: [],
+    counters: { sales:1, purch:1, entry:1, product:1, customer:1 }
+  };
+}
+
+/* ========== UTILS ========== */
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return ""; const p=String(iso).slice(0,10).split("-"); return p.length===3 ? (p[2]+"."+p[1]+"."+p[0]) : iso; }
+function euro(n){ return (n==null?0:Number(n)).toLocaleString("fi-FI",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function addDays(iso, days){ const d=new Date(iso); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+function daysBetween(a, b){ const A=new Date(a), B=new Date(b); return Math.round((B-A)/(1000*60*60*24)); }
+function isInFy(iso){ if(!iso||!db) return true; return iso >= db.company.fyStart && iso <= db.company.fyEnd; }
+function normalizeNum(v){ if(v==null) return 0; if(typeof v==="number") return v; return Number(String(v).replace(",",".").replace(/[^\d.\-]/g,""))||0; }
+
+/* ========== AUTH FLOW ========== */
+function showLockCreate(){
+  document.getElementById("lockBody").innerHTML =
+    '<div class="field"><label>Aseta uusi salasana (väh. 6 merkkiä)</label><input class="f" id="pw1" type="password" autocomplete="new-password"></div>'
+    +'<div class="field"><label>Vahvista salasana</label><input class="f" id="pw2" type="password" autocomplete="new-password"></div>'
+    +'<button class="btn" onclick="doCreatePassword()">Luo ja avaa kirjanpito</button>'
+    +'<div class="warn"><b>Muista salasana.</b> Jos unohdat sen, salattua dataa ei voi palauttaa. Ota säännölliset varmuuskopiot Asetukset-välilehdeltä.</div>';
+  setTimeout(()=>document.getElementById("pw1").focus(),50);
+}
+
+function showLockUnlock(){
+  document.getElementById("lockBody").innerHTML =
+    '<div class="field"><label>Salasana</label><input class="f" id="pw" type="password" autocomplete="current-password"></div>'
+    +'<button class="btn" onclick="doUnlock()">Avaa kirjanpito</button>'
+    +'<div class="warn">Jos et muista salasanaa, voit poistaa kaikki tiedot ja aloittaa alusta (Varmuuskopiosta palautus).<br><button class="link" onclick="if(confirm(\'Poistetaanko KAIKKI kirjanpitotiedot? Ei voi peruuttaa.\')){localStorage.removeItem(\''+STORAGE_KEY+'\');location.reload();}">Nollaa tietokanta</button></div>';
+  setTimeout(()=>document.getElementById("pw").focus(),50);
+  document.getElementById("pw").addEventListener("keypress", e=>{ if(e.key==="Enter") doUnlock(); });
+}
+
+async function doCreatePassword(){
+  const pw1 = document.getElementById("pw1").value;
+  const pw2 = document.getElementById("pw2").value;
+  if (pw1.length < 6){ alert("Salasana väh. 6 merkkiä."); return; }
+  if (pw1 !== pw2){ alert("Salasanat eivät täsmää."); return; }
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  sessionKey = await deriveKey(pw1, salt);
+  db = defaultDb();
+  const env = await encryptEnvelope(db, sessionKey, salt);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(env));
+  openApp();
+}
+
+async function doUnlock(){
+  const pw = document.getElementById("pw").value;
+  if (!pw){ return; }
+  try {
+    const env = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const salt = b64Decode(env.salt);
+    const key = await deriveKey(pw, salt);
+    const data = await decryptEnvelope(env, key);
+    sessionKey = key;
+    db = migrateDb(data);
+    openApp();
+  } catch(e){
+    alert("Väärä salasana tai vioittunut tietokanta.");
+    console.error(e);
+  }
+}
+
+function migrateDb(data){
+  const def = defaultDb();
+  for (const k of Object.keys(def)) if (!(k in data)) data[k] = def[k];
+  if (!data.counters) data.counters = def.counters;
+  for (const k of Object.keys(def.counters)) if (!(k in data.counters)) data.counters[k] = def.counters[k];
+  return data;
+}
+
+async function changePassword(){
+  const oldPw = prompt("Nykyinen salasana:");
+  if (oldPw == null) return;
+  try {
+    const env = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const salt = b64Decode(env.salt);
+    const key = await deriveKey(oldPw, salt);
+    await decryptEnvelope(env, key);
+  } catch(e){ alert("Väärä nykyinen salasana."); return; }
+  const newPw = prompt("Uusi salasana (väh. 6 merkkiä):");
+  if (!newPw || newPw.length < 6){ alert("Peruttu."); return; }
+  const newPw2 = prompt("Vahvista uusi salasana:");
+  if (newPw !== newPw2){ alert("Salasanat eivät täsmää. Peruttu."); return; }
+  const newSalt = crypto.getRandomValues(new Uint8Array(16));
+  sessionKey = await deriveKey(newPw, newSalt);
+  const newEnv = await encryptEnvelope(db, sessionKey, newSalt);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(newEnv));
+  alert("Salasana vaihdettu.");
+}
+
+function lockNow(){ sessionKey = null; db = null; location.reload(); }
+
+function openApp(){
+  document.getElementById("lockScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  renderTabs();
+  showTab("dash");
+}
+
+/* ========== TABS ========== */
+const TABS = [
+  { id:"dash", name:"Kojelauta" },
+  { id:"sales", name:"Myynti" },
+  { id:"products", name:"Tuotteet" },
+  { id:"purch", name:"Ostot" },
+  { id:"journal", name:"Tositteet" },
+  { id:"reports", name:"Raportit" },
+  { id:"settings", name:"Asetukset" }
+];
+let currentTab = "dash";
+
+function renderTabs(){
+  const nav = document.getElementById("tabs");
+  nav.innerHTML = TABS.map(t=>`<button data-tab="${t.id}" onclick="showTab('${t.id}')">${t.name}</button>`).join("");
+}
+
+function showTab(id){
+  currentTab = id;
+  document.querySelectorAll("#tabs button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.tab===id);
+  });
+  const map = { dash:renderDash, sales:renderSales, products:renderProducts, purch:renderPurch, journal:renderJournal, reports:renderReports, settings:renderSettings };
+  const fn = map[id] || renderDash;
+  document.getElementById("tabContent").innerHTML = "";
+  fn();
+}
+
+/* ========== MODAL HELPER ========== */
+function openModal(title, body, footer){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").innerHTML = body;
+  document.getElementById("modalFoot").innerHTML = footer || '<button class="btn ghost" onclick="closeModal()">Sulje</button>';
+  document.getElementById("modalOverlay").classList.add("show");
+}
+function closeModal(){ document.getElementById("modalOverlay").classList.remove("show"); }
+
+/* ========== ENTRIES (double-entry helpers) ========== */
+function nextEntryNum(){ return db.counters.entry++; }
+
+function addEntry(source, date, desc, lines){
+  const totDebit = lines.reduce((s,l)=>s+(l.debit||0),0);
+  const totCredit = lines.reduce((s,l)=>s+(l.credit||0),0);
+  const diff = Math.abs(totDebit - totCredit);
+  if (diff > 0.005){
+    console.warn("Debit/credit ero:", totDebit, totCredit, lines);
+  }
+  const e = { id: uid(), num: nextEntryNum(), source, date, desc, lines };
+  db.entries.push(e);
+  return e;
+}
+
+function findSalesAccountForVat(vat){
+  const a = db.accounts.find(x=>x.type==="tulot" && Math.abs((x.vat||0)-vat)<0.01);
+  if (a) return a.code;
+  return "3000";
+}
+
+/* ========== SALES ========== */
+function computeInvoiceTotals(rows, vatMode){
+  let netto=0, vat=0;
+  const perVat = {};
+  rows.forEach(r=>{
+    const q = normalizeNum(r.qty);
+    const p = normalizeNum(r.price);
+    const v = vatMode==="0" ? 0 : normalizeNum(r.vat);
+    const n = q*p;
+    const vv = n*v/100;
+    netto += n;
+    vat += vv;
+    perVat[v] = (perVat[v]||0) + n;
+  });
+  return { netto: Math.round(netto*100)/100, vat: Math.round(vat*100)/100, gross: Math.round((netto+vat)*100)/100, perVat };
+}
+
+function generateSalesEntry(inv){
+  const totals = computeInvoiceTotals(inv.rows, inv.vatMode);
+  const lines = [];
+  lines.push({ account:"1700", debit: totals.gross, credit: 0 });
+  Object.entries(totals.perVat).forEach(([v, n])=>{
+    lines.push({ account: findSalesAccountForVat(Number(v)), debit: 0, credit: Math.round(n*100)/100 });
+  });
+  if (totals.vat > 0){
+    lines.push({ account:"2939", debit: 0, credit: totals.vat });
+  }
+  const desc = `Myyntilasku ${inv.number} — ${custName(inv.partyId)||"(asiakas)"}`;
+  return addEntry("sales", inv.date, desc, lines);
+}
+
+function generateSalesPaymentEntry(inv, payDate){
+  const totals = computeInvoiceTotals(inv.rows, inv.vatMode);
+  const lines = [
+    { account:"1900", debit: totals.gross, credit: 0 },
+    { account:"1700", debit: 0, credit: totals.gross }
+  ];
+  return addEntry("sales-paid", payDate, `Suoritus myyntilaskusta ${inv.number}`, lines);
+}
+
+function custName(id){ const c = db.customers.find(x=>x.id===id); return c ? c.name : ""; }
+function prodByName(id){ const p = db.products.find(x=>x.id===id); return p; }
+
+async function newSalesInvoice(){
+  if (!db.customers.length){
+    if (confirm("Lisää ensin asiakas. Siirrytäänkö?")) showTab("settings");
+    return;
+  }
+  const inv = {
+    id: uid(),
+    number: "M" + String(new Date().getFullYear()).slice(2) + "-" + String(db.counters.sales++).padStart(4,"0"),
+    partyId: db.customers[0].id,
+    date: today(),
+    due: addDays(today(),14),
+    vatMode: "alv",
+    vatReason: "",
+    rows: [{ desc:"", qty:1, price:0, vat:25.5, prodId:"" }],
+    paid: false,
+    paidDate: null
+  };
+  openSalesEditor(inv, true);
+}
+
+function openSalesEditor(inv, isNew){
+  const optsC = db.customers.map(c=>`<option value="${c.id}" ${c.id===inv.partyId?"selected":""}>${esc(c.name)}</option>`).join("");
+  const optsP = ['<option value="">— Valitse tuote —</option>'].concat(db.products.map(p=>`<option value="${p.id}">${esc(p.code||"")} ${esc(p.name)} (${euro(p.price)})</option>`)).join("");
+  const rowsHtml = inv.rows.map((r,i)=>renderInvoiceRow(r,i)).join("");
+  const t = computeInvoiceTotals(inv.rows, inv.vatMode);
+  const body =
+    `<div class="row">
+      <div class="field"><label>Numero</label><input class="f" id="inNum" value="${esc(inv.number)}"></div>
+      <div class="field"><label>Päiväys</label><input class="f" id="inDate" type="date" value="${inv.date}"></div>
+      <div class="field"><label>Eräpäivä</label><input class="f" id="inDue" type="date" value="${inv.due}"></div>
+    </div>
+    <div class="row">
+      <div class="field" style="flex:2"><label>Asiakas</label><select class="f" id="inParty">${optsC}</select></div>
+      <div class="field"><label>ALV-käsittely</label><select class="f" id="inVatMode">
+        <option value="alv" ${inv.vatMode==="alv"?"selected":""}>ALV lisätään</option>
+        <option value="0" ${inv.vatMode==="0"?"selected":""}>Veroton (ALV 0 %)</option>
+      </select></div>
+    </div>
+    <div id="inVatReasonWrap" style="display:${inv.vatMode==="0"?"block":"none"}">
+      <div class="field"><label>Verottomuuden peruste (AVL-viittaus)</label>
+        <select class="f" id="inVatReason">
+          <option value="">— valitse —</option>
+          <option value="AVL 8 c § yhteisömyynti">AVL 8 c § yhteisömyynti (EU)</option>
+          <option value="AVL 72 a § tavaravienti EU:n ulkopuolelle">AVL 72 a § tavaravienti EU:n ulkopuolelle</option>
+          <option value="AVL 65 § käännetty verovelvollisuus (EU-palvelu)">AVL 65 § käännetty verovelvollisuus (EU-palvelu)</option>
+          <option value="AVL 70 § käännetty verovelvollisuus (rakennus)">AVL 70 § käännetty verovelvollisuus (rakennuspalvelu)</option>
+          <option value="AVL 3 § vähäinen toiminta">AVL 3 § vähäinen toiminta</option>
+          <option value="AVL 34 § terveydenhoito">AVL 34 § terveyden- ja sairaanhoito</option>
+        </select>
+      </div>
+    </div>
+    <h3>Rivit</h3>
+    <div class="hint">Valitse tuote pudotusvalikosta niin kuvaus, hinta ja ALV täyttyvät automaattisesti.</div>
+    <div id="inRows">${rowsHtml}</div>
+    <div><button class="btn ghost small" onclick="addInvoiceRow()">＋ Lisää rivi</button></div>
+    <div class="totals" id="inTotals">
+      Netto: <b>${euro(t.netto)}</b> · ALV: <b>${euro(t.vat)}</b>
+      <div class="grand">Yhteensä: ${euro(t.gross)}</div>
+    </div>`;
+  const footer = `
+    <button class="btn ghost" onclick="closeModal()">Peruuta</button>
+    <button class="btn" onclick="saveSalesInvoice('${inv.id}',${isNew})">Tallenna</button>
+  `;
+  // Stash draft on window so row editing can update in place
+  window._invDraft = JSON.parse(JSON.stringify(inv));
+  openModal(isNew ? "Uusi myyntilasku" : "Muokkaa myyntilaskua", body, footer);
+  document.getElementById("inVatMode").addEventListener("change", e=>{
+    document.getElementById("inVatReasonWrap").style.display = e.target.value==="0" ? "block" : "none";
+    recalcInvoiceTotals();
+  });
+  document.getElementById("inParty").addEventListener("change", ()=>repriceRows());
+}
+
+function renderInvoiceRow(r, i){
+  const optsP = ['<option value="">—</option>'].concat(db.products.map(p=>`<option value="${p.id}" ${p.id===r.prodId?"selected":""}>${esc(p.code||"")} ${esc(p.name)}</option>`)).join("");
+  return `<div class="row-line" data-i="${i}">
+    <select onchange="pickProduct(${i},this.value)">${optsP}</select>
+    <input placeholder="Määrä" value="${r.qty||""}" oninput="updateRow(${i},'qty',this.value)">
+    <input placeholder="À-hinta €" value="${r.price||""}" oninput="updateRow(${i},'price',this.value)">
+    <input placeholder="ALV %" value="${r.vat==null?"":r.vat}" oninput="updateRow(${i},'vat',this.value)">
+    <input placeholder="Kuvaus" value="${esc(r.desc||"")}" oninput="updateRow(${i},'desc',this.value)">
+    <button class="del" onclick="delInvoiceRow(${i})">×</button>
+  </div>`;
+}
+
+function addInvoiceRow(){
+  window._invDraft.rows.push({ desc:"", qty:1, price:0, vat:25.5, prodId:"" });
+  refreshInvoiceRows();
+}
+function delInvoiceRow(i){
+  window._invDraft.rows.splice(i,1);
+  if (!window._invDraft.rows.length) window._invDraft.rows.push({ desc:"", qty:1, price:0, vat:25.5, prodId:"" });
+  refreshInvoiceRows();
+}
+function updateRow(i, field, val){
+  window._invDraft.rows[i][field] = (field==="desc"||field==="prodId") ? val : normalizeNum(val);
+  recalcInvoiceTotals();
+}
+function pickProduct(i, prodId){
+  window._invDraft.rows[i].prodId = prodId;
+  if (prodId){
+    const p = prodByName(prodId);
+    if (p){
+      const cust = db.customers.find(c=>c.id===window._invDraft.partyId);
+      const customPrice = cust && cust.prices && cust.prices[prodId];
+      window._invDraft.rows[i].desc = p.name;
+      window._invDraft.rows[i].price = customPrice != null ? customPrice : p.price;
+      window._invDraft.rows[i].vat = p.vat;
+      window._invDraft.rows[i].qty = window._invDraft.rows[i].qty || 1;
+    }
+  }
+  refreshInvoiceRows();
+}
+function repriceRows(){
+  window._invDraft.partyId = document.getElementById("inParty").value;
+  const cust = db.customers.find(c=>c.id===window._invDraft.partyId);
+  window._invDraft.rows.forEach(r=>{
+    if (r.prodId){
+      const p = prodByName(r.prodId);
+      if (p){
+        const custPrice = cust && cust.prices && cust.prices[r.prodId];
+        r.price = custPrice != null ? custPrice : p.price;
+      }
+    }
+  });
+  refreshInvoiceRows();
+}
+function refreshInvoiceRows(){
+  document.getElementById("inRows").innerHTML = window._invDraft.rows.map((r,i)=>renderInvoiceRow(r,i)).join("");
+  recalcInvoiceTotals();
+}
+function recalcInvoiceTotals(){
+  const vm = document.getElementById("inVatMode").value;
+  const t = computeInvoiceTotals(window._invDraft.rows, vm);
+  document.getElementById("inTotals").innerHTML = `Netto: <b>${euro(t.netto)}</b> · ALV: <b>${euro(t.vat)}</b><div class="grand">Yhteensä: ${euro(t.gross)}</div>`;
+}
+
+async function saveSalesInvoice(id, isNew){
+  const d = window._invDraft;
+  d.number = document.getElementById("inNum").value.trim();
+  d.date = document.getElementById("inDate").value;
+  d.due = document.getElementById("inDue").value;
+  d.partyId = document.getElementById("inParty").value;
+  d.vatMode = document.getElementById("inVatMode").value;
+  if (d.vatMode === "0"){
+    d.vatReason = document.getElementById("inVatReason").value;
+    if (!d.vatReason){ alert("Valitse verottomuuden peruste."); return; }
+    d.rows.forEach(r=>r.vat=0);
+  } else {
+    d.vatReason = "";
+  }
+  if (!d.number){ alert("Numero puuttuu."); return; }
+  if (!d.rows.length || d.rows.every(r=>!normalizeNum(r.qty)*normalizeNum(r.price))){
+    alert("Lisää vähintään yksi rivi.");
+    return;
+  }
+  d.rows = d.rows.filter(r=>r.desc || normalizeNum(r.qty) || normalizeNum(r.price));
+  // Save
+  if (isNew){
+    // Remove any auto-generated entry for previous number (safety)
+    db.entries = db.entries.filter(e=>!(e.source==="sales" && e.desc.includes(d.number)));
+    db.sales.push(d);
+    generateSalesEntry(d);
+  } else {
+    const idx = db.sales.findIndex(x=>x.id===id);
+    if (idx>=0){
+      db.sales[idx] = d;
+      // regenerate entry
+      db.entries = db.entries.filter(e=>!(e.source==="sales" && e.desc.includes(d.number)));
+      generateSalesEntry(d);
+      if (d.paid && d.paidDate){
+        db.entries = db.entries.filter(e=>!(e.source==="sales-paid" && e.desc.includes(d.number)));
+        generateSalesPaymentEntry(d, d.paidDate);
+      }
+    }
+  }
+  await saveDb();
+  closeModal();
+  showTab("sales");
+}
+
+function toggleSalesPaid(id){
+  const inv = db.sales.find(x=>x.id===id);
+  if (!inv) return;
+  if (!inv.paid){
+    const d = prompt("Maksupäivä (VVVV-KK-PP):", today());
+    if (!d) return;
+    inv.paid = true;
+    inv.paidDate = d;
+    generateSalesPaymentEntry(inv, d);
+  } else {
+    if (!confirm("Peruutetaanko maksumerkintä?")) return;
+    db.entries = db.entries.filter(e=>!(e.source==="sales-paid" && e.desc.includes(inv.number)));
+    inv.paid = false;
+    inv.paidDate = null;
+  }
+  saveDb().then(()=>showTab("sales"));
+}
+
+function editSalesInvoice(id){
+  const inv = db.sales.find(x=>x.id===id);
+  if (!inv) return;
+  openSalesEditor(JSON.parse(JSON.stringify(inv)), false);
+}
+
+function deleteSalesInvoice(id){
+  const inv = db.sales.find(x=>x.id===id);
+  if (!inv) return;
+  if (!confirm(`Poistetaanko lasku ${inv.number}? Poistaa myös kirjaukset.`)) return;
+  db.sales = db.sales.filter(x=>x.id!==id);
+  db.entries = db.entries.filter(e=>!(e.desc||"").includes(inv.number));
+  saveDb().then(()=>showTab("sales"));
+}
+
+function printSalesInvoice(id){
+  const inv = db.sales.find(x=>x.id===id);
+  if (!inv) return;
+  const cust = db.customers.find(c=>c.id===inv.partyId);
+  const totals = computeInvoiceTotals(inv.rows, inv.vatMode);
+  const rowsHtml = inv.rows.map(r=>{
+    const q = normalizeNum(r.qty), p = normalizeNum(r.price), n = q*p, alv = n*normalizeNum(r.vat)/100;
+    return `<tr><td>${esc(r.desc||"")}</td><td class="right">${q}</td><td class="right">${euro(p)}</td><td class="center">${r.vat} %</td><td class="right">${euro(n)}</td><td class="right">${euro(alv)}</td><td class="right">${euro(n+alv)}</td></tr>`;
+  }).join("");
+  const w = window.open("","_blank");
+  if (!w){ alert("Salli ponnahdusikkunat tulostusta varten."); return; }
+  w.document.write(`<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Lasku ${esc(inv.number)}</title>
+    <style>
+      body{font-family:"Trebuchet MS",Verdana,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}
+      h1{font-family:Georgia,serif;font-size:22px;color:#c1121f;margin:0}
+      .brand{font-family:Georgia,serif;font-size:26px;font-weight:700;color:#c1121f;letter-spacing:3px}
+      .head{display:flex;justify-content:space-between;border-bottom:3px solid #c1121f;padding-bottom:12px}
+      .meta{width:100%;border-collapse:collapse;font-size:12px;margin:14px 0}
+      .meta td{padding:4px 6px;border-bottom:1px solid #eee}.meta td.k{color:#666}
+      table.rows{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+      table.rows th{background:#1b1b1b;color:#fff;padding:6px;text-align:left;font-size:11px}
+      table.rows td{padding:6px;border-bottom:1px solid #eee}
+      .right{text-align:right}.center{text-align:center}
+      .totals{margin-top:14px;text-align:right;font-size:13px}
+      .totals .grand{font-size:16px;font-weight:700;color:#c1121f}
+      .note{margin-top:20px;padding:10px 12px;background:#faf5f5;border:1px solid #eddede;border-radius:6px;font-size:11px;color:#555}
+      @media print { button { display:none } }
+    </style></head><body>
+    <div class="head">
+      <div><span class="brand">SAVUKS</span><div style="font-size:11px;color:#666">${esc(db.company.name)}</div></div>
+      <div style="text-align:right"><h1>Lasku</h1><div style="font-size:12px;color:#666">${esc(inv.number)}</div></div>
+    </div>
+    <table class="meta">
+      <tr><td class="k">Asiakas</td><td>${esc(cust?cust.name:"")}</td><td class="k">Päiväys</td><td>${fmtDate(inv.date)}</td></tr>
+      <tr><td class="k">Osoite</td><td>${esc(cust?cust.address:"")} ${esc(cust?cust.city:"")}</td><td class="k">Eräpäivä</td><td>${fmtDate(inv.due)}</td></tr>
+      <tr><td class="k">Y-tunnus</td><td>${esc(cust?cust.ytunnus:"")}</td><td class="k">Maksuehto</td><td>${esc(db.company.terms||"")}</td></tr>
+    </table>
+    <table class="rows">
+      <thead><tr><th>Kuvaus</th><th class="right">Määrä</th><th class="right">À-hinta</th><th class="center">ALV %</th><th class="right">Netto</th><th class="right">ALV</th><th class="right">Yhteensä</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="totals">
+      Netto yhteensä: <b>${euro(totals.netto)}</b><br>
+      ALV yhteensä: <b>${euro(totals.vat)}</b>
+      <div class="grand">Maksettavaa: ${euro(totals.gross)}</div>
+    </div>
+    ${inv.vatMode==="0" && inv.vatReason ? `<div class="note"><b>Veroton myynti:</b> ${esc(inv.vatReason)}</div>` : ""}
+    <div style="margin-top:24px;padding-top:16px;border-top:2px solid #c1121f;font-size:11px;color:#555">
+      <b>${esc(db.company.name)}</b> · Y-tunnus ${esc(db.company.ytunnus)} · ${esc(db.company.address)}, ${esc(db.company.city)}<br>
+      Sähköposti ${esc(db.company.email)} · IBAN ${esc(db.company.iban||"—")}
+    </div>
+    <p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>
+  </body></html>`);
+  w.document.close();
+}
+
+/* ========== SALES VIEW ========== */
+function renderSales(){
+  const el = document.getElementById("tabContent");
+  const sorted = [...db.sales].sort((a,b)=>b.date.localeCompare(a.date));
+  const rowsHtml = sorted.map(inv=>{
+    const cust = db.customers.find(c=>c.id===inv.partyId);
+    const t = computeInvoiceTotals(inv.rows, inv.vatMode);
+    let badge = '';
+    if (inv.paid) badge = `<span class="status-badge paid">Maksettu ${fmtDate(inv.paidDate)}</span>`;
+    else if (inv.due && inv.due < today()) badge = '<span class="status-badge late">Erääntynyt</span>';
+    else badge = '<span class="status-badge open">Avoin</span>';
+    return `<tr>
+      <td><b>${esc(inv.number)}</b></td>
+      <td>${esc(cust?cust.name:"—")}</td>
+      <td>${fmtDate(inv.date)}</td>
+      <td>${fmtDate(inv.due)}</td>
+      <td class="right">${euro(t.gross)}</td>
+      <td class="center">${badge}</td>
+      <td class="center">
+        <button class="link" onclick="editSalesInvoice('${inv.id}')">Muokkaa</button>
+        <button class="link" onclick="printSalesInvoice('${inv.id}')">Tulosta</button>
+        <button class="link" onclick="toggleSalesPaid('${inv.id}')">${inv.paid?"Peru maksu":"Merkitse maksetuksi"}</button>
+        <button class="link" onclick="deleteSalesInvoice('${inv.id}')">Poista</button>
+      </td>
+    </tr>`;
+  }).join("");
+  el.innerHTML = `<div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">Myyntilaskut</h2>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="newSalesInvoice()">＋ Uusi lasku</button>
+    </div>
+    ${sorted.length ? `<table><thead><tr><th>Numero</th><th>Asiakas</th><th>Päiväys</th><th>Eräpäivä</th><th class="right">Yhteensä</th><th class="center">Tila</th><th class="center">Toiminnot</th></tr></thead><tbody>${rowsHtml}</tbody></table>` :
+      `<div style="text-align:center;padding:30px;color:#999">Ei laskuja. Luo ensimmäinen <button class="link" onclick="newSalesInvoice()">＋ Uusi lasku</button></div>`}
+  </div>`;
+}
+
+/* ========== PURCH ========== */
+function newPurch(){
+  const p = {
+    id: uid(),
+    number: "O" + String(new Date().getFullYear()).slice(2) + "-" + String(db.counters.purch++).padStart(4,"0"),
+    sellerName: "",
+    businessId: "",
+    date: today(),
+    due: addDays(today(), 14),
+    expAcc: "4300",
+    pay: "1900",
+    total: 0,
+    vat: 25.5,
+    netto: 0,
+    vatAmount: 0,
+    notes: "",
+    paid: false,
+    paidDate: null,
+    image: null
+  };
+  openPurchEditor(p, true);
+}
+
+function openPurchEditor(p, isNew){
+  const optsExp = db.accounts.filter(a=>a.type==="menot").map(a=>`<option value="${a.code}" ${a.code===p.expAcc?"selected":""}>${a.code} — ${esc(a.name)}</option>`).join("");
+  const optsPay = db.accounts.filter(a=>a.code==="1900"||a.code==="1910"||a.code==="2960").map(a=>`<option value="${a.code}" ${a.code===p.pay?"selected":""}>${a.code} — ${esc(a.name)}</option>`).join("");
+  const body = `<div class="row">
+    <div class="field"><label>Numero</label><input class="f" id="pNum" value="${esc(p.number)}"></div>
+    <div class="field"><label>Päiväys</label><input class="f" id="pDate" type="date" value="${p.date}"></div>
+    <div class="field"><label>Eräpäivä</label><input class="f" id="pDue" type="date" value="${p.due}"></div>
+  </div>
+  <div class="row">
+    <div class="field" style="flex:2"><label>Toimittaja</label><input class="f" id="pSeller" value="${esc(p.sellerName)}"></div>
+    <div class="field"><label>Y-tunnus</label><input class="f" id="pBiz" value="${esc(p.businessId)}"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Kulutili</label><select class="f" id="pExp">${optsExp}</select></div>
+    <div class="field"><label>Maksutapa (kirjaus)</label><select class="f" id="pPay">${optsPay}</select></div>
+    <div class="field"><label>ALV %</label><select class="f" id="pVat">
+      ${db.vatRates.map(v=>`<option value="${v}" ${Number(p.vat)===v?"selected":""}>${v} %</option>`).join("")}
+    </select></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Netto €</label><input class="f" id="pNetto" value="${p.netto||""}" oninput="recalcPurch()"></div>
+    <div class="field"><label>ALV €</label><input class="f" id="pVatAmt" value="${p.vatAmount||""}" oninput="recalcPurch()"></div>
+    <div class="field"><label>Yhteensä €</label><input class="f" id="pTotal" value="${p.total||""}" oninput="recalcPurch(true)"></div>
+  </div>
+  <div class="field"><label>Kuvaus / muistiinpanot</label><textarea class="f" id="pNotes">${esc(p.notes||"")}</textarea></div>
+  <div class="field"><label>Kuittikuva (valinnainen)</label>
+    <input class="f" id="pImg" type="file" accept="image/*">
+    ${p.image ? `<div style="margin-top:6px"><img src="${p.image}" style="max-width:180px;max-height:180px;border:1px solid #ccc;border-radius:6px"><button class="link" onclick="window._purchDraft.image=null;refreshPurchImage()">Poista kuva</button></div>` : `<div class="hint">Ei kuvaa lisätty.</div>`}
+    <div id="pImgPrev"></div>
+  </div>`;
+  const footer = `<button class="btn ghost" onclick="closeModal()">Peruuta</button>
+    <button class="btn" onclick="savePurch('${p.id}',${isNew})">Tallenna</button>`;
+  window._purchDraft = JSON.parse(JSON.stringify(p));
+  openModal(isNew ? "Uusi ostolasku / kuitti" : "Muokkaa ostoa", body, footer);
+  document.getElementById("pImg").addEventListener("change", async e=>{
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 4*1024*1024){ alert("Kuva liian suuri (max 4 MB)."); return; }
+    const r = new FileReader();
+    r.onload = ()=>{ window._purchDraft.image = r.result; refreshPurchImage(); };
+    r.readAsDataURL(f);
+  });
+  document.getElementById("pVat").addEventListener("change", ()=>recalcPurch(true));
+}
+
+function recalcPurch(fromTotal){
+  const vat = normalizeNum(document.getElementById("pVat").value);
+  if (fromTotal){
+    const total = normalizeNum(document.getElementById("pTotal").value);
+    const netto = vat > 0 ? Math.round((total / (1+vat/100))*100)/100 : total;
+    const vatAmount = Math.round((total - netto)*100)/100;
+    document.getElementById("pNetto").value = netto || "";
+    document.getElementById("pVatAmt").value = vatAmount || "";
+  } else {
+    const netto = normalizeNum(document.getElementById("pNetto").value);
+    const vatAmount = Math.round(netto*vat/100*100)/100;
+    const total = Math.round((netto + vatAmount)*100)/100;
+    document.getElementById("pVatAmt").value = vatAmount || "";
+    document.getElementById("pTotal").value = total || "";
+  }
+}
+
+function refreshPurchImage(){
+  const wrap = document.getElementById("modalBody");
+  // re-render the editor to reflect image change
+  openPurchEditor(window._purchDraft, false);
+}
+
+async function savePurch(id, isNew){
+  const p = window._purchDraft;
+  p.number = document.getElementById("pNum").value.trim();
+  p.date = document.getElementById("pDate").value;
+  p.due = document.getElementById("pDue").value;
+  p.sellerName = document.getElementById("pSeller").value.trim();
+  p.businessId = document.getElementById("pBiz").value.trim();
+  p.expAcc = document.getElementById("pExp").value;
+  p.pay = document.getElementById("pPay").value;
+  p.vat = normalizeNum(document.getElementById("pVat").value);
+  p.netto = normalizeNum(document.getElementById("pNetto").value);
+  p.vatAmount = normalizeNum(document.getElementById("pVatAmt").value);
+  p.total = normalizeNum(document.getElementById("pTotal").value);
+  p.notes = document.getElementById("pNotes").value;
+  if (!p.number || !p.sellerName){ alert("Numero ja toimittaja pakolliset."); return; }
+  if (p.total <= 0){ alert("Kokonaissumma puuttuu."); return; }
+  if (isNew) db.purch.push(p);
+  else {
+    const idx = db.purch.findIndex(x=>x.id===id);
+    if (idx>=0) db.purch[idx] = p;
+  }
+  // Regenerate entry
+  db.entries = db.entries.filter(e=>!((e.source==="purch"||e.source==="purch-paid") && (e.desc||"").includes(p.number)));
+  generatePurchEntry(p);
+  if (p.paid && p.paidDate) generatePurchPaymentEntry(p);
+  await saveDb();
+  closeModal();
+  showTab("purch");
+}
+
+function generatePurchEntry(p){
+  const lines = [
+    { account: p.expAcc, debit: p.netto, credit: 0 }
+  ];
+  if (p.vatAmount > 0) lines.push({ account:"1763", debit: p.vatAmount, credit: 0 });
+  lines.push({ account:"2251", debit: 0, credit: p.total });
+  return addEntry("purch", p.date, `Ostolasku ${p.number} — ${p.sellerName}`, lines);
+}
+
+function generatePurchPaymentEntry(p){
+  const lines = [
+    { account:"2251", debit: p.total, credit: 0 },
+    { account: p.pay, debit: 0, credit: p.total }
+  ];
+  return addEntry("purch-paid", p.paidDate, `Suoritus ostolaskusta ${p.number}`, lines);
+}
+
+function togglePurchPaid(id){
+  const p = db.purch.find(x=>x.id===id);
+  if (!p) return;
+  if (!p.paid){
+    const d = prompt("Maksupäivä (VVVV-KK-PP):", today());
+    if (!d) return;
+    p.paid = true; p.paidDate = d;
+    generatePurchPaymentEntry(p);
+  } else {
+    if (!confirm("Peruutetaanko maksumerkintä?")) return;
+    db.entries = db.entries.filter(e=>!(e.source==="purch-paid" && (e.desc||"").includes(p.number)));
+    p.paid = false; p.paidDate = null;
+  }
+  saveDb().then(()=>showTab("purch"));
+}
+
+function editPurch(id){ const p = db.purch.find(x=>x.id===id); if (p) openPurchEditor(JSON.parse(JSON.stringify(p)), false); }
+
+function deletePurch(id){
+  const p = db.purch.find(x=>x.id===id);
+  if (!p) return;
+  if (!confirm(`Poistetaanko osto ${p.number}? Poistaa myös kirjaukset.`)) return;
+  db.purch = db.purch.filter(x=>x.id!==id);
+  db.entries = db.entries.filter(e=>!(e.desc||"").includes(p.number));
+  saveDb().then(()=>showTab("purch"));
+}
+
+function renderPurch(){
+  const el = document.getElementById("tabContent");
+  const sorted = [...db.purch].sort((a,b)=>b.date.localeCompare(a.date));
+  const rowsHtml = sorted.map(p=>{
+    let badge = p.paid ? `<span class="status-badge paid">Maksettu ${fmtDate(p.paidDate)}</span>`
+              : (p.due && p.due < today()) ? '<span class="status-badge late">Erääntynyt</span>'
+              : '<span class="status-badge open">Avoin</span>';
+    return `<tr>
+      <td><b>${esc(p.number)}</b></td>
+      <td>${esc(p.sellerName)}</td>
+      <td>${fmtDate(p.date)}</td>
+      <td>${fmtDate(p.due)}</td>
+      <td>${esc(p.expAcc)}</td>
+      <td class="right">${euro(p.total)}</td>
+      <td class="center">${badge}</td>
+      <td class="center">
+        <button class="link" onclick="editPurch('${p.id}')">Muokkaa</button>
+        <button class="link" onclick="togglePurchPaid('${p.id}')">${p.paid?"Peru maksu":"Maksettu"}</button>
+        <button class="link" onclick="deletePurch('${p.id}')">Poista</button>
+      </td>
+    </tr>`;
+  }).join("");
+  el.innerHTML = `<div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">Ostot ja kuitit</h2>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="newPurch()">＋ Uusi osto</button>
+    </div>
+    ${sorted.length ? `<table><thead><tr><th>Numero</th><th>Toimittaja</th><th>Päiväys</th><th>Eräpäivä</th><th>Tili</th><th class="right">Yhteensä</th><th class="center">Tila</th><th class="center">Toiminnot</th></tr></thead><tbody>${rowsHtml}</tbody></table>` :
+      `<div style="text-align:center;padding:30px;color:#999">Ei ostoja. <button class="link" onclick="newPurch()">＋ Uusi osto</button></div>`}
+  </div>`;
+}
+
+/* ========== PRODUCTS ========== */
+function renderProducts(){
+  const el = document.getElementById("tabContent");
+  const rowsHtml = db.products.map(p=>`<tr>
+    <td>${esc(p.code||"")}</td>
+    <td><b>${esc(p.name)}</b></td>
+    <td class="right">${euro(p.price)}</td>
+    <td class="center">${p.vat} %</td>
+    <td>${esc(p.unit||"")}</td>
+    <td class="center">
+      <button class="link" onclick="editProduct('${p.id}')">Muokkaa</button>
+      <button class="link" onclick="deleteProduct('${p.id}')">Poista</button>
+    </td>
+  </tr>`).join("");
+  el.innerHTML = `<div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">Tuotteet ja palvelut</h2>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="editProduct('')">＋ Uusi tuote</button>
+    </div>
+    ${db.products.length ? `<table><thead><tr><th>Koodi</th><th>Nimi</th><th class="right">À-hinta (netto)</th><th class="center">ALV</th><th>Yksikkö</th><th class="center">Toiminnot</th></tr></thead><tbody>${rowsHtml}</tbody></table>` :
+      `<div style="text-align:center;padding:30px;color:#999">Ei tuotteita. <button class="link" onclick="editProduct('')">＋ Uusi tuote</button></div>`}
+  </div>`;
+}
+
+function editProduct(id){
+  const p = id ? db.products.find(x=>x.id===id) : { id:uid(), code:"", name:"", price:0, vat:25.5, unit:"kpl" };
+  const isNew = !id;
+  const body = `<div class="row">
+    <div class="field"><label>Koodi</label><input class="f" id="pdCode" value="${esc(p.code||"")}"></div>
+    <div class="field" style="flex:2"><label>Nimi</label><input class="f" id="pdName" value="${esc(p.name)}"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Netto à-hinta €</label><input class="f" id="pdPrice" value="${p.price}"></div>
+    <div class="field"><label>ALV %</label><select class="f" id="pdVat">${db.vatRates.map(v=>`<option value="${v}" ${Number(p.vat)===v?"selected":""}>${v} %</option>`).join("")}</select></div>
+    <div class="field"><label>Yksikkö</label><input class="f" id="pdUnit" value="${esc(p.unit||"kpl")}"></div>
+  </div>`;
+  const footer = `<button class="btn ghost" onclick="closeModal()">Peruuta</button>
+    <button class="btn" onclick="saveProduct('${p.id}',${isNew})">Tallenna</button>`;
+  openModal(isNew ? "Uusi tuote" : "Muokkaa tuotetta", body, footer);
+}
+
+async function saveProduct(id, isNew){
+  const p = {
+    id,
+    code: document.getElementById("pdCode").value.trim(),
+    name: document.getElementById("pdName").value.trim(),
+    price: normalizeNum(document.getElementById("pdPrice").value),
+    vat: normalizeNum(document.getElementById("pdVat").value),
+    unit: document.getElementById("pdUnit").value.trim()
+  };
+  if (!p.name){ alert("Nimi puuttuu."); return; }
+  if (isNew) db.products.push(p);
+  else {
+    const idx = db.products.findIndex(x=>x.id===id);
+    if (idx>=0) db.products[idx] = p;
+  }
+  await saveDb();
+  closeModal();
+  showTab("products");
+}
+
+async function deleteProduct(id){
+  if (!confirm("Poistetaanko tuote?")) return;
+  db.products = db.products.filter(x=>x.id!==id);
+  await saveDb();
+  showTab("products");
+}
+
+/* ========== JOURNAL ========== */
+function renderJournal(){
+  const el = document.getElementById("tabContent");
+  const sorted = [...db.entries].sort((a,b)=>b.date.localeCompare(a.date)||b.num-a.num);
+  const rowsHtml = sorted.map(e=>{
+    const linesHtml = e.lines.map(l=>{
+      const acc = db.accounts.find(a=>a.code===l.account);
+      const accName = acc ? ` — ${esc(acc.name)}` : "";
+      return `<div style="font-size:11px">${esc(l.account)}${accName}: ${l.debit ? "debet " + euro(l.debit) : "kredit " + euro(l.credit)}</div>`;
+    }).join("");
+    return `<tr>
+      <td>#${e.num}</td>
+      <td>${fmtDate(e.date)}</td>
+      <td><b>${esc(e.desc)}</b><br><span class="muted">${esc(e.source)}</span></td>
+      <td>${linesHtml}</td>
+      <td class="center">
+        ${e.source==="manual" ? `<button class="link" onclick="deleteEntry('${e.id}')">Poista</button>` : '<span class="muted">Automaatti</span>'}
+      </td>
+    </tr>`;
+  }).join("");
+  el.innerHTML = `<div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0">Tositteet / Päiväkirja</h2>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="openManualEntry()">＋ Käsin tosite</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">Automaattitositteet syntyvät myyntilaskuista ja ostoista. Käsintositteet mahdollistavat mm. avaavat viennit, jaksotukset ja korjaukset.</div>
+    ${sorted.length ? `<table><thead><tr><th>Nro</th><th>Päiväys</th><th>Kuvaus / lähde</th><th>Viennit</th><th class="center">Toiminnot</th></tr></thead><tbody>${rowsHtml}</tbody></table>` :
+      `<div style="text-align:center;padding:30px;color:#999">Ei tositteita.</div>`}
+  </div>`;
+}
+
+function openManualEntry(){
+  const optsAcc = db.accounts.map(a=>`<option value="${a.code}">${a.code} — ${esc(a.name)}</option>`).join("");
+  const body = `<div class="row">
+    <div class="field"><label>Päiväys</label><input class="f" id="mDate" type="date" value="${today()}"></div>
+    <div class="field" style="flex:2"><label>Kuvaus</label><input class="f" id="mDesc" placeholder="esim. Avaava vienti, korjaus, jaksotus"></div>
+  </div>
+  <h3>Viennit</h3>
+  <div id="mLines">
+    ${renderManualLine(0, "", 0, 0, optsAcc)}
+    ${renderManualLine(1, "", 0, 0, optsAcc)}
+  </div>
+  <div><button class="btn ghost small" onclick="addManualLine()">＋ Lisää vienti</button></div>
+  <div class="totals" id="mTotals">Debet 0,00 € · Kredit 0,00 € · ero 0,00 €</div>`;
+  const footer = `<button class="btn ghost" onclick="closeModal()">Peruuta</button>
+    <button class="btn" onclick="saveManualEntry()">Tallenna</button>`;
+  openModal("Käsin tosite", body, footer);
+  window._manualLines = [{acc:"",d:0,c:0},{acc:"",d:0,c:0}];
+  window._optsAcc = optsAcc;
+}
+
+function renderManualLine(i, acc, d, c, optsAcc){
+  return `<div class="row-line" style="grid-template-columns:2fr 1fr 1fr 40px" data-i="${i}">
+    <select onchange="updateManualLine(${i},'acc',this.value)">${optsAcc.replace(`value="${acc}"`,`value="${acc}" selected`)}</select>
+    <input placeholder="Debet €" value="${d||""}" oninput="updateManualLine(${i},'d',this.value)">
+    <input placeholder="Kredit €" value="${c||""}" oninput="updateManualLine(${i},'c',this.value)">
+    <button class="del" onclick="delManualLine(${i})">×</button>
+  </div>`;
+}
+
+function addManualLine(){
+  window._manualLines.push({acc:"",d:0,c:0});
+  refreshManualLines();
+}
+
+function delManualLine(i){
+  window._manualLines.splice(i,1);
+  refreshManualLines();
+}
+
+function updateManualLine(i, field, val){
+  window._manualLines[i][field] = (field==="acc") ? val : normalizeNum(val);
+  refreshManualTotals();
+}
+
+function refreshManualLines(){
+  document.getElementById("mLines").innerHTML = window._manualLines.map((l,i)=>renderManualLine(i,l.acc,l.d,l.c,window._optsAcc)).join("");
+  refreshManualTotals();
+}
+
+function refreshManualTotals(){
+  const d = window._manualLines.reduce((s,l)=>s+l.d,0);
+  const c = window._manualLines.reduce((s,l)=>s+l.c,0);
+  const diff = Math.abs(d-c);
+  document.getElementById("mTotals").innerHTML = `Debet <b>${euro(d)}</b> · Kredit <b>${euro(c)}</b> · <span style="color:${diff<0.005?"#1a7f37":"#c1121f"}">ero ${euro(diff)}</span>`;
+}
+
+async function saveManualEntry(){
+  const date = document.getElementById("mDate").value;
+  const desc = document.getElementById("mDesc").value.trim();
+  if (!desc){ alert("Kuvaus puuttuu."); return; }
+  const lines = window._manualLines.filter(l=>l.acc && (l.d>0 || l.c>0)).map(l=>({ account:l.acc, debit:l.d, credit:l.c }));
+  if (lines.length<2){ alert("Vähintään 2 vientiä."); return; }
+  const totD = lines.reduce((s,l)=>s+l.debit,0);
+  const totC = lines.reduce((s,l)=>s+l.credit,0);
+  if (Math.abs(totD-totC) > 0.005){ alert(`Debet ja kredit eivät täsmää (ero ${euro(Math.abs(totD-totC))}).`); return; }
+  addEntry("manual", date, desc, lines);
+  await saveDb();
+  closeModal();
+  showTab("journal");
+}
+
+async function deleteEntry(id){
+  if (!confirm("Poistetaanko tosite?")) return;
+  db.entries = db.entries.filter(x=>x.id!==id);
+  await saveDb();
+  showTab("journal");
+}
+
+/* ========== REPORTS ========== */
+function accountBalance(code, startDate, endDate){
+  let d=0, c=0;
+  db.entries.forEach(e=>{
+    if (startDate && e.date < startDate) return;
+    if (endDate && e.date > endDate) return;
+    e.lines.forEach(l=>{
+      if (l.account===code){ d+=(l.debit||0); c+=(l.credit||0); }
+    });
+  });
+  return { debit:d, credit:c, balance: d-c };
+}
+
+function renderReports(){
+  const el = document.getElementById("tabContent");
+  const start = db.company.fyStart;
+  const end = db.company.fyEnd;
+  const revenue = db.accounts.filter(a=>a.type==="tulot").reduce((s,a)=>s+accountBalance(a.code,start,end).credit,0);
+  const expense = db.accounts.filter(a=>a.type==="menot").reduce((s,a)=>s+accountBalance(a.code,start,end).debit,0);
+  const result = revenue - expense;
+  const revRows = db.accounts.filter(a=>a.type==="tulot").map(a=>{ const b=accountBalance(a.code,start,end); return `<tr><td>${a.code}</td><td>${esc(a.name)}</td><td class="right">${euro(b.credit)}</td></tr>`; }).join("");
+  const expRows = db.accounts.filter(a=>a.type==="menot").map(a=>{ const b=accountBalance(a.code,start,end); return `<tr><td>${a.code}</td><td>${esc(a.name)}</td><td class="right">${euro(b.debit)}</td></tr>`; }).join("");
+  const assets = db.accounts.filter(a=>a.type==="vastaavaa").map(a=>{ const b=accountBalance(a.code,null,end); return {a, bal: b.balance}; });
+  const liab = db.accounts.filter(a=>a.type==="vastattavaa").map(a=>{ const b=accountBalance(a.code,null,end); return {a, bal: -b.balance}; });
+  const assetRows = assets.map(x=>`<tr><td>${x.a.code}</td><td>${esc(x.a.name)}</td><td class="right">${euro(x.bal)}</td></tr>`).join("");
+  const liabRows = liab.map(x=>`<tr><td>${x.a.code}</td><td>${esc(x.a.name)}</td><td class="right">${euro(x.bal)}</td></tr>`).join("");
+  const assetsTot = assets.reduce((s,x)=>s+x.bal,0);
+  const liabTot = liab.reduce((s,x)=>s+x.bal,0);
+  const vatOut = accountBalance("2939",start,end).credit;
+  const vatIn = accountBalance("1763",start,end).debit;
+  const vatPay = vatOut - vatIn;
+
+  el.innerHTML = `<div class="card">
+    <h2>Raportit (${fmtDate(start)} — ${fmtDate(end)})</h2>
+    <div class="hint">Kausi vaihdetaan Asetukset-välilehdellä.</div>
+  </div>
+  <div class="card">
+    <h2>Tuloslaskelma</h2>
+    <h3>Liikevaihto</h3>
+    <table><thead><tr><th>Tili</th><th>Nimi</th><th class="right">Kredit</th></tr></thead><tbody>${revRows||`<tr><td colspan="3" style="text-align:center;color:#999">Ei tuloja</td></tr>`}</tbody></table>
+    <div class="totals">Liikevaihto: <b>${euro(revenue)}</b></div>
+    <h3>Kulut</h3>
+    <table><thead><tr><th>Tili</th><th>Nimi</th><th class="right">Debet</th></tr></thead><tbody>${expRows||`<tr><td colspan="3" style="text-align:center;color:#999">Ei kuluja</td></tr>`}</tbody></table>
+    <div class="totals">Kulut: <b>${euro(expense)}</b>
+      <div class="grand">Tulos: <span style="color:${result>=0?"#1a7f37":"#c1121f"}">${euro(result)}</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Tase (tilanne ${fmtDate(end)})</h2>
+    <h3>Vastaavaa</h3>
+    <table><thead><tr><th>Tili</th><th>Nimi</th><th class="right">Saldo</th></tr></thead><tbody>${assetRows}</tbody></table>
+    <div class="totals">Vastaavaa yhteensä: <b>${euro(assetsTot)}</b></div>
+    <h3>Vastattavaa</h3>
+    <table><thead><tr><th>Tili</th><th>Nimi</th><th class="right">Saldo</th></tr></thead><tbody>${liabRows}</tbody></table>
+    <div class="totals">Vastattavaa yhteensä: <b>${euro(liabTot)}</b>
+      <div class="grand">Ero (tulos jaksolla): <span style="color:${(assetsTot-liabTot)>=0?"#1a7f37":"#c1121f"}">${euro(assetsTot-liabTot)}</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px">Huom: MVP:ssä tulos ei siirry automaattisesti omaan pääomaan — ero näkyy tässä eränä.</div>
+  </div>
+  <div class="card">
+    <h2>ALV-erittely</h2>
+    <table><thead><tr><th>Erä</th><th class="right">Summa</th></tr></thead>
+    <tbody>
+      <tr><td>Suoritettava ALV (tili 2939, kredit)</td><td class="right">${euro(vatOut)}</td></tr>
+      <tr><td>Vähennettävä ALV (tili 1763, debet)</td><td class="right">${euro(vatIn)}</td></tr>
+      <tr><td><b>Tilitettävä ALV (netto)</b></td><td class="right"><b>${euro(vatPay)}</b></td></tr>
+    </tbody></table>
+    <div class="hint">Ilmoita luku OmaVerossa manuaalisesti.</div>
+  </div>
+  <div class="card">
+    <h2>Tilikohtaiset saldot</h2>
+    <table><thead><tr><th>Tili</th><th>Nimi</th><th>Tyyppi</th><th class="right">Debet</th><th class="right">Kredit</th><th class="right">Saldo</th></tr></thead>
+    <tbody>${db.accounts.map(a=>{
+      const b = accountBalance(a.code,null,end);
+      return `<tr><td>${a.code}</td><td>${esc(a.name)}</td><td>${a.type}</td><td class="right">${euro(b.debit)}</td><td class="right">${euro(b.credit)}</td><td class="right">${euro(b.balance)}</td></tr>`;
+    }).join("")}</tbody></table>
+  </div>`;
+}
+
+/* ========== DASHBOARD ========== */
+function renderDash(){
+  const el = document.getElementById("tabContent");
+  const start = db.company.fyStart;
+  const end = db.company.fyEnd;
+  const revenue = db.accounts.filter(a=>a.type==="tulot").reduce((s,a)=>s+accountBalance(a.code,start,end).credit,0);
+  const expense = db.accounts.filter(a=>a.type==="menot").reduce((s,a)=>s+accountBalance(a.code,start,end).debit,0);
+  const result = revenue - expense;
+  const bank = accountBalance("1900",null,end).balance;
+  const openSales = db.sales.filter(s=>!s.paid).reduce((sum,inv)=>{ const t=computeInvoiceTotals(inv.rows,inv.vatMode); return sum+t.gross; },0);
+  const openPurch = db.purch.filter(p=>!p.paid).reduce((sum,p)=>sum+(p.total||0),0);
+  const overdueS = db.sales.filter(s=>!s.paid && s.due<today()).length;
+  const overdueP = db.purch.filter(p=>!p.paid && p.due<today()).length;
+
+  el.innerHTML = `<div class="kpi">
+    <div class="cell"><div class="k">Liikevaihto (tilikausi)</div><div class="v">${euro(revenue)}</div></div>
+    <div class="cell"><div class="k">Kulut (tilikausi)</div><div class="v">${euro(expense)}</div></div>
+    <div class="cell"><div class="k">Tulos</div><div class="v ${result>=0?"pos":"neg"}">${euro(result)}</div></div>
+    <div class="cell"><div class="k">Pankkisaldo</div><div class="v">${euro(bank)}</div></div>
+    <div class="cell"><div class="k">Avoimet myyntisaamiset</div><div class="v">${euro(openSales)} <span class="muted" style="font-size:11px">(${db.sales.filter(s=>!s.paid).length} kpl, ${overdueS} erääntynyt)</span></div></div>
+    <div class="cell"><div class="k">Avoimet ostovelat</div><div class="v">${euro(openPurch)} <span class="muted" style="font-size:11px">(${db.purch.filter(p=>!p.paid).length} kpl, ${overdueP} erääntynyt)</span></div></div>
+  </div>
+  <div class="card">
+    <h2>Pikatoiminnot</h2>
+    <div class="toolbar">
+      <button class="btn" onclick="newSalesInvoice()">＋ Uusi myyntilasku</button>
+      <button class="btn ghost" onclick="newPurch()">＋ Uusi osto / kuitti</button>
+      <button class="btn ghost" onclick="showTab('reports')">Näytä raportit</button>
+      <button class="btn ghost" onclick="showTab('journal')">Päiväkirja</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Viimeisimmät laskut</h2>
+    ${db.sales.length ? `<table><thead><tr><th>Numero</th><th>Asiakas</th><th>Päiväys</th><th class="right">Summa</th><th class="center">Tila</th></tr></thead>
+    <tbody>${[...db.sales].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(inv=>{
+      const t = computeInvoiceTotals(inv.rows, inv.vatMode);
+      const cust = db.customers.find(c=>c.id===inv.partyId);
+      return `<tr><td>${esc(inv.number)}</td><td>${esc(cust?cust.name:"—")}</td><td>${fmtDate(inv.date)}</td><td class="right">${euro(t.gross)}</td><td class="center">${inv.paid?'<span class="status-badge paid">Maksettu</span>':'<span class="status-badge open">Avoin</span>'}</td></tr>`;
+    }).join("")}</tbody></table>` : '<div class="muted" style="padding:16px">Ei laskuja vielä.</div>'}
+  </div>`;
+}
+
+/* ========== SETTINGS ========== */
+function renderSettings(){
+  const el = document.getElementById("tabContent");
+  const co = db.company;
+  el.innerHTML = `<div class="card">
+    <h2>Yritystiedot</h2>
+    <div class="row">
+      <div class="field" style="flex:2"><label>Yrityksen nimi</label><input class="f" id="sCoName" value="${esc(co.name)}"></div>
+      <div class="field"><label>Y-tunnus</label><input class="f" id="sCoYt" value="${esc(co.ytunnus)}"></div>
+    </div>
+    <div class="row">
+      <div class="field" style="flex:2"><label>Osoite</label><input class="f" id="sCoAddr" value="${esc(co.address)}"></div>
+      <div class="field"><label>Postinumero + kaupunki</label><input class="f" id="sCoCity" value="${esc(co.city)}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Sähköposti</label><input class="f" id="sCoEmail" value="${esc(co.email)}"></div>
+      <div class="field"><label>IBAN</label><input class="f" id="sCoIban" value="${esc(co.iban)}"></div>
+      <div class="field"><label>BIC</label><input class="f" id="sCoBic" value="${esc(co.bic)}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Maksuehto</label><input class="f" id="sCoTerms" value="${esc(co.terms)}"></div>
+      <div class="field"><label>OVT-tunnus</label><input class="f" id="sCoOvt" value="${esc(co.ovt)}"></div>
+      <div class="field"><label>Operaattori</label><input class="f" id="sCoOp" value="${esc(co.operatorId)}"></div>
+    </div>
+    <h3>Tilikausi</h3>
+    <div class="row">
+      <div class="field"><label>Alkupäivä</label><input class="f" id="sFyStart" type="date" value="${co.fyStart}"></div>
+      <div class="field"><label>Loppupäivä</label><input class="f" id="sFyEnd" type="date" value="${co.fyEnd}"></div>
+    </div>
+    <button class="btn" onclick="saveSettings()">Tallenna</button>
+  </div>
+  <div class="card">
+    <h2>Asiakkaat</h2>
+    <button class="btn small" onclick="editCustomer('')">＋ Uusi asiakas</button>
+    <table style="margin-top:8px"><thead><tr><th>Nimi</th><th>Y-tunnus</th><th>Sähköposti</th><th class="center">Toiminnot</th></tr></thead>
+    <tbody>${db.customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.ytunnus||"")}</td><td>${esc(c.email||"")}</td><td class="center"><button class="link" onclick="editCustomer('${c.id}')">Muokkaa</button> <button class="link" onclick="deleteCustomer('${c.id}')">Poista</button></td></tr>`).join("")}</tbody></table>
+  </div>
+  <div class="card">
+    <h2>ALV-kannat</h2>
+    <div class="field"><label>Kannat (pilkulla eroteltuna)</label><input class="f" id="sVat" value="${db.vatRates.join(", ")}"></div>
+    <button class="btn small" onclick="saveVatRates()">Tallenna kannat</button>
+  </div>
+  <div class="card">
+    <h2>Varmuuskopio</h2>
+    <div class="hint">Vie koko kirjanpito salaamattomana JSON-tiedostona. <b>Ennen kuin jaat tiedostoa:</b> tyhjennä backendin API-tokenit alta.</div>
+    <div class="toolbar">
+      <button class="btn" onclick="exportBackup()">💾 Vie JSON-varmuuskopio</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">📂 Tuo varmuuskopio</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackup(this)">
+    </div>
+  </div>
+  <div class="card">
+    <h2>Salaus ja pääsy</h2>
+    <div class="hint" style="margin-bottom:8px">Kirjanpito on salattu selaimessa AES-GCM:llä. Salasana johdetaan PBKDF2:lla (${PBKDF2_ROUNDS.toLocaleString("fi-FI")} kierrosta, SHA-256, satunnainen suola).</div>
+    <div class="toolbar">
+      <button class="btn ghost" onclick="changePassword()">🔑 Vaihda salasana</button>
+      <button class="btn ghost" onclick="lockNow()">🔒 Lukitse nyt</button>
+    </div>
+    <div style="margin-top:10px;padding:10px 12px;background:#fff8f8;border:1px solid #f0dede;border-radius:6px;font-size:12px;color:#5a1a1a">
+      <b>Muistutus:</b> jos unohdat salasanan, salattua dataa ei voi palauttaa. Ota säännölliset varmuuskopiot.
+    </div>
+  </div>`;
+}
+
+async function saveSettings(){
+  db.company.name = document.getElementById("sCoName").value.trim();
+  db.company.ytunnus = document.getElementById("sCoYt").value.trim();
+  db.company.address = document.getElementById("sCoAddr").value.trim();
+  db.company.city = document.getElementById("sCoCity").value.trim();
+  db.company.email = document.getElementById("sCoEmail").value.trim();
+  db.company.iban = document.getElementById("sCoIban").value.trim();
+  db.company.bic = document.getElementById("sCoBic").value.trim();
+  db.company.terms = document.getElementById("sCoTerms").value.trim();
+  db.company.ovt = document.getElementById("sCoOvt").value.trim();
+  db.company.operatorId = document.getElementById("sCoOp").value.trim();
+  db.company.fyStart = document.getElementById("sFyStart").value;
+  db.company.fyEnd = document.getElementById("sFyEnd").value;
+  await saveDb();
+  alert("Tallennettu.");
+}
+
+async function saveVatRates(){
+  const v = document.getElementById("sVat").value.split(",").map(s=>normalizeNum(s)).filter(x=>x>=0);
+  if (!v.length){ alert("Vähintään yksi kanta."); return; }
+  db.vatRates = v.sort((a,b)=>b-a);
+  await saveDb();
+  showTab("settings");
+}
+
+function editCustomer(id){
+  const c = id ? db.customers.find(x=>x.id===id) : { id:uid(), name:"", ytunnus:"", vat:"", country:"FI", address:"", city:"", email:"", ovt:"", operatorId:"", prices:{} };
+  const isNew = !id;
+  const body = `<div class="row">
+    <div class="field" style="flex:2"><label>Nimi</label><input class="f" id="cName" value="${esc(c.name)}"></div>
+    <div class="field"><label>Y-tunnus / VAT</label><input class="f" id="cYt" value="${esc(c.ytunnus||c.vat||"")}"></div>
+  </div>
+  <div class="row">
+    <div class="field" style="flex:2"><label>Osoite</label><input class="f" id="cAddr" value="${esc(c.address||"")}"></div>
+    <div class="field"><label>Postinumero + kaupunki</label><input class="f" id="cCity" value="${esc(c.city||"")}"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Sähköposti</label><input class="f" id="cEmail" value="${esc(c.email||"")}"></div>
+    <div class="field"><label>Maakoodi</label><input class="f" id="cCountry" value="${esc(c.country||"FI")}"></div>
+  </div>`;
+  const footer = `<button class="btn ghost" onclick="closeModal()">Peruuta</button>
+    <button class="btn" onclick="saveCustomer('${c.id}',${isNew})">Tallenna</button>`;
+  openModal(isNew ? "Uusi asiakas" : "Muokkaa asiakasta", body, footer);
+}
+
+async function saveCustomer(id, isNew){
+  const c = {
+    id,
+    name: document.getElementById("cName").value.trim(),
+    ytunnus: document.getElementById("cYt").value.trim(),
+    address: document.getElementById("cAddr").value.trim(),
+    city: document.getElementById("cCity").value.trim(),
+    email: document.getElementById("cEmail").value.trim(),
+    country: document.getElementById("cCountry").value.trim() || "FI",
+    prices: isNew ? {} : (db.customers.find(x=>x.id===id)?.prices || {})
+  };
+  if (!c.name){ alert("Nimi puuttuu."); return; }
+  if (isNew) db.customers.push(c);
+  else {
+    const idx = db.customers.findIndex(x=>x.id===id);
+    if (idx>=0) db.customers[idx] = c;
+  }
+  await saveDb();
+  closeModal();
+  showTab("settings");
+}
+
+async function deleteCustomer(id){
+  if (!confirm("Poistetaanko asiakas?")) return;
+  db.customers = db.customers.filter(x=>x.id!==id);
+  await saveDb();
+  showTab("settings");
+}
+
+/* ========== BACKUP ========== */
+function exportBackup(){
+  const data = { exported: today(), db };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kirjanpito-varmuuskopio-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importBackup(input){
+  const f = input.files[0]; if (!f) return;
+  if (!confirm("Tuonti korvaa nykyisen tietokannan. Jatka?")) return;
+  const r = new FileReader();
+  r.onload = async ()=>{
+    try {
+      const parsed = JSON.parse(r.result);
+      db = migrateDb(parsed.db || parsed);
+      await saveDb();
+      alert("Tuotu onnistuneesti.");
+      showTab("dash");
+    } catch(e){ alert("Virheellinen JSON-tiedosto: "+e.message); }
+  };
+  r.readAsText(f);
+}
+
+/* ========== INIT ========== */
+window.addEventListener("DOMContentLoaded", ()=>{
+  if (!window.crypto || !window.crypto.subtle){
+    document.getElementById("lockBody").innerHTML = '<div class="warn">Selain ei tue Web Crypto -rajapintaa (crypto.subtle). Kirjanpitoa ei voi käyttää turvallisesti tässä ympäristössä. Käytä uudempaa selainta ja HTTPS-yhteyttä.</div>';
+    return;
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw){
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.enc){ showLockUnlock(); return; }
+    } catch(e){}
+  }
+  showLockCreate();
+});
+</script>
+</body>
+</html>
