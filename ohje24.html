@@ -221,6 +221,18 @@ function docList(map){
   }).join("");
 }
 function openDoc(k){toast("Demo: avaisi dokumentin ("+k+")");}
+function smokeListCard(c){
+  var list=(c&&Array.isArray(c.varoittimet))?c.varoittimet:[];
+  if(!list.length) return "";
+  var rows=list.map(function(s){
+    var meta=[s.power,(s.last?("vaihdettu "+s.last):"")].filter(Boolean).join(" \u00b7 ");
+    return '<div class="status-row"><span style="font-size:20px">\ud83d\udd14</span>'+
+      '<div class="grow"><div class="name">'+esc(s.loc||"Palovaroitin")+'</div>'+
+      (meta?'<div class="meta">'+esc(meta)+'</div>':'')+'</div></div>';
+  }).join("");
+  return '<div class="card"><h2>T\u00e4m\u00e4n asunnon palovaroittimet ('+list.length+')</h2>'+rows+
+    '<p class="hint" style="margin:8px 0 0">Palovaroittimet ovat asukkaan vastuulla. Testaa s\u00e4\u00e4nn\u00f6llisesti ja kuittaa alta.</p></div>';
+}
 
 /* ================= NÄKYMÄT ================= */
 function viewAula(code,c){
@@ -258,6 +270,7 @@ function viewAsukas(code,c){
     '<p class="sub">'+esc(COMPANY.name)+' · '+esc(c.floor)+'</p>'+
     '<div class="banner ok">✓ <span><b>Talon turvallisuus kunnossa.</b> Sammuttimet, väestönsuoja, savunpoisto ja hissit tarkastettu ja voimassa.</span></div>'+
     statusBlock()+
+    smokeListCard(c)+
     '<div class="card"><h2>Oma palovaroitin</h2>'+
       '<p class="hint" style="margin:0 0 10px">Testaa palovaroitin painamalla testinappia. Kun se on kunnossa, kuittaa se tästä. Kuittaus ei kerää henkilötietoja.</p>'+
       '<button class="btn primary" id="pvBtn" onclick="markSmoke()">✓ Palovaroitin testattu ja kunnossa</button>'+
@@ -393,7 +406,7 @@ function readCode(){
 }
 function mapServerCode(res){
   var d=res.data||{}, t=res.nakymatyyppi;
-  if(t==="asukas") return {type:"asukas", apt:d.apt||res.koodi, floor:d.floor||""};
+  if(t==="asukas") return {type:"asukas", apt:d.apt||res.koodi, floor:d.floor||"", varoittimet:Array.isArray(d.varoittimet)?d.varoittimet:[]};
   if(t==="aula")   return {type:"aula"};
   if(t==="laite")  return {type:"laite", device:d.device||"Laite", loc:d.loc||"", kind:d.kind||"", last:d.last||"", next:d.next||"", state:d.state||"ok"};
   if(t==="huolto") return {type:"huolto", room:d.room||"Tekninen tila", loc:d.loc||"", pin:d.pin||""};

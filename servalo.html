@@ -4475,7 +4475,7 @@ async function pushCode(c,x){
   if(t==="laite") data={device:x.apt||"",loc:x.note||"",note:x.note||""};
   else if(t==="huolto") data={room:x.apt||"",loc:x.note||"",pin:x.pin||"",note:x.note||""};
   else if(t==="aula") data={};
-  else data={apt:x.apt||"",note:x.note||""};
+  else data={apt:x.apt||"",note:x.note||"",floor:x.floor||"",varoittimet:Array.isArray(x.smokes)?x.smokes:[]};
   const r=await fetch("/api/kohdista",{method:"POST",headers:apiHeaders(),
     body:JSON.stringify({koodi:x.code,kohde_id:kid,nakymatyyppi:t,data:data})});
   if(!r.ok) throw new Error("kohdista "+r.status);
@@ -4810,17 +4810,22 @@ function importCodesCSV(cid){
       const rows=parseCSV(String(r.result));
       if(!rows.length){alert("Tyhjä tiedosto.");return;}
       const head=rows[0].map(h=>h.trim().toLowerCase());
-      const ci=head.indexOf("koodi"),ni=head.indexOf("nimi"),si=head.indexOf("sijainti"),ti=head.indexOf("tyyppi"),pii=head.indexOf("pin");
+      const col=(...names)=>{for(const n of names){const k=head.indexOf(n);if(k>=0)return k;}return -1;};
+      const ci=col("koodi"),ni=col("asunto","nimi"),si=col("huomio","sijainti"),ti=col("tyyppi"),pii=col("pin"),fi=col("kerros","floor"),vi=col("varoittimet","varoitin");
+      const parseSmokes=(s)=>String(s||"").split("|").map(seg=>{const p=seg.split(":").map(x=>x.trim());if(!p[0])return null;return {loc:p[0]||"",power:p[1]||"",last:p[2]||""};}).filter(Boolean);
       let added=0;
       for(let i=1;i<rows.length;i++){
         const row=rows[i];if(!row.length)continue;
-        const code=(ci>=0&&row[ci]?row[ci]:"").trim();
+        let code=(ci>=0&&row[ci]?row[ci]:"").trim();
         const apt=(ni>=0&&row[ni]?row[ni]:"").trim();
         const note=(si>=0&&row[si]?row[si]:"").trim();
         const type=((ti>=0&&row[ti]?row[ti]:"asukas").trim().toLowerCase())||"asukas";
         const pin=(pii>=0&&row[pii]?row[pii]:"").trim();
+        const floor=(fi>=0&&row[fi]?row[fi]:"").trim();
+        const smokes=vi>=0?parseSmokes(row[vi]):[];
         if(!code&&!apt)continue;
-        db.codes.push({id:uid(),customerId:cid,code,apt,note,type,pin,images:[],created:today()});
+        if(!code)code=genQrCode();
+        db.codes.push({id:uid(),customerId:cid,code,apt,note,type,pin,floor,smokes,images:[],created:today()});
         added++;
       }
       save();refreshCodes();
