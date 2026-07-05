@@ -89,6 +89,21 @@ const server = http.createServer((req, res) => {
   // Kirjanpito: vain sisainen sovellus, ei koskaan julkisella ohje24-domainilla.
   if (isPublic && /kirjanpito/i.test(urlPath)) urlPath = "/ohje24.html";
   else if (urlPath === "/kirjanpito") urlPath = "/kirjanpito.html";
+  // Palvelinpuolen HTTP Basic Auth kirjanpidolle (aktiivinen vain kun KIRJANPITO_PASS asetettu).
+  if (urlPath === "/kirjanpito.html" && process.env.KIRJANPITO_PASS) {
+    const _kbU = process.env.KIRJANPITO_USER || "admin";
+    const _h = String(req.headers["authorization"] || "");
+    let _ok = false;
+    if (_h.startsWith("Basic ")) {
+      const _d = Buffer.from(_h.slice(6), "base64").toString("utf8");
+      const _i = _d.indexOf(":");
+      _ok = _i >= 0 && _d.slice(0, _i) === _kbU && _d.slice(_i + 1) === process.env.KIRJANPITO_PASS;
+    }
+    if (!_ok) {
+      res.writeHead(401, { "WWW-Authenticate": 'Basic realm="Kirjanpito", charset="UTF-8"', "Content-Type": "text/plain; charset=utf-8" });
+      return res.end("401 - kirjautuminen vaaditaan");
+    }
+  }
   if (urlPath === "/") urlPath = defaultFile;
 
   const filePath = path.normalize(path.join(ROOT, urlPath));
