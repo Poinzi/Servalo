@@ -688,6 +688,7 @@
         <div class="field"><label>Huoltokohde</label><input class="f" id="dTarget" placeholder="esim. Paloilmoitinjärjestelmä"></div>
         <div class="field"><label>Valmistaja/Malli/Tyyppi</label><input class="f" id="dMake" placeholder="esim. Panasonic EBL G3"></div>
         <div class="field"><label>Tuoteryhmä</label><input class="f" id="dGroup" placeholder="esim. Paloilmoitin"></div>
+        <div class="field"><label>Virtalähde <span class="hint">(palovaroitin)</span></label><select class="f" id="dPower"><option value="">– ei valittu –</option><option value="230 V">230 V (verkkovirta)</option><option value="Akku / paristo">Akku / paristo</option></select></div>
         <div class="field"><label>Koko</label><input class="f" id="dSize" placeholder="esim. 6 kg"></div>
         <div class="field"><label>Valmistusvuosi</label><input class="f" id="dYear" placeholder="esim. 2019"></div>
         <div class="field"><label>Sarjanumero</label><input class="f" id="dSerial" placeholder="sammutinkohtainen"></div>
@@ -3793,7 +3794,7 @@ function editDevice(id){
   asel.innerHTML='<option value="">– Ei osoitettu –</option>'+wlist.map(u=>`<option value="${u.id}">${esc(u.name)}${u.active?"":" (pois käytöstä)"}</option>`).join("");
   asel.value=curAssignee;
   const set=(f,v)=>document.getElementById(f).value=v||"";
-  set("dTag",d?.tag);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);document.getElementById("dQrTarget").value=(d&&d.qrTarget)||"servalo";
+  set("dTag",d?.tag);set("dTarget",d?.target);set("dMake",d?.make);set("dGroup",d?.group);set("dPower",d?.power);document.getElementById("dQrTarget").value=(d&&d.qrTarget)||"servalo";
   lsel.value=d?d.locId:(selLoc&&locById(selLoc)?.type==="site"?selLoc:lsel.value);
   set("dValue",d?.value);set("dInterval",d?.interval);set("dDelivery",d?.delivery);
   set("dSize",d?.size);set("dYear",d?.year);set("dSerial",d?.serial);
@@ -3830,7 +3831,7 @@ function devAutoNextSetup(){
 function saveDevice(){
   const id=document.getElementById("dId").value;
   const g=f=>document.getElementById(f).value;
-  const data={tag:g("dTag").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",
+  const data={tag:g("dTag").trim(),target:g("dTarget").trim(),make:g("dMake").trim(),group:g("dGroup").trim()||"Muu",power:g("dPower"),
     locId:g("dLoc"),customerId:g("dCustomer")||null,assignedTo:g("dAssignee")||null,value:+g("dValue")||0,interval:g("dInterval").trim(),delivery:g("dDelivery"),
     last:g("dLast"),next:g("dNext"),inspInterval:g("dInspInterval").trim(),inspLast:g("dInspLast"),inspNext:g("dInspNext"),req:+g("dReq")||0,repairs:+g("dRepairs")||0,size:g("dSize").trim(),year:g("dYear").trim(),serial:g("dSerial").trim(),notes:g("dNotes").trim(),updated:today()};
   data.qrTarget=(g("dQrTarget")==="ohje24")?"ohje24":"servalo";
@@ -5247,7 +5248,7 @@ function palovaroitinPk(devs,ctx){
   if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
   var dash='<span style="color:#bbb">–</span>';
   var typeOf=function(d){return /ioni/i.test(String(d.make||""))?"Ioni":"Optinen";};
-  var powerOf=function(d){var t=String((d.make||"")+" "+(d.notes||""));return /230|verkko/i.test(t)?"230 V":"Paristo";};
+  var powerOf=function(d){if(d.power)return d.power;var t=String((d.make||"")+" "+(d.notes||""));return /230|verkko/i.test(t)?"230 V":"Paristo";};
   var yearOf=function(d){var m=String((d.serial||"")+" "+(d.make||"")).match(/(19|20)\d{2}/);return m?m[0]:"";};
   var replOf=function(d){var y=yearOf(d);return y?String(parseInt(y,10)+10):"";};
   var mmYY=function(iso){if(!iso)return"";var p=String(iso).slice(0,10).split("-");return p.length>=2?(p[1]+"/"+p[0].slice(2)):"";};
