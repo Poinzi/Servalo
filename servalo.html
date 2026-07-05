@@ -3833,7 +3833,7 @@ function saveDevice(){
 }
 function closeOverlay(id){document.getElementById(id).classList.remove("show");}
 var AI_KEY_LS="SAVUKS_AI_KEY", AI_MODEL_LS="SAVUKS_AI_MODEL";
-function aiModel(){return localStorage.getItem(AI_MODEL_LS)||"claude-haiku-4-5";}
+function aiModel(){return localStorage.getItem(AI_MODEL_LS)||"claude-sonnet-4-6";}
 function aiSupportsSpeech(){return !!(window.SpeechRecognition||window.webkitSpeechRecognition);}
 function aiSetField(id,val){var el=document.getElementById(id);if(el&&val){el.value=val;return true;}return false;}
 function aiTitle(s){return s.replace(/\b\w/g,function(c){return c.toUpperCase();});}

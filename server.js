@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
       let body;
       try { body = JSON.parse(raw || "{}"); } catch (e) { res.writeHead(400, jt); return res.end(JSON.stringify({ error: "virheellinen JSON" })); }
       const ALLOWED = new Set(["claude-haiku-4-5", "claude-sonnet-4-6"]);
-      const model = ALLOWED.has(body.model) ? body.model : "claude-haiku-4-5";
+      const model = ALLOWED.has(body.model) ? body.model : "claude-sonnet-4-6";
       const content = Array.isArray(body.content) ? body.content : null;
       if (!content) { res.writeHead(400, jt); return res.end(JSON.stringify({ error: "content vaaditaan" })); }
       fetch("https://api.anthropic.com/v1/messages", {
