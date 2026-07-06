@@ -4786,7 +4786,7 @@ function addCodeImage(id){
     };
     r.readAsDataURL(f);
   };
-  inp.click();
+  svOpenCamera(inp);
 }
 function viewCodeImage(id,i){
   const x=(db.codes||[]).find(c=>c.id===id);if(!x||!x.images||!x.images[i])return;
@@ -6116,6 +6116,91 @@ else{showLogin();}
 applyTitles();
 handleDeepLink();
 window.addEventListener("hashchange",handleDeepLink);
+
+/* === Kamera: ota kuva suoraan sovelluksessa (getUserMedia) === */
+(function(){
+  if(window.__svCamInit)return; window.__svCamInit=true;
+  var stream=null,targetInput=null,facing="environment";
+  function stop(){ if(stream){ stream.getTracks().forEach(function(t){t.stop();}); stream=null; } }
+  function close(){ stop(); var m=document.getElementById("svCamModal"); if(m)m.style.display="none"; targetInput=null; }
+  function build(){
+    var m=document.getElementById("svCamModal"); if(m)return m;
+    m=document.createElement("div"); m.id="svCamModal";
+    m.style.cssText="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px";
+    m.innerHTML='<video id="svCamVideo" autoplay playsinline muted style="max-width:96vw;max-height:70vh;border-radius:10px;background:#000"></video>'
+      +'<canvas id="svCamCanvas" style="display:none"></canvas>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+      +'<button type="button" id="svCamShotBtn" style="font-size:16px;padding:12px 20px;border-radius:8px;border:0;background:#fff;color:#111;font-weight:600;cursor:pointer">\u{1F4F7} Ota kuva</button>'
+      +'<button type="button" id="svCamFlipBtn" style="font-size:16px;padding:12px 16px;border-radius:8px;border:1px solid #fff;background:transparent;color:#fff;cursor:pointer">\u{1F504} Vaihda kamera</button>'
+      +'<button type="button" id="svCamCloseBtn" style="font-size:16px;padding:12px 16px;border-radius:8px;border:1px solid #fff;background:transparent;color:#fff;cursor:pointer">Peru</button>'
+      +'</div>'
+      +'<div style="color:#ccc;font-size:12px;text-align:center">Salli kameran kaytto selaimessa. Vaatii HTTPS-yhteyden.</div>';
+    document.body.appendChild(m);
+    m.querySelector("#svCamShotBtn").onclick=shot;
+    m.querySelector("#svCamFlipBtn").onclick=flip;
+    m.querySelector("#svCamCloseBtn").onclick=close;
+    m.addEventListener("click",function(e){ if(e.target===m) close(); });
+    return m;
+  }
+  function start(){
+    stop();
+    navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false}).then(function(s){
+      stream=s; var v=document.getElementById("svCamVideo"); if(v)v.srcObject=s;
+    }).catch(function(e){
+      var ti=targetInput;
+      alert("Kameraa ei voitu avata: "+(e&&e.message?e.message:e)+". Tarkista kameran kayttooikeus (HTTPS vaaditaan). Voit myos valita tiedoston.");
+      close(); if(ti){ try{ti.click();}catch(_){} }
+    });
+  }
+  function flip(){ facing=(facing==="environment"?"user":"environment"); start(); }
+  function shot(){
+    var v=document.getElementById("svCamVideo"); if(!v||!v.videoWidth){ return; }
+    var c=document.getElementById("svCamCanvas"); c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+    var ti=targetInput;
+    c.toBlob(function(blob){
+      if(blob && ti){
+        var file=new File([blob],"kamera-"+Date.now()+".jpg",{type:"image/jpeg"});
+        try{
+          var dt=new DataTransfer();
+          if(ti.multiple && ti.files){ for(var i=0;i<ti.files.length;i++) dt.items.add(ti.files[i]); }
+          dt.items.add(file); ti.files=dt.files;
+        }catch(_){}
+        try{ ti.dispatchEvent(new Event("change",{bubbles:true})); }catch(_){}
+      }
+      close();
+    },"image/jpeg",0.85);
+  }
+  window.svOpenCamera=function(input){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ alert("Tama selain ei tue kameraa. Valitse tiedosto."); if(input){try{input.click();}catch(_){}} return; }
+    targetInput=input||null; build().style.display="flex"; start();
+  };
+  function addBtn(inp){
+    try{
+      if(!inp||inp.getAttribute("data-svcam"))return;
+      if(!/image/i.test(inp.getAttribute("accept")||""))return;
+      inp.setAttribute("data-svcam","1");
+      var host=(inp.closest&&inp.closest("label"))||inp;
+      var b=document.createElement("button");
+      b.type="button"; b.className="btn sm ghost"; b.textContent="\U0001F4F7 Ota kuva"; b.style.marginTop="6px";
+      b.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} svOpenCamera(inp); };
+      if(host.parentNode) host.parentNode.insertBefore(b, host.nextSibling);
+    }catch(_){}
+  }
+  function scan(root){ try{ (root||document).querySelectorAll("input[type=file]").forEach(addBtn); }catch(_){} }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){scan(document);});
+  else scan(document);
+  try{
+    var mo=new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){ var an=muts[i].addedNodes; if(!an)continue;
+        for(var j=0;j<an.length;j++){ var n=an[j]; if(!n||n.nodeType!==1)continue;
+          if(n.matches&&n.matches("input[type=file]")) addBtn(n);
+          if(n.querySelectorAll) scan(n);
+        } }
+    });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }catch(_){}
+})();
 </script>
 </body>
 </html>
