@@ -6182,7 +6182,7 @@ window.addEventListener("hashchange",handleDeepLink);
       inp.setAttribute("data-svcam","1");
       var host=(inp.closest&&inp.closest("label"))||inp;
       var b=document.createElement("button");
-      b.type="button"; b.className="btn sm ghost"; b.textContent="\U0001F4F7 Ota kuva"; b.style.marginTop="6px";
+      b.type="button"; b.className="btn sm ghost"; b.textContent="\u{1F4F7} Ota kuva"; b.style.marginTop="6px";
       b.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} svOpenCamera(inp); };
       if(host.parentNode) host.parentNode.insertBefore(b, host.nextSibling);
     }catch(_){}
