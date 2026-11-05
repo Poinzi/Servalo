@@ -1044,7 +1044,7 @@
       <div style="font-weight:700;margin:2px 0 6px;color:#c1121f">Tarkastuksen tiedot</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Päiväys</label><input class="f" id="enVsDate" type="date"></div>
-        <div class="field" style="flex:1;min-width:150px"><label>Tarkastuslaji</label><select class="f" id="enVsLaji"><option value=""></option><option>Vuosittainen tarkastus</option><option>Käyttöönottotarkastus</option><option>Tiiveyskoe / perushuolto</option><option>Jälkitarkastus</option><option>Pyydetty tarkastus</option></select></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Tarkastuslaji</label><select class="f" id="enVsLaji" onchange="updateKvVisibility()"><option value=""></option><option>Vuosittainen tarkastus</option><option>Käyttöönottotarkastus</option><option>Tiiveyskoe / perushuolto</option><option>Jälkitarkastus</option><option>Pyydetty tarkastus</option></select></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Tarkastusnro</label><input class="f" id="enVsNro" placeholder="esim. 1"></div>
@@ -1089,6 +1089,23 @@
       <div class="field"><label>📷 Kuva <span class="hint" style="font-weight:400">(sisäinen – asiakas ei näe)</span></label><input class="f" id="enVsPhoto" type="file" accept="image/*" capture="environment" onchange="previewVsPhoto()"><div id="enVsPhotoPrev" style="margin-top:8px"></div></div>
       <div class="field"><label>Liite (valmis raportti, valinnainen)</label><input class="f" id="enVsFile" type="file"></div>
       <p class="hint">Voit joko liittää valmiin raportin tai luoda pöytäkirjan täytetyistä kentistä.</p>
+      <div id="kvSection" style="display:none;margin-top:14px;border-top:2px solid #c1121f;padding-top:10px">
+        <div style="font-weight:700;margin:4px 0 2px;color:#c1121f">Käyttöönottovalmius (72 h)</div>
+        <p class="hint" style="margin:0 0 8px">Näkyy vain käyttöönottotarkastuksessa. K = kunnossa / P = puute / E = ei sovellu.</p>
+        <div style="font-weight:700;margin:12px 0 4px">72 h käyttövalmius</div>
+        <div id="kvCheck"></div>
+        <div style="font-weight:700;margin:12px 0 4px">Käyttöönoton vaiheet</div>
+        <div id="kvVaihe"></div>
+        <div style="font-weight:700;margin:12px 0 4px">Loppukatselmus</div>
+        <div id="kvLoppu"></div>
+        <div style="font-weight:700;margin:12px 0 4px">Käyttövalmiuspäätös</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:150px"><label>Hyväksytään käyttövalmiiksi</label><select class="f" id="enKvHyv"><option value=""></option><option>Kyllä</option><option>Ei</option></select></div>
+          <div class="field" style="flex:1;min-width:150px"><label>Hyväksyntä ehdollinen</label><select class="f" id="enKvEhd"><option value=""></option><option>Ei</option><option>Kyllä</option></select></div>
+        </div>
+        <div class="field" style="max-width:260px"><label>Käyttövalmiuden ajankohta</label><input class="f" id="enKvAika" type="datetime-local"></div>
+        <div class="field"><label>Avoimet tehtävät</label><textarea class="f" id="enKvAvoimet" rows="2" placeholder="esim. tiiveyskoe kesken — vaikutus 72 h valmiuteen"></textarea></div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn ghost" onclick="closeOverlay('vssOverlay')">Peruuta</button>
@@ -3340,6 +3357,140 @@ function sprinkPk(dev,ctx,ans){
   w.document.close();
 }
 const VSS_DRAFT_KEY="servalo_vss_drafts";
+const KV_CHECK=[
+ {id:"k1",l:"Pääsy suojaan ja avaimet saatavilla 72 h sisällä"},
+ {id:"k2",l:"Suoja tyhjennettävissä; irtaimiston sijoituspaikka sovittu"},
+ {id:"k3",l:"Ovet, luukut ja läpiviennit saatettavissa suojakäyttöön"},
+ {id:"k4",l:"Ilmanvaihto ja ylipaine saatavissa toimintaan"},
+ {id:"k5",l:"Vesi, viemäröinti ja käymäläjärjestelyt käytettävissä"},
+ {id:"k6",l:"Sähkö, valaistus ja varavalaistus käytettävissä"},
+ {id:"k7",l:"Varapoistumistie käyttökelpoinen"},
+ {id:"k8",l:"Pakolliset varusteet saatavilla ja käyttökelpoisia"},
+ {id:"k9",l:"Käyttöönottosuunnitelma ja vastuuhenkilöt ajan tasalla"}
+];
+const KV_VAIHE=[
+ {id:"v1",l:"Käynnistys: määräys kirjattu, johto ja ryhmät hälytetty, turvallisuus"},
+ {id:"v2",l:"Pääsy ja tyhjennys: kulkureitit auki, irtaimisto siirretty, vaaralliset aineet pois"},
+ {id:"v3",l:"Tekniikka käyttöasentoon: ovet, läpiviennit, IV/suodatus, ylipaine, vesi, viemäri, sähkö"},
+ {id:"v4",l:"Varustelu: tilajako, käymälät, vesi, jäte, ensiapu, alkusammutus, viestintä"},
+ {id:"v5",l:"Koekäyttö: laitteet koekäytetty, ilmavirta/ylipaine ja sulut tarkastettu"},
+ {id:"v6",l:"Loppukatselmus: henkilömäärä, opasteet, turvallisuus, yhteydet, dokumentointi"}
+];
+const KV_LOPPU=[
+ {id:"l1",l:"Suoja ja kulkureitit on tyhjennetty ja siivottu"},
+ {id:"l2",l:"Ovet, luukut, varauloskäynti ja läpiviennit ovat käyttöasennossa"},
+ {id:"l3",l:"Ilmanvaihto ja ylipaine on koekäytetty ja tulos kirjattu"},
+ {id:"l4",l:"Vesi, viemäröinti, käymälät ja jätehuolto on järjestetty"},
+ {id:"l5",l:"Sähkö, valaistus, varavalaistus ja viestivälineet toimivat"},
+ {id:"l6",l:"Ensiapu, alkusammutus, hygienia ja muut varusteet ovat saatavilla"},
+ {id:"l7",l:"Tilajako, opasteet ja henkilömäärä on tarkistettu"},
+ {id:"l8",l:"Vastuut, vuorot ja viestintämenettely on vahvistettu"},
+ {id:"l9",l:"Kriittisiä avoimia puutteita ei ole tai menettely on hyväksytty"}
+];
+function kvChkOpts(){return '<option value=""></option><option>K</option><option>P</option><option>E</option>';}
+function kvVaiheOpts(){return '<option value=""></option><option>Tehty</option><option>Kesken</option><option>Ei koske</option>';}
+function kvRowsHtml(arr,pfx,opts){
+  return arr.map(function(it){
+    return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
+      +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+'</label>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<select class="f" id="'+pfx+it.id+'_s" style="flex:0 0 130px">'+opts+'</select>'
+      +'<input class="f" id="'+pfx+it.id+'_i" placeholder="Havainto" style="flex:1;min-width:150px">'
+      +'</div></div>';
+  }).join("");
+}
+function renderKv(){
+  document.getElementById("kvCheck").innerHTML=kvRowsHtml(KV_CHECK,"kvc_",kvChkOpts());
+  document.getElementById("kvVaihe").innerHTML=kvRowsHtml(KV_VAIHE,"kvv_",kvVaiheOpts());
+  document.getElementById("kvLoppu").innerHTML=kvRowsHtml(KV_LOPPU,"kvl_",kvChkOpts());
+}
+function collectKvArr(arr,pfx){
+  var o={};
+  arr.forEach(function(it){
+    var se=document.getElementById(pfx+it.id+"_s"),ie=document.getElementById(pfx+it.id+"_i");
+    o[it.id]={s:se?se.value:"",i:ie?ie.value:""};
+  });
+  return o;
+}
+function collectKv(){
+  return {
+    check:collectKvArr(KV_CHECK,"kvc_"),
+    vaihe:collectKvArr(KV_VAIHE,"kvv_"),
+    loppu:collectKvArr(KV_LOPPU,"kvl_"),
+    hyv:(document.getElementById("enKvHyv")||{}).value||"",
+    ehd:(document.getElementById("enKvEhd")||{}).value||"",
+    aika:(document.getElementById("enKvAika")||{}).value||"",
+    avoimet:(document.getElementById("enKvAvoimet")||{}).value||""
+  };
+}
+function restoreKvArr(arr,pfx,data){
+  if(!data)return;
+  arr.forEach(function(it){
+    var v=data[it.id];if(!v)return;
+    var se=document.getElementById(pfx+it.id+"_s"),ie=document.getElementById(pfx+it.id+"_i");
+    if(se&&v.s!=null)se.value=v.s;if(ie&&v.i!=null)ie.value=v.i;
+  });
+}
+function restoreKv(kv){
+  if(!kv)return;
+  restoreKvArr(KV_CHECK,"kvc_",kv.check);
+  restoreKvArr(KV_VAIHE,"kvv_",kv.vaihe);
+  restoreKvArr(KV_LOPPU,"kvl_",kv.loppu);
+  if(kv.hyv!=null&&document.getElementById("enKvHyv"))document.getElementById("enKvHyv").value=kv.hyv;
+  if(kv.ehd!=null&&document.getElementById("enKvEhd"))document.getElementById("enKvEhd").value=kv.ehd;
+  if(kv.aika!=null&&document.getElementById("enKvAika"))document.getElementById("enKvAika").value=kv.aika;
+  if(kv.avoimet!=null&&document.getElementById("enKvAvoimet"))document.getElementById("enKvAvoimet").value=kv.avoimet;
+}
+function updateKvVisibility(){
+  var laji=(document.getElementById("enVsLaji")||{}).value||"";
+  var box=document.getElementById("kvSection");
+  if(box)box.style.display=(laji==="Käyttöönottotarkastus")?"block":"none";
+}
+function kvAvoimetYhteenveto(ans){
+  var rows=[];
+  if(ans.check)VSS_CHECK.forEach(function(it){
+    var v=ans.check[it.id];if(v&&(v.s==="PUUTE"||v.s==="VAARATILANNE"))rows.push([it.l,v.s,v.i||""]);
+  });
+  var kv=ans.kv||{};
+  if(kv.check)KV_CHECK.forEach(function(it){
+    var v=kv.check[it.id];if(v&&v.s==="P")rows.push([it.l,"PUUTE (72 h)",v.i||""]);
+  });
+  return rows;
+}
+function kvPrintHtml(ans){
+  if(!ans||ans.laji!=="Käyttöönottotarkastus")return "";
+  var kv=ans.kv||{};
+  var st=function(v){
+    if(v==="K"||v==="Tehty")return '<span style="color:#1a7f37;font-weight:700">'+esc(v)+'</span>';
+    if(v==="P"||v==="Kesken")return '<span style="color:#c1121f;font-weight:700">'+esc(v)+'</span>';
+    if(v==="E"||v==="Ei koske")return '<span style="color:#888">'+esc(v)+'</span>';
+    return v?esc(v):'<span style="color:#bbb">–</span>';
+  };
+  var tbl=function(arr,data){
+    return arr.map(function(it){var v=(data&&data[it.id])||{};
+      return '<tr><td>'+esc(it.l)+'</td><td class="v">'+st(v.s||"")+'</td><td>'+(v.i?esc(v.i):"")+'</td></tr>';
+    }).join("");
+  };
+  var h='<div class="sub">Käyttöönottovalmius (72 h)</div>'
+    +'<table class="chk"><thead><tr><th>Valmiuden kohta</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_CHECK,kv.check)+'</tbody></table>'
+    +'<div class="sub">Käyttöönoton vaiheet</div>'
+    +'<table class="chk"><thead><tr><th>Vaihe</th><th>Tila</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_VAIHE,kv.vaihe)+'</tbody></table>'
+    +'<div class="sub">Loppukatselmus</div>'
+    +'<table class="chk"><thead><tr><th>Hyväksymiskriteeri</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_LOPPU,kv.loppu)+'</tbody></table>';
+  var av=kvAvoimetYhteenveto(ans);
+  if(av.length){
+    h+='<div class="sub">Avoimet puutteet (vaikutus 72 h valmiuteen)</div>'
+      +'<table class="chk"><thead><tr><th>Kohta</th><th>Luokka</th><th>Huomio</th></tr></thead><tbody>'
+      +av.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>';}).join("")
+      +'</tbody></table>';
+  }
+  var hyv=kv.hyv?esc(kv.hyv):'–', ehd=kv.ehd?esc(kv.ehd):'–';
+  h+='<div class="sub">Käyttövalmiuspäätös</div><table class="meta">'
+    +'<tr><td class="k">Hyväksytään käyttövalmiiksi</td><td>'+hyv+'</td><td class="k">Ehdollinen</td><td>'+ehd+'</td></tr>'
+    +'<tr><td class="k">Käyttövalmiuden ajankohta</td><td>'+(kv.aika?esc(kv.aika.replace("T"," ")):'–')+'</td><td class="k">Avoimet tehtävät</td><td>'+(kv.avoimet?esc(kv.avoimet):'–')+'</td></tr>'
+    +'</table>';
+  return h;
+}
 let _vsPhoto=null;
 const VSS_CHECK=[
  {id:"o1",l:"1. Ovet ja sisäänkäynti",help:"Tarkasta oven sijainti, kunto ja kiinnitykset. Varmista, että kaikki ovikomponentit (kahvat, saranat, salvat, lukot) ovat tallessa ja ehjiä. Puhdista ja voitele liikkuvat osat kevyesti. Käyttöönotossa tai tiiveyskokeessa kirjaa purkutyöt ja tarvittavat muutokset."},
@@ -3426,7 +3577,7 @@ function collectVss(){
     tyot:document.getElementById("enVsTyot").value,
     lisa:document.getElementById("enVsLisa").value,
     edustaja:document.getElementById("enVsEdustaja").value,
-    check:chk,prod:prod,photo:_vsPhoto
+    check:chk,prod:prod,photo:_vsPhoto,kv:collectKv()
   };
 }
 var VS_FIELDS=["enVsDate","enVsLaji","enVsNro","enVsPrev","enVsOmistaja","enVsIsannoitsija","enVsHuoltomies","enVsLohko","enVsYksikko","enVsLuokka","enVsHenkilot","enVsPinta","enVsTkTehty","enVsTkTulos","enVsTkPaine","enVsTkKesto","enVsTkValine","enVsTkSeur","enVsArvio","enVsTyot","enVsLisa","enVsEdustaja"];
@@ -3451,9 +3602,11 @@ function openVssPk(devId){
   document.getElementById("enVsDevId").value=devId;
   document.getElementById("vsCheck").innerHTML=vsCheckHtml();
   document.getElementById("vsProd").innerHTML=vsProdHtml();
+  renderKv();
   VS_FIELDS.forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   document.getElementById("enVsDate").value=today();
   document.getElementById("enVsTkValine").value="U-putkimittari";
+  ["enKvHyv","enKvEhd","enKvAika","enKvAvoimet"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var pf=document.getElementById("enVsPhoto"),pp=document.getElementById("enVsPhotoPrev"),ff=document.getElementById("enVsFile");
   if(pf)pf.value="";if(pp)pp.innerHTML="";if(ff)ff.value="";_vsPhoto=null;
   var dr=readVsDrafts()[devId];
@@ -3463,8 +3616,10 @@ function openVssPk(devId){
     });
     if(dr.check)VSS_CHECK.forEach(function(it){var v=dr.check[it.id];if(!v)return;var se=document.getElementById("vsc_"+it.id+"_s"),ie=document.getElementById("vsc_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(ie&&v.i!=null)ie.value=v.i;});
     if(dr.prod)VSS_PROD.forEach(function(it){var v=dr.prod[it.id];if(!v)return;var se=document.getElementById("vsp_"+it.id+"_s"),de=document.getElementById("vsp_"+it.id+"_d"),ie=document.getElementById("vsp_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(de&&v.d!=null)de.value=v.d;if(ie&&v.i!=null)ie.value=v.i;});
+    if(dr.kv)restoreKv(dr.kv);
     if(dr.photo){_vsPhoto=dr.photo;if(pp)pp.innerHTML='<img src="'+dr.photo.data+'" style="max-width:160px;max-height:160px;border:1px solid var(--line);border-radius:6px"><div class="hint">Palautettu tallentamaton kuva</div>';}
   }
+  updateKvVisibility();
   show("vssOverlay");
 }
 function saveVssPk(){
@@ -3593,6 +3748,7 @@ function vssPk(dev,ctx,ans){
     +'<div class="sub">Varusteluettelo</div>'
     +'<table class="chk"><thead><tr><th>Varuste / tarvikeryhmä</th><th>Tila</th><th>Päiväys / vanhenee</th><th>Havainnot</th></tr></thead><tbody>'+prows+'</tbody></table>'
     +'<div class="sub">Kokonaisarvio</div><div style="margin:6px 0 4px">'+arvioBadge(ans.arvio||"")+'</div>'
+    +kvPrintHtml(ans)
     +'<div style="margin-top:16px;font-size:12px;font-weight:700">Tehdyt työt</div><div class="huom">'+esc(ans.tyot||"")+'</div>'
     +'<div style="margin-top:12px;font-size:12px;font-weight:700">Lisätiedot / korjaussuositukset</div><div class="huom">'+esc(ans.lisa||"")+'</div>'
     +photoHtml
