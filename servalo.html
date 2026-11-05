@@ -613,6 +613,24 @@
 </div>
 
 <!-- TYÖRAPORTTI MODAL -->
+<div class="overlay" id="alarmVisitOverlay">
+  <form class="modal" id="alarmVisitForm" onsubmit="saveAlarmVisit(event)">
+    <div class="modal-h"><span>Palovaroitintarkastus</span></div>
+    <div class="modal-b">
+      <p id="alarmVisitCustomer"></p>
+      <div class="field"><label>Päivä <input class="f" name="date" type="date" required></label></div>
+      <div class="field"><label>Kohde <select class="f" name="site" onchange="changeAlarmVisitSite()"></select></label></div>
+      <p class="hint">Kirjaa tulos vain käynnin piiriin kuuluville varoittimille. Käynti ja kuvat tallentuvat tähän selaimeen.</p>
+      <div id="alarmVisitRows"></div>
+      <div class="field"><label>Käynnin yhteiset huomiot <textarea class="f" name="note" maxlength="4000"></textarea></label></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" type="button" onclick="closeOverlay('alarmVisitOverlay')">Peruuta</button>
+      <button class="btn orange" type="submit">Tallenna käynti</button>
+    </div>
+  </form>
+</div>
+
 <div class="overlay" id="reportOverlay">
   <div class="modal" style="max-width:560px">
     <div class="modal-h"><span>🧾 Uusi työraportti</span><span class="x" onclick="closeOverlay('reportOverlay')">×</span></div>
@@ -3613,6 +3631,7 @@ let _pkAfterSave=null;
 
 function openInspectionPk(devId){
   var _d=db.devices.find(function(x){return x.id===devId;});
+  if(isPalovaroitin(_d)){openAlarmVisit(devId);return;}
   if(_d&&_d.group==="Paloilmoitin"){openPaloilmPk(devId);return;}
   if(_d&&_d.group==="V\u00e4est\u00f6nsuoja"){openVssPk(devId);return;}
   if(_d&&_d.group==="Sprinkleri"){openSprinkPk(devId);return;}
@@ -4380,6 +4399,7 @@ function renderCustomerDetail(){
         <div class="mini-add"><button class="iconbtn" onclick="addCustTask('${c.id}')">＋</button></div>
       </div></div>
     </div>
+    ${alarmVisitPanel(c.id)}
     <div class="panel"><div class="panel-h">Yhteyshenkilöt &amp; portaalikutsut</div><div class="panel-b" style="padding:0">
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Henkilö</th><th>Yhteystiedot</th><th>Portaali</th><th>Toiminnot</th></tr></thead>
@@ -5247,6 +5267,182 @@ function pikaPk(devs,ctx){
 }
 
 function isPalovaroitin(d){return !!d && !d.deleted && (d.group==="Palovaroitin" || String(d.make||"").toLowerCase().indexOf("palovaroitin")>=0 || String(d.target||"").toLowerCase().indexOf("palovaroitin")>=0);}
+/* ========== PALOVAROITINTARKASTUS ========== */
+const alarmResults = {
+  ok: "Kunnossa",
+  fault: "Puute",
+  noAccess: "Ei päästy tarkastamaan"
+};
+const alarmVisits = customerId => (db.alarmVisits || []).filter(visit => visit.customerId === customerId);
+const alarmVisitForm = () => document.getElementById("alarmVisitForm");
+
+function alarmVisitPanel(customerId){
+  if(!can("devices_edit"))return "";
+  const visits = alarmVisits(customerId);
+  return `<div class="panel"><div class="panel-h">Palovaroitintarkastukset</div>
+    <div class="panel-b">
+      <button class="btn orange" onclick="openAlarmVisit()">Uusi tarkastuskäynti</button>
+      ${visits.length ? `<ul>${visits.map(visit => `<li>
+        <button class="btn ghost sm" data-visit="${esc(visit.id)}" onclick="printAlarmVisit(this.dataset.visit)">
+          ${fmt(visit.date)} · ${esc(visit.site)} · ${visit.rows.length} merkintää
+        </button></li>`).join("")}</ul>` : '<p class="hint">Ei tallennettuja käyntejä.</p>'}
+    </div></div>`;
+}
+
+function openAlarmVisit(deviceId){
+  if(!can("devices_edit"))return;
+  const device = deviceId ? db.devices.find(d => d.id === deviceId && isPalovaroitin(d)) : null;
+  const customer = custById(deviceId ? device?.customerId : currentCustomerId);
+  if(!customer){alert("Liitä varoitin ensin asiakkaaseen.");return;}
+  const devices = devicesOfCustomer(customer.id).filter(isPalovaroitin);
+  if(!devices.length){alert("Lisää asiakkaalle ensin palovaroittimia laiterekisteriin.");return;}
+  const form = alarmVisitForm();
+  if(form.dataset.saving)return;
+  form.reset();
+  form.dataset.customer = customer.id;
+  document.getElementById("alarmVisitCustomer").textContent = customer.name;
+  form.elements.date.value = today();
+  const locations = [...new Set(devices.map(d => d.locId || ""))];
+  form.elements.site.replaceChildren(...locations.map(id => new Option(locPath(id) || "Kohdetta ei määritetty", id)));
+  if(device)form.elements.site.value = device.locId || "";
+  form.dataset.site = form.elements.site.value;
+  renderAlarmVisitRows();
+  show("alarmVisitOverlay");
+}
+
+function changeAlarmVisitSite(){
+  const form = alarmVisitForm();
+  const dirty = [...form.querySelectorAll("#alarmVisitRows input, #alarmVisitRows select, #alarmVisitRows textarea")].some(el => el.value);
+  if(dirty && !confirm("Kohteen vaihtaminen tyhjentää laitekohtaiset kirjaukset. Vaihdetaanko kohde?")){
+    form.elements.site.value = form.dataset.site;
+    return;
+  }
+  form.dataset.site = form.elements.site.value;
+  renderAlarmVisitRows();
+}
+
+function renderAlarmVisitRows(){
+  const form = alarmVisitForm();
+  const devices = devicesOfCustomer(form.dataset.customer).filter(d => isPalovaroitin(d) && (d.locId || "") === form.elements.site.value);
+  document.getElementById("alarmVisitRows").innerHTML = devices.map(d => `
+    <fieldset class="field" data-device="${esc(d.id)}">
+      <legend>${esc([d.locDetail, d.tag, d.make].filter(Boolean).join(" · ") || "Palovaroitin")}</legend>
+      <label>Tulos <select class="f alarm-result"><option value="">Ei mukana käynnillä</option>
+        ${Object.entries(alarmResults).map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}
+      </select></label>
+      <label>Havainto tai toimenpide <textarea class="f alarm-note" rows="2" maxlength="2000"></textarea></label>
+      <label>Kuva <input class="f alarm-photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+    </fieldset>`).join("");
+}
+
+function readAlarmPhoto(file){
+  return new Promise((resolve, reject) => {
+    if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 12 * 1024 * 1024){
+      reject(new Error("Valitse JPEG-, PNG- tai WebP-kuva, enintään 12 Mt."));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => {URL.revokeObjectURL(url);reject(new Error("Kuvan avaaminen epäonnistui."));};
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const ratio = Math.min(1, 960 / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      } catch(error){reject(new Error("Kuvan käsittely epäonnistui."));}
+    };
+    img.src = url;
+  });
+}
+
+async function saveAlarmVisit(event){
+  event.preventDefault();
+  const form = event.currentTarget;
+  if(!can("devices_edit") || form.dataset.saving)return;
+  const customer = custById(form.dataset.customer);
+  if(!customer)return;
+  const siteId = form.elements.site.value;
+  const devices = devicesOfCustomer(customer.id);
+  const rows = [];
+  for(const field of form.querySelectorAll("[data-device]")){
+    const result = field.querySelector(".alarm-result").value;
+    const note = field.querySelector(".alarm-note").value.trim();
+    const photo = field.querySelector(".alarm-photo").files[0];
+    if(!Object.hasOwn(alarmResults, result)){
+      if(note || photo){alert("Valitse tulos jokaiselle riville, johon lisäsit havainnon tai kuvan.");return;}
+      continue;
+    }
+    if(result === "fault" && !note){alert("Kirjaa havainto jokaiselle havaitulle puutteelle.");return;}
+    const device = devices.find(d => d.id === field.dataset.device && isPalovaroitin(d) && (d.locId || "") === siteId);
+    if(!device){alert("Laitetiedot muuttuivat. Avaa tarkastuskäynti uudelleen.");return;}
+    rows.push({tag:device.tag, model:device.make, location:device.locDetail, result, note, photo});
+  }
+  if(!rows.length){alert("Kirjaa vähintään yhden varoittimen tulos.");return;}
+  const visit = {
+    id:uid(), customerId:customer.id, customer:customer.name, site:locPath(siteId) || "Kohdetta ei määritetty",
+    address:locById(siteId)?.addr || customer.address, date:form.elements.date.value,
+    inspector:currentUser.name, note:form.elements.note.value.trim(), rows
+  };
+  const previousVisits = db.alarmVisits;
+  const controls = [...form.elements];
+  form.dataset.saving = "1";
+  controls.forEach(control => {control.disabled = true;});
+  try {
+    for(const row of rows)row.photo = row.photo ? await readAlarmPhoto(row.photo) : "";
+    if(!can("devices_edit") || currentUser.name !== visit.inspector)return;
+    db.alarmVisits = [visit, ...(db.alarmVisits || [])];
+    try {save();} catch(error){
+      db.alarmVisits = previousVisits;
+      throw new Error("Tallennus epäonnistui. Tarkista selaimen vapaa tallennustila ja yritä uudelleen esimerkiksi pienemmällä kuvamäärällä.");
+    }
+    form.reset();
+    closeOverlay("alarmVisitOverlay");
+    if(currentCustomerId === customer.id)renderCustomerDetail();
+    alert("Käynti tallennettu. Avaa pöytäkirja asiakkaan Palovaroitintarkastukset-osiosta.");
+  } catch(error){alert(error.message);}
+  finally {
+    delete form.dataset.saving;
+    controls.forEach(control => {control.disabled = false;});
+  }
+}
+
+function printAlarmVisit(id){
+  if(!can("devices_edit"))return;
+  const visit = alarmVisits(currentCustomerId).find(v => v.id === id);
+  if(!visit)return;
+  const w = window.open("", "_blank");
+  if(!w){alert("Salli ponnahdusikkunat pöytäkirjan avaamista varten.");return;}
+  w.opener = null;
+  const summary = Object.entries(alarmResults).map(([value, label]) =>
+    esc(label) + " " + visit.rows.filter(row => row.result === value).length).join(" · ");
+  const rows = visit.rows.map(row => {
+    const photo = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(row.photo || "")
+      ? `<img alt="Tarkastuskuva" src="${row.photo}">` : "";
+    return `<tr><td>${esc(row.location || "–")}</td><td>${esc([row.tag, row.model].filter(Boolean).join(" · "))}</td>
+      <td>${esc(alarmResults[row.result])}</td><td>${esc(row.note)}</td><td>${photo}</td></tr>`;
+  }).join("");
+  w.document.write(`<!doctype html><html lang="fi"><meta charset="utf-8"><title>Palovaroitintarkastuksen pöytäkirja</title>
+    <style>@page{size:A4;margin:14mm}body{font:14px system-ui;color:#222;margin:24px}h1{font-size:23px}
+      header{border-bottom:3px solid #c1121f}table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;vertical-align:top;border-bottom:1px solid #ccc}
+      td,p{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100px;max-height:90px}tr{break-inside:avoid}thead{display:table-header-group}
+      @media print{button{display:none}body{margin:0}}</style>
+    <header><strong>Savuks Oy</strong><h1>Palovaroitintarkastuksen pöytäkirja</h1></header>
+    <p><b>Asiakas</b> ${esc(visit.customer)}<br><b>Kohde</b> ${esc(visit.site)}<br><b>Osoite</b> ${esc(visit.address || "–")}
+    <br><b>Päivä</b> ${esc(fmt(visit.date))}<br><b>Tarkastaja</b> ${esc(visit.inspector)}</p>
+    <p><b>Yhteenveto</b> ${summary}</p>
+    <table><thead><tr><th>Sijainti</th><th>Varoitin</th><th>Tulos</th><th>Havainto tai toimenpide</th><th>Kuva</th></tr></thead><tbody>${rows}</tbody></table>
+    ${visit.note ? `<p><b>Käynnin yhteiset huomiot</b><br>${esc(visit.note)}</p>` : ""}
+    <p><button onclick="print()">Tulosta / Tallenna PDF</button></p></html>`);
+  w.document.close();
+}
+
 function palovaroitinPkPortal(){var c=portalCustomer();if(!c){alert("Ei kohdetta.");return;}var ds=devicesOfCustomer(c.id).filter(isPalovaroitin);palovaroitinPk(ds,{name:c.name,address:c.address||""});}
 function palovaroitinPkSel(){var m=document.getElementById("bulkMenu");if(m)m.classList.remove("show");var ds=db.devices.filter(function(d){return selected.has(d.id)&&isPalovaroitin(d);});if(!ds.length){alert("Valitse ensin vähintään yksi palovaroitin listasta.");return;}palovaroitinPk(ds,{name:"",address:""});}
 function palovaroitinPk(devs,ctx){
