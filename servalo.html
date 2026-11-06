@@ -4261,7 +4261,8 @@ function kspRenderTyoohjeet(){
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<select class="f" id="kse_'+it.id+'_s" aria-label="K/P/E" style="flex:0 0 90px"><option value=""></option><option>K</option><option>P</option><option>E</option></select>'
       +'<input class="f" id="kse_'+it.id+'_i" placeholder="Havainto ja tarvittava toimenpide" style="flex:2;min-width:170px">'
-      +'<input class="f" id="kse_'+it.id+'_v" placeholder="Vastuu / määräaika" style="flex:1;min-width:140px">'
+      +'<input class="f" id="kse_'+it.id+'_v" placeholder="Vastuu" aria-label="Vastuu" style="flex:1;min-width:120px">'
+      +'<input class="f" id="kse_'+it.id+'_m" placeholder="Määräaika" aria-label="Määräaika" style="flex:0 0 120px">'
       +'</div></div>';
   }).join("");
   document.getElementById("kspRatk64").innerHTML=KSP_TO64.map(function(it){
@@ -4305,7 +4306,7 @@ function kspAddPuute(){var l=kspCollectPuutteet();l.push({uid:kspUid(),luokka:"M
 function kspRemovePuute(uid){kspRenderPuutteet(kspCollectPuutteet().filter(function(p){return p.uid!==uid;}));saveKspDraft();}
 function kspCollectTyoohjeet(o){
   var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
-  o.ennakko={};KSP_ENNAKKO.forEach(function(it){o.ennakko[it.id]={s:g("kse_"+it.id+"_s"),i:g("kse_"+it.id+"_i"),v:g("kse_"+it.id+"_v")};});
+  o.ennakko={};KSP_ENNAKKO.forEach(function(it){o.ennakko[it.id]={s:g("kse_"+it.id+"_s"),i:g("kse_"+it.id+"_i"),v:g("kse_"+it.id+"_v"),m:g("kse_"+it.id+"_m")};});
   o.ratk64={};KSP_TO64.forEach(function(it){o.ratk64[it.id]={k:g("ksw_"+it.id+"_k"),v:g("ksw_"+it.id+"_v")};});
   o.tila66={};KSP_TO66.forEach(function(it){o.tila66[it.id]={s:g("kst_"+it.id+"_s"),t:g("kst_"+it.id+"_t")};});
   o.riskit={};KSP_RISKIT.forEach(function(it){o.riskit[it.id]=g("ksk_"+it.id+"_v");});
@@ -4314,7 +4315,7 @@ function kspCollectTyoohjeet(o){
 }
 function kspFillTyoohjeet(p){
   var s=function(id,v){var el=document.getElementById(id);if(el)el.value=v||"";};
-  KSP_ENNAKKO.forEach(function(it){var x=(p.ennakko||{})[it.id]||{};s("kse_"+it.id+"_s",x.s);s("kse_"+it.id+"_i",x.i);s("kse_"+it.id+"_v",x.v);});
+  KSP_ENNAKKO.forEach(function(it){var x=(p.ennakko||{})[it.id]||{};s("kse_"+it.id+"_s",x.s);s("kse_"+it.id+"_i",x.i);s("kse_"+it.id+"_v",x.v);s("kse_"+it.id+"_m",x.m);});
   KSP_TO64.forEach(function(it){var x=(p.ratk64||{})[it.id]||{};s("ksw_"+it.id+"_k",x.k);s("ksw_"+it.id+"_v",x.v);});
   KSP_TO66.forEach(function(it){var x=(p.tila66||{})[it.id]||{};s("kst_"+it.id+"_s",x.s);s("kst_"+it.id+"_t",x.t);});
   KSP_RISKIT.forEach(function(it){s("ksk_"+it.id+"_v",(p.riskit||{})[it.id]);});
@@ -4324,7 +4325,7 @@ function kspFillTyoohjeet(p){
 function kspPrintEnnakko(p,v){
   var rows=KSP_ENNAKKO.map(function(it){var x=(p.ennakko||{})[it.id]||{};
     var st=x.s==="K"?'<span style="color:#1a7f37;font-weight:700">K</span>':(x.s==="P"?'<span style="color:#c1121f;font-weight:700">P</span>':(x.s==="E"?'<span style="color:#888">E</span>':'☐ K &nbsp;☐ P &nbsp;☐ E'));
-    return '<tr><td>'+esc(it.l)+'</td><td class="d">'+st+'</td><td>'+(x.i?esc(x.i):'')+'</td><td>'+(x.v?esc(x.v):'')+'</td></tr>';}).join("");
+    return '<tr><td>'+esc(it.l)+'</td><td class="d">'+st+'</td><td>'+(x.i?esc(x.i):'')+'</td><td>'+[x.v,x.m].filter(Boolean).map(esc).join(' / ')+'</td></tr>';}).join("");
   var a=p.arvio||"";
   var ch=function(t){return (a===t?'☑':'☐')+' ';};
   return '<div class="sub">4. Ennakkoon varmistettava käyttövalmius</div>'
@@ -4373,7 +4374,7 @@ function kspPuuteRivit(p){
   var nimet=man.map(function(x){return (x.kuvaus||"").trim().toLowerCase();});
   var auto=KSP_ENNAKKO.filter(function(it){var x=(p.ennakko||{})[it.id];return x&&x.s==="P";}).map(function(it){
     var x=p.ennakko[it.id];var k=it.l+(x.i?": "+x.i:"");
-    return {kuvaus:k,luokka:"",toimenpide:x.i||"",vastuu:x.v||"",aika:"",auto:true};
+    return {kuvaus:k,luokka:"",toimenpide:"",vastuu:x.v||"",aika:x.m||"",auto:true};
   }).filter(function(a){return nimet.indexOf(a.kuvaus.trim().toLowerCase())<0;});
   return man.concat(auto);
 }
@@ -4386,7 +4387,7 @@ function kspPrintPuutteet(p){
     +'<table class="chk">'+th(["Nro","Puute / riski","Luokka","Korjaava toimenpide","Vastuu","Määräaika / tila"])+'<tbody>'
     +rivit.map(function(x,i){
       var cls=x.luokka==="Kriittinen"?' style="color:#a30000;font-weight:800"':(x.luokka==="Merkittävä"?' style="color:#c1121f;font-weight:700"':'');
-      return '<tr><td>'+(i+1)+'</td><td>'+esc(x.kuvaus||"")+(x.auto?'<div class="src">kohdasta 4 (P)</div>':'')+'</td><td'+cls+'>'+(x.luokka?esc(x.luokka):'<span class="src">kriittinen / merkittävä / muu</span>')+'</td><td>'+(x.auto?'':esc(x.toimenpide||""))+'</td><td>'+esc(x.vastuu||"")+'</td><td>'+esc(x.aika||"")+'</td></tr>';
+      return '<tr><td>'+(i+1)+'</td><td>'+esc(x.kuvaus||"")+(x.auto?'<div class="src">kohdasta 4 (P)</div>':'')+'</td><td'+cls+'>'+(x.luokka?esc(x.luokka):'<span class="src">kriittinen / merkittävä / muu</span>')+'</td><td>'+esc(x.toimenpide||"")+'</td><td>'+esc(x.vastuu||"")+'</td><td>'+esc(x.aika||"")+'</td></tr>';
     }).join("")
     +(function(){var r="";for(var i=0;i<tyhjat;i++)r+='<tr><td>'+(rivit.length+i+1)+'</td><td style="height:22px"></td><td></td><td></td><td></td><td></td></tr>';return r;})()
     +'</tbody></table>'
