@@ -1163,14 +1163,16 @@
       <div class="field"><label>Varapoistumistie</label><input class="f" id="enKspVara" placeholder="esim. poistumisputki pihalle"></div>
       <div class="field"><label>Avainten säilytys</label><input class="f" id="enKspAvaimet" placeholder="esim. isännöitsijä ja huoltoyhtiön avainkaappi"></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">2. Vastuuhenkilöt</div>
+      <p class="hint" style="margin:0 0 8px">Suunnitelman vastuuroolit (eivät vaikuta Servalon käyttöoikeuksiin). Sama henkilö voi hoitaa useaa roolia. Merkitse tarpeeton rooli Ei koske.</p>
       <div id="kspRoolit"></div>
+      <div id="kspKohdistus"></div>
       <div class="field"><label>Käyttöönottoryhmä (nimet)</label><textarea class="f" id="enKspRyhma" rows="2" placeholder="esim. asukasvapaaehtoiset A- ja B-portaista"></textarea></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">3. Käyttöönoton käynnistys</div>
       <div class="field"><label>Määräyksen vastaanottaja</label><input class="f" id="enKspVastaanottaja" placeholder="esim. suojan johtaja, sijaisena varajohtaja"></div>
       <div class="field"><label>Hälytys ja tiedottaminen</label><textarea class="f" id="enKspHalytys" rows="2" placeholder="esim. puhelin- ja tekstiviestiketju, porrastiedote"></textarea></div>
       <div class="field"><label>Kokoontumispaikka</label><input class="f" id="enKspKokoontuminen" placeholder="esim. A-portaan aula"></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">4. Tehtävät 72 tunnin aikana</div>
-      <p class="hint" style="margin:0 0 8px">Samat vaiheet kuin käyttöönottotarkastuksessa. Kirjaa jokaiselle vastuuhenkilö ja kohdekohtaiset ohjeet.</p>
+      <p class="hint" style="margin:0 0 8px">Aikaikkunat ja hyväksyjät on esitäytetty Word-pohjan mukaan; muokkaa ne kohteelle sopiviksi. Kesto, henkilö- ja kalustotarve arvioidaan käsin tulosteen resurssitaulukkoon.</p>
       <div id="kspVaiheet"></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">5. Tyhjennys, tilajako ja varustus</div>
       <div class="field"><label>Irtaimiston sijoituspaikka</label><input class="f" id="enKspIrtaimisto" placeholder="esim. ulkovarasto / jäteaitaus"></div>
@@ -4095,13 +4097,67 @@ function clearEntryDraft(devId,type){
   var all=readDrafts();delete all[entryDraftKey(devId,type)];
   try{localStorage.setItem(DRAFT_KEY,JSON.stringify(all));}catch(e){}
 }
-const KSP_DRAFT_KEY="servalo_ksp_drafts";
 const KSP_ROLES=[
- {id:"johtaja",l:"Suojan johtaja"},
- {id:"varajohtaja",l:"Varajohtaja"},
- {id:"tekninen",l:"Tekninen vastuuhenkilö / huolto"},
- {id:"isannoitsija",l:"Isännöitsijä"}
+ {id:"taloyhtio",l:"Taloyhtiön vastuuhenkilö",v:"Päätökset, resurssit, viranomaisyhteys"},
+ {id:"hoitaja",l:"Väestönsuojan hoitaja",v:"Tekniikka, tarkastukset, käyttöönoton johto"},
+ {id:"varahenkilo",l:"Varahenkilö",v:"Sijaisuus"},
+ {id:"tyhjennys",l:"Tyhjennysryhmän vetäjä",v:"Irtaimiston poisto ja tilajärjestely"},
+ {id:"tekniikka",l:"Tekniikkaryhmän vetäjä",v:"IV, sulut, vesi, sähkö ja viemäröinti"},
+ {id:"varustelu",l:"Varustelu- ja huoltovastaava",v:"Kalusto, vesi, hygienia ja ylläpito"},
+ {id:"viestinta",l:"Viestintävastaava",v:"Asukastiedotus ja tilannekirjaus"}
 ];
+// Aiempien suunnitelmien roolit. Selvä vastine siirretään suoraan, muut näytetään kohdistettaviksi.
+const KSP_ROLES_OLD={johtaja:{l:"Suojan johtaja"},varajohtaja:{l:"Varajohtaja",to:"varahenkilo"},tekninen:{l:"Tekninen vastuuhenkilö / huolto"},isannoitsija:{l:"Isännöitsijä"}};
+const KSP_AIKA={v1:{a:"0–2 h",h:"Vastuuhenkilö"},v2:{a:"2–12 h",h:"Tyhjennysryhmä"},v3:{a:"12–24 h",h:"Tekniikkaryhmä"},v4:{a:"24–48 h",h:"Varusteluryhmä"},v5:{a:"48–60 h",h:"Suojanhoitaja"},v6:{a:"60–72 h",h:"Vastuuhenkilö"}};
+const KSP_RESURSSIT=["Pääsyn avaaminen","Tilojen tyhjentäminen","Rakenteet ja sulkulaitteet","Ilmanvaihto ja ylipaine","Vesi ja viemäröinti","Sähkö ja valaistus","Varustelu ja tilajako","Koekäyttö ja loppukatselmus"];
+function kspMigrate(p){
+  p=JSON.parse(JSON.stringify(p||{}));
+  var r=p.roolit||{},out={},kd=(p.kohdistamatta||[]).slice();
+  KSP_ROLES.forEach(function(x){if(r[x.id])out[x.id]=r[x.id];});
+  Object.keys(KSP_ROLES_OLD).forEach(function(k){
+    var v=r[k];if(!v||(!v.n&&!v.p))return;
+    var o=KSP_ROLES_OLD[k];
+    if(o.to&&!(out[o.to]&&(out[o.to].n||out[o.to].p)))out[o.to]={n:v.n||"",p:v.p||""};
+    else kd.push({l:o.l,n:v.n||"",p:v.p||""});
+  });
+  p.roolit=out;p.kohdistamatta=kd;
+  p.vaiheet=p.vaiheet||{};
+  KV_VAIHE.forEach(function(it){var x=p.vaiheet[it.id]=p.vaiheet[it.id]||{};var d=KSP_AIKA[it.id]||{};
+    if(x.a==null)x.a=d.a||"";if(x.h==null)x.h=d.h||"";});
+  return p;
+}
+function kspRenderKohdistus(list){
+  var box=document.getElementById("kspKohdistus");if(!box)return;
+  list=list||[];
+  if(!list.length){box.innerHTML="";return;}
+  box.innerHTML='<div style="border:1px dashed #b26a00;border-radius:8px;padding:8px 10px;margin:6px 0 8px;background:#fffaf0">'
+    +'<div style="font-weight:700;color:#8a5a00;margin-bottom:4px">Aiemmat merkinnät – kohdista rooliin</div>'
+    +'<p class="hint" style="margin:0 0 6px">Näille ei ole yksiselitteistä vastinetta uusissa rooleissa. Valitse rooli, niin nimi ja puhelin siirtyvät siihen. Merkintä säilyy suunnitelmassa, kunnes se on kohdistettu.</p>'
+    +list.map(function(x,i){
+      return '<div class="ksp-kd" data-l="'+esc(x.l)+'" data-n="'+esc(x.n||"")+'" data-p="'+esc(x.p||"")+'" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'
+        +'<div style="flex:1;min-width:180px;font-size:14px"><b>'+esc(x.l)+':</b> '+esc(x.n||"–")+(x.p?' · '+esc(x.p):'')+'</div>'
+        +'<select class="f" style="flex:0 0 220px" aria-label="Kohdista rooliin" onchange="kspKohdista('+i+',this.value)"><option value="">Kohdista rooliin…</option>'
+        +KSP_ROLES.map(function(r){return '<option value="'+r.id+'">'+esc(r.l)+'</option>';}).join("")+'</select></div>';
+    }).join("")+'</div>';
+}
+function kspCollectKohdistus(){
+  return Array.prototype.map.call(document.querySelectorAll("#kspKohdistus .ksp-kd"),function(el){
+    return {l:el.getAttribute("data-l"),n:el.getAttribute("data-n"),p:el.getAttribute("data-p")};
+  });
+}
+function kspKohdista(i,roleId){
+  if(!roleId)return;
+  var list=kspCollectKohdistus(),x=list[i];if(!x)return;
+  var n=document.getElementById("ksr_"+roleId+"_n"),ph=document.getElementById("ksr_"+roleId+"_p"),ek=document.getElementById("ksr_"+roleId+"_e");
+  var join=function(a,b){a=(a||"").trim();b=(b||"").trim();if(!b)return a;if(!a)return b;return a.split(" / ").indexOf(b)>=0?a:a+" / "+b;};
+  n.value=join(n.value,x.n);ph.value=join(ph.value,x.p);if(ek){ek.checked=false;kspEiKoske(roleId);}
+  list.splice(i,1);kspRenderKohdistus(list);saveKspDraft();
+}
+function kspEiKoske(roleId){
+  var ek=document.getElementById("ksr_"+roleId+"_e");var on=ek&&ek.checked;
+  ["_n","_p"].forEach(function(s){var el=document.getElementById("ksr_"+roleId+s);if(el){el.disabled=on;el.style.opacity=on?".5":"";}});
+}
+const KSP_DRAFT_KEY="servalo_ksp_drafts";
 const KSP_LIITTEET=[
  {id:"asema",l:"Asemapiirros ja kulkureitit"},
  {id:"pohja",l:"Väestönsuojan pohjapiirros ja tilajako"},
@@ -4126,24 +4182,31 @@ function kspDefaults(d){
     luokka:v.luokka||"",henkilot:v.henkilot||"",pinta:v.pinta||"",
     sijainti:d.locDetail||"",
     laadittu:today(),laatija:currentUser?currentUser.name:"",
-    roolit:{tekninen:{n:v.huoltomies||"",p:""},isannoitsija:{n:v.isannoitsija||"",p:""}},
+    roolit:{},
+    kohdistamatta:[v.huoltomies?{l:"Huoltomies (viimeisin tarkastus)",n:v.huoltomies,p:""}:null,v.isannoitsija?{l:"Isännöitsijä (viimeisin tarkastus)",n:v.isannoitsija,p:""}:null].filter(Boolean),
     hyvaksyja:v.omistaja||v.isannoitsija||"",
     vaiheet:{},liitteet:{asukasohje:true,varusteet:true,irtaimisto:true}
   };
 }
 function kspRenderRows(){
   document.getElementById("kspRoolit").innerHTML=KSP_ROLES.map(function(r){
-    return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'
-      +'<div class="field" style="flex:2;min-width:170px"><label>'+esc(r.l)+'</label><input class="f" id="ksr_'+r.id+'_n" placeholder="Nimi"></div>'
-      +'<div class="field" style="flex:1;min-width:130px"><label>Puhelin</label><input class="f" id="ksr_'+r.id+'_p" type="tel"></div></div>';
+    return '<div style="border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:6px">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><label style="font-weight:600">'+esc(r.l)+' <span class="hint" style="font-weight:400">– '+esc(r.v)+'</span></label>'
+      +'<label style="font-size:13px;white-space:nowrap;display:flex;gap:4px;align-items:center"><input type="checkbox" id="ksr_'+r.id+'_e" onchange="kspEiKoske(\''+r.id+'\')"> Ei koske</label></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<input class="f" id="ksr_'+r.id+'_n" placeholder="Nimi" aria-label="'+esc(r.l)+': nimi" style="flex:2;min-width:170px">'
+      +'<input class="f" id="ksr_'+r.id+'_p" type="tel" placeholder="Puhelin" aria-label="'+esc(r.l)+': puhelin" style="flex:1;min-width:130px"></div></div>';
   }).join("");
   document.getElementById("kspVaiheet").innerHTML=KV_VAIHE.map(function(it){
     return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
       +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+'</label>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +'<input class="f" id="ksv_'+it.id+'_v" placeholder="Vastuuhenkilö" style="flex:0 0 190px">'
-      +'<input class="f" id="ksv_'+it.id+'_o" placeholder="Kohdekohtainen ohje" style="flex:1;min-width:150px">'
-      +'</div></div>';
+      +'<input class="f" id="ksv_'+it.id+'_a" placeholder="Aikaikkuna" aria-label="Aikaikkuna" title="Aikaikkuna" style="flex:0 0 100px">'
+      +'<input class="f" id="ksv_'+it.id+'_v" placeholder="Vastuuhenkilö" aria-label="Vastuuhenkilö" style="flex:1;min-width:150px">'
+      +'<input class="f" id="ksv_'+it.id+'_h" placeholder="Hyväksyntä" aria-label="Hyväksyntä" title="Hyväksyntä" style="flex:0 0 150px">'
+      +'</div>'
+      +'<input class="f" id="ksv_'+it.id+'_o" placeholder="Kohdekohtainen ohje" aria-label="Kohdekohtainen ohje" style="margin-top:6px;width:100%">'
+      +'</div>';
   }).join("");
   document.getElementById("kspLiitteet").innerHTML=KSP_LIITTEET.map(function(it){
     return '<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="ksl_'+it.id+'"> '+esc(it.l)+'</label>';
@@ -4152,16 +4215,18 @@ function kspRenderRows(){
 function collectKsp(){
   var o={};
   Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);o[k]=el?el.value:"";});
-  o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={n:document.getElementById("ksr_"+r.id+"_n").value,p:document.getElementById("ksr_"+r.id+"_p").value};});
-  o.vaiheet={};KV_VAIHE.forEach(function(it){o.vaiheet[it.id]={v:document.getElementById("ksv_"+it.id+"_v").value,o:document.getElementById("ksv_"+it.id+"_o").value};});
+  o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={n:document.getElementById("ksr_"+r.id+"_n").value,p:document.getElementById("ksr_"+r.id+"_p").value,ek:document.getElementById("ksr_"+r.id+"_e").checked};});
+  o.kohdistamatta=kspCollectKohdistus();
+  o.vaiheet={};KV_VAIHE.forEach(function(it){var g=function(x){return document.getElementById("ksv_"+it.id+"_"+x).value;};o.vaiheet[it.id]={a:g("a"),v:g("v"),h:g("h"),o:g("o")};});
   o.liitteet={};KSP_LIITTEET.forEach(function(it){o.liitteet[it.id]=document.getElementById("ksl_"+it.id).checked;});
   return o;
 }
 function fillKsp(p){
-  p=p||{};
+  p=kspMigrate(p);
   Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);if(el)el.value=p[k]||"";});
-  KSP_ROLES.forEach(function(r){var v=(p.roolit&&p.roolit[r.id])||{};document.getElementById("ksr_"+r.id+"_n").value=v.n||"";document.getElementById("ksr_"+r.id+"_p").value=v.p||"";});
-  KV_VAIHE.forEach(function(it){var v=(p.vaiheet&&p.vaiheet[it.id])||{};document.getElementById("ksv_"+it.id+"_v").value=v.v||"";document.getElementById("ksv_"+it.id+"_o").value=v.o||"";});
+  KSP_ROLES.forEach(function(r){var v=p.roolit[r.id]||{};document.getElementById("ksr_"+r.id+"_n").value=v.n||"";document.getElementById("ksr_"+r.id+"_p").value=v.p||"";document.getElementById("ksr_"+r.id+"_e").checked=!!v.ek;kspEiKoske(r.id);});
+  kspRenderKohdistus(p.kohdistamatta);
+  KV_VAIHE.forEach(function(it){var v=p.vaiheet[it.id]||{};["a","v","h","o"].forEach(function(x){document.getElementById("ksv_"+it.id+"_"+x).value=v[x]||"";});});
   KSP_LIITTEET.forEach(function(it){document.getElementById("ksl_"+it.id).checked=!!(p.liitteet&&p.liitteet[it.id]);});
 }
 function openKsp(devId){
@@ -4500,10 +4565,14 @@ function kspPrint(dev,ctx,p){
   if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
   var dash='<span style="color:#bbb">–</span>';
   var v=function(x){return x?esc(x).replace(/\n/g,"<br>"):dash;};
-  var roolit=KSP_ROLES.map(function(r){var x=(p.roolit&&p.roolit[r.id])||{};
-    return '<tr><td>'+esc(r.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td></tr>';}).join("");
-  var vaiheet=KV_VAIHE.map(function(it,i){var x=(p.vaiheet&&p.vaiheet[it.id])||{};
-    return '<tr><td>'+esc(it.l)+'</td><td class="v">'+v(x.v)+'</td><td>'+(x.o?esc(x.o):"")+'</td></tr>';}).join("");
+  p=kspMigrate(p);
+  var roolit=KSP_ROLES.map(function(r){var x=p.roolit[r.id]||{};
+    if(x.ek)return '<tr style="color:#888"><td>'+esc(r.l)+'</td><td colspan="2">Ei koske</td><td>'+esc(r.v)+'</td></tr>';
+    return '<tr><td>'+esc(r.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td><td>'+esc(r.v)+'</td></tr>';}).join("");
+  var kohd=(p.kohdistamatta||[]).map(function(x){return '<tr><td>'+esc(x.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td><td style="color:#8a5a00">Kohdistamatta</td></tr>';}).join("");
+  var vaiheet=KV_VAIHE.map(function(it,i){var x=p.vaiheet[it.id]||{};
+    return '<tr><td class="d">'+v(x.a)+'</td><td>'+esc(it.l)+(x.o?'<div style="font-size:11px;color:#444;margin-top:2px">'+esc(x.o)+'</div>':'')+'</td><td>'+v(x.v)+'</td><td>'+v(x.h)+'</td></tr>';}).join("");
+  var resurssit=KSP_RESURSSIT.map(function(t){return '<tr><td>'+t+'</td><td class="d"><span style="display:inline-block;min-width:34px;border-bottom:1px dotted #888">&nbsp;</span> h</td><td style="height:26px"></td><td></td><td></td><td class="d">☐</td></tr>';}).join("");
   var liitteet=KSP_LIITTEET.filter(function(it){return p.liitteet&&p.liitteet[it.id];}).map(function(it){return '<li>'+esc(it.l)+'</li>';});
   if(p.muutLiitteet)liitteet.push('<li>'+esc(p.muutLiitteet)+'</li>');
   var html=kspDocStart("Väestönsuojan käyttöönottosuunnitelma","Käyttöönottosuunnitelma","Väestönsuoja")
@@ -4517,15 +4586,20 @@ function kspPrint(dev,ctx,p){
     +'<tr><td class="k">Sisäänkäynnit</td><td>'+v(p.sisaan)+'</td><td class="k">Varapoistumistie</td><td>'+v(p.vara)+'</td></tr>'
     +'</table>'
     +'<div class="sub">2. Vastuuhenkilöt</div>'
-    +'<table class="chk"><thead><tr><th>Tehtävä</th><th>Nimi</th><th>Puhelin</th></tr></thead><tbody>'+roolit+'</tbody></table>'
+    +'<div style="font-size:12px;margin:2px 0 4px">Taloyhtiön hallitus nimeää henkilöt tehtäviin etukäteen. Poissaolojen varalta jokaiselle keskeiselle vastuulle nimetään varahenkilö. Sama henkilö voi hoitaa useaa roolia.</div>'
+    +'<table class="chk"><thead><tr><th>Rooli</th><th>Nimi</th><th>Puhelin</th><th>Keskeinen vastuu</th></tr></thead><tbody>'+roolit+kohd+'</tbody></table>'
     +'<table class="meta"><tr><td class="k">Käyttöönottoryhmä</td><td>'+v(p.ryhma)+'</td></tr></table>'
     +'<div class="sub">3. Käyttöönoton käynnistys</div><table class="meta">'
     +'<tr><td class="k">Määräyksen vastaanottaja</td><td>'+v(p.vastaanottaja)+'</td></tr>'
     +'<tr><td class="k">Hälytys ja tiedottaminen</td><td>'+v(p.halytys)+'</td></tr>'
     +'<tr><td class="k">Kokoontumispaikka</td><td>'+v(p.kokoontuminen)+'</td></tr>'
     +'</table>'
-    +'<div class="sub">4. Tehtävät 72 tunnin aikana</div>'
-    +'<table class="chk"><thead><tr><th>Vaihe</th><th>Vastuuhenkilö</th><th>Kohdekohtainen ohje</th></tr></thead><tbody>'+vaiheet+'</tbody></table>'
+    +'<div class="sub">4. Käyttöönoton 72 tunnin vaiheistus</div>'
+    +'<div style="font-size:12px;margin:2px 0 4px">Aikataulu käynnistyy viranomaisen määräyksen tai taloyhtiön vastuuhenkilön päätöksen vastaanottamisesta. Tarkat työjärjestykset sovitetaan kohteen rakenteisiin ja laiteohjeisiin.</div>'
+    +'<table class="chk"><thead><tr><th>Aika</th><th>Vaihe ja tehtävät</th><th>Vastuuhenkilö</th><th>Hyväksyntä</th></tr></thead><tbody>'+vaiheet+'</tbody></table>'
+    +'<div class="sub" style="font-size:13px">4.1 Kohdekohtainen aikataulu ja resurssit</div>'
+    +'<div style="font-size:12px;margin:2px 0 4px">Täytetään käsin. Työtunnit sekä henkilö-, kalusto- ja tarviketarve arvioidaan kohteessa.</div>'
+    +'<table class="chk"><thead><tr><th>Työvaihe</th><th>Arvioitu kesto</th><th>Henkilöt</th><th>Kalusto</th><th>Tarvikkeet / ulkoinen apu</th><th>Valmis</th></tr></thead><tbody>'+resurssit+'</tbody></table>'
     +'<div class="sub">5. Tyhjennys, tilajako ja varustus</div><table class="meta">'
     +'<tr><td class="k">Irtaimiston sijoituspaikka</td><td>'+v(p.irtaimisto)+'</td></tr>'
     +'<tr><td class="k">Tilajako</td><td>'+v(p.tilajako)+'</td></tr>'
