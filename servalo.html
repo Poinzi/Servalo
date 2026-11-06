@@ -1153,6 +1153,11 @@
         <div class="field" style="flex:1;min-width:150px"><label>Henkilömäärä</label><input class="f" id="enKspHenkilot" placeholder="esim. 102 henk."></div>
         <div class="field" style="flex:1;min-width:150px"><label>Pinta-ala m²</label><input class="f" id="enKspPinta" placeholder="esim. 77 m²"></div>
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:150px"><label>Rakennusvuosi / rakennuslupa</label><input class="f" id="enKspRakvuosi" placeholder="esim. 2000"></div>
+        <div class="field" style="flex:2;min-width:220px"><label>Sovellettava vaatimus (mitoitusperuste)</label><select class="f" id="enKspPeruste"><option value="">Ei kirjattu – tarkistettava</option><option>SM:n asetus 506/2011</option><option>Rakentamisajan määräykset / alkuperäiset suunnitelmat</option></select></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Vesipiste suojan sisällä</label><select class="f" id="enKspVesipiste"><option value="">Ei tiedossa</option><option>Kyllä</option><option>Ei</option></select></div>
+      </div>
       <div class="field"><label>Suojan sijainti</label><input class="f" id="enKspSijainti" placeholder="esim. A-portaan kellarikerros"></div>
       <div class="field"><label>Sisäänkäynnit</label><input class="f" id="enKspSisaan" placeholder="esim. A-portaan kellarikäytävä"></div>
       <div class="field"><label>Varapoistumistie</label><input class="f" id="enKspVara" placeholder="esim. poistumisputki pihalle"></div>
@@ -4107,7 +4112,7 @@ const KSP_LIITTEET=[
  {id:"luettelot",l:"Asukas- ja vastuuhenkilöluettelot asianmukaisesti suojattuina"},
  {id:"asukasohje",l:"Asukkaiden yleisohje (erillinen jaettava liite)"}
 ];
-const KSP_FIELDS={luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
+const KSP_FIELDS={rakvuosi:"enKspRakvuosi",peruste:"enKspPeruste",vesipiste:"enKspVesipiste",luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
 function readKspDrafts(){try{return JSON.parse(localStorage.getItem(KSP_DRAFT_KEY)||"{}");}catch(e){return {};}}
 function writeKspDrafts(all){try{localStorage.setItem(KSP_DRAFT_KEY,JSON.stringify(all));}catch(e){}}
 function kspLastVss(d){
@@ -4230,6 +4235,11 @@ function kspVesiLitrat(v){
   if(m)return Math.round(parseFloat(m[1])*parseFloat(m[2]));
   m=t.match(/(\d+(?:\.\d+)?)\s*(?:l\b|litr)/i);
   return m?Math.round(parseFloat(m[1])):null;
+}
+function kspKpl(v){
+  var t=String((v&&v.i)||"");
+  var m=t.match(/(\d+)\s*(?:kpl|kaluste|kalustetta|komero)/i);
+  return m?parseInt(m[1],10):null;
 }
 function kspNum(n){return Math.round(n).toLocaleString("fi-FI");}
 function kspFill(x,w){return x?esc(x).replace(/\n/g,"<br>"):'<span class="fill"'+(w?' style="min-width:'+w+'px"':'')+'></span>';}
@@ -4354,12 +4364,12 @@ function kspPrintVarusteet(dev,ctx,p,entry){
     var st=state(ids),src=srcTxt(ids);
     if(partial&&(st==="ok"||st==="eikoske"))return '<span class="part">Osittain tarkastettu</span>'
       +'<div class="src">Tarkastuksessa: '+src+'</div><div class="src">Muut ryhmän varusteet: ☐ kunnossa <span class="fill" style="min-width:90px"></span></div>';
-    var box=st==="ok"?'☑ kunnossa':(st==="puute"?'☐ <b style="color:#c1121f">puute</b>':(st==="eikoske"?'– ei koske':'☐ <span class="fill" style="min-width:110px"></span>'));
+    var box=st==="ok"?'☑ kunnossa':(st==="puute"?'☐ <b style="color:#c1121f">puute</b>':(st==="eikoske"?'– ei koske':'☐ <span class="part">Ei tarkastustietoa</span> <span class="fill" style="min-width:80px"></span>'));
     return box+(src?'<div class="src">'+src+'</div>':'');
   };
   var tarkCell=function(ids){
     var st=state(ids);
-    return (st==="ok"?'☑':'☐')+' kunnossa &nbsp;'+(st==="puute"?'☑':'☐')+' puuttuu'+(srcTxt(ids)?'<div class="src">'+srcTxt(ids)+'</div>':'');
+    return (st==="ok"?'☑':'☐')+' kunnossa &nbsp;'+(st==="puute"?'☑':'☐')+' puuttuu'+(st?'':' <div class="part">Ei tarkastustietoa</div>')+(srcTxt(ids)?'<div class="src">'+srcTxt(ids)+'</div>':'');
   };
   var colCls=function(c){return cls===c?' class="sel"':'';};
   var wc=ala&&cls&&cls!=="vanha"?Math.ceil(ala/20):0;
@@ -4368,23 +4378,33 @@ function kspPrintVarusteet(dev,ctx,p,entry){
   var vMax=ala&&cls==="s1"?Math.round(ala*40):0;
   if(vMax)vesi="tarve väh. "+kspNum(vMin)+" l (vesipiste sisällä) tai "+kspNum(vMax)+" l";
   else if(vMin)vesi="tarve väh. "+kspNum(vMin)+" l";
+  var peruste=p.peruste||"";
+  var rajaVarma=peruste==="SM:n asetus 506/2011"&&!!vMin;
+  var vp=p.vesipiste||"";
   var vesiL=kspVesiLitrat(prod.p01);
+  var wcN=kspKpl(prod.p05);
+  var perusteTxt=peruste?("Peruste: "+peruste):"Sovellettavaa vaatimusta ei ole kirjattu – laskelma on vertailu SM:n asetuksen 506/2011 mukaan";
   var riitto;
-  if(vesiL==null||!vMin){
-    riitto={st:"tark",txt:vesiL==null?"kokonaismäärä ei tiedossa":(cls==="vanha"?"vanha suojaluokka: tarkista alkuperäisistä suunnitelmista":"suojaluokka tai suoja-ala puuttuu")};
-  }else if(vesiL<vMin){
-    riitto={st:"vajaus",txt:"kirjattu "+kspNum(vesiL)+" l, "+vesi};
-  }else if(vMax&&vesiL<vMax){
-    riitto={st:"tark",txt:"kirjattu "+kspNum(vesiL)+" l riittää vain, jos vesipiste on suojan sisällä (väh. "+kspNum(vMin)+" l); muuten väh. "+kspNum(vMax)+" l"};
-  }else{
-    riitto={st:"ok",txt:"kirjattu "+kspNum(vesiL)+" l, "+vesi};
+  if(vesiL==null){riitto={st:"tark",txt:"Kokonaismäärä ei tiedossa (kirjaa säiliöiden yhteistilavuus)."};}
+  else if(!vMin){riitto={st:"tark",txt:"Kirjattu "+kspNum(vesiL)+" l. "+(cls==="vanha"?"Vanha suojaluokka: vaatimus alkuperäisistä suunnitelmista.":"Suojaluokka tai suoja-ala puuttuu.")};}
+  else{
+    var need=vMax?(vp==="Kyllä"?vMin:(vp==="Ei"?vMax:0)):vMin;
+    var under=need?vesiL<need:vesiL<vMin, over=need?vesiL>=need:vesiL>=vMax;
+    var base="Kirjattu "+kspNum(vesiL)+" l; "+(need?"tarve väh. "+kspNum(need)+" l"+(vMax?" (vesipiste "+(vp==="Kyllä"?"suojan sisällä":"suojan ulkopuolella")+")":""):vesi)+".";
+    if(!rajaVarma)riitto={st:"tark",txt:base+" "+perusteTxt+"."};
+    else if(under)riitto={st:"vajaus",txt:base+" "+perusteTxt+"."};
+    else if(over)riitto={st:"ok",txt:base+" "+perusteTxt+"."};
+    else riitto={st:"tark",txt:base+" Riittävyys riippuu vesipisteen sijainnista. "+perusteTxt+"."};
   }
-  var vesiTark=function(){
-    var st=state(["p01"]),src=srcTxt(["p01"]);
-    return 'Säiliöiden kunto: '+(st==="ok"?'☑':'☐')+' kunnossa &nbsp;'+(st==="puute"?'☑':'☐')+' puuttuu'
-      +'<br>Kokonaismäärän riittävyys: '+(riitto.st==="ok"?'☑ riittää':(riitto.st==="vajaus"?'☐ <span class="vaj">vajaus</span>':'☐ <span class="part">Riittävyys tarkistettava</span>'))
-      +'<div class="src">'+esc(riitto.txt)+'</div>'+(src?'<div class="src">'+src+'</div>':'');
-  };
+  var wcRiitto;
+  if(wcN==null){wcRiitto={st:"tark",txt:"Kalusteiden ja komeroiden määrä ei tiedossa."};}
+  else if(!wc||cls==="vanha"){wcRiitto={st:"tark",txt:"Kirjattu "+wcN+" kpl. Suojaluokka tai suoja-ala puuttuu tai vaatimus alkuperäisistä suunnitelmista."};}
+  else{var wb="Kirjattu "+wcN+" kpl; tarve väh. "+wc+" kalustetta ja "+wc+" komeroa. "+perusteTxt+".";
+    wcRiitto=!rajaVarma?{st:"tark",txt:wb}:(wcN<wc?{st:"vajaus",txt:wb}:{st:"ok",txt:wb});}
+  var riittoBox=function(r){return 'Määrän riittävyys: '+(r.st==="ok"?'☑ riittää':(r.st==="vajaus"?'☐ <span class="vaj">vajaus</span>':'☐ <span class="part">Riittävyys tarkistettava</span>'))+'<div class="src">'+esc(r.txt)+'</div>';};
+  var kuntoBox=function(id,nimi){var st=state([id]);return nimi+': '+(st==="ok"?'☑':'☐')+' kunnossa &nbsp;'+(st==="puute"?'☑':'☐')+' puuttuu'+(st?'':' <span class="part">Ei tarkastustietoa</span>');};
+  var vesiTark=function(){var src=srcTxt(["p01"]);return kuntoBox("p01","Säiliöiden kunto")+'<br>'+riittoBox(riitto)+(src?'<div class="src">'+src+'</div>':'');};
+  var wcTark=function(){var src=srcTxt(["p05"]);return kuntoBox("p05","Kunto")+'<br>'+riittoBox(wcRiitto)+(src?'<div class="src">'+src+'</div>':'');};
   var cls1=[
     ["Sulkutila","Sulkuteltta tai sulkuhuone","Sulkuhuone","Sulkuhuone jokaiselle sisääntulolle","Alkuperäisten suunnitelmien mukaan"],
     ["Kuivakäymälät","1 kaluste ja komero / alkava 20 m²","1 kaluste ja komero / alkava 20 m²","1 kaluste ja komero / alkava 20 m²","Rakentamisajan vaatimuksen mukaan"],
@@ -4413,7 +4433,11 @@ function kspPrintVarusteet(dev,ctx,p,entry){
   var muut=["p03","p04","p11","p16"].filter(function(id){var v=prod[id];return v&&(v.s||v.d||v.i);});
   var puutteet=VSS_PROD.filter(function(it){var v=prod[it.id];return v&&(v.s==="Puuttuu"||v.s==="Uusittava"||expired(v));})
     .map(function(it){var v=prod[it.id];return esc(it.l)+' – '+esc(expired(v)&&v.s!=="Puuttuu"&&v.s!=="Uusittava"?'vanhentunut '+fmt(v.d):v.s)+(v.i?' ('+esc(v.i)+')':'');});
+  if(wcRiitto.st==="vajaus")puutteet.unshift('Kuivakäymälät – vajaus: '+esc(wcRiitto.txt));
   if(riitto.st==="vajaus")puutteet.unshift('Varavesi – vajaus: '+esc(riitto.txt));
+  var tarkistettavat=[];
+  if(riitto.st==="tark")tarkistettavat.push('Varavesi – riittävyys tarkistettava: '+esc(riitto.txt));
+  if(wcRiitto.st==="tark")tarkistettavat.push('Kuivakäymälät – riittävyys tarkistettava: '+esc(wcRiitto.txt));
   var lahde=entry?'Esitäytetty viimeisimmästä tallennetusta väestönsuojan tarkastuksesta '+fmt(ck.date||entry.date)+(ck.laji?' ('+esc(ck.laji)+')':'')+'. Tyhjät kentät täydennetään kohteessa.'
     :'Laitteelle ei ole tallennettu väestönsuojan tarkastusta. Kentät täydennetään kohteessa.';
   var html=kspDocStart("Väestönsuojan varusteluettelo","Väestönsuojan varusteluettelo","Liite")
@@ -4422,22 +4446,26 @@ function kspPrintVarusteet(dev,ctx,p,entry){
     +'<table class="meta">'
     +'<tr><td class="k">Taloyhtiö ja osoite</td><td>'+kspFill([ctx.name,ctx.address].filter(Boolean).join(", "))+'</td></tr>'
     +'<tr><td class="k">Väestönsuojan sijainti</td><td>'+kspFill(kspTila(p,dev),140)+(kspTila(p,dev)?'':'<div class="src">rakennus / kerros / tila</div>')+'</td></tr>'
-    +'<tr><td class="k">Suojaluokka / rakennusvuosi</td><td>'+kspFill(luokka,60)+' / '+kspFill("",60)+'</td></tr>'
+    +'<tr><td class="k">Suojaluokka / rakennusvuosi</td><td>'+kspFill(luokka,60)+' / '+kspFill(p.rakvuosi,60)+'</td></tr>'
+    +'<tr><td class="k">Sovellettava vaatimus / peruste</td><td>'+(peruste?esc(peruste):'<span class="part">Ei kirjattu – tarkistettava</span>')+'</td></tr>'
+    +'<tr><td class="k">Vesipiste suojan sisällä</td><td>'+(vp?esc(vp):'<span class="part">Ei tiedossa</span>')+'</td></tr>'
     +'<tr><td class="k">Varsinainen suoja-ala / henkilömäärä</td><td>'+(pinta?esc(pinta):kspFill("",60)+' m²')+' / '+(henk?esc(henk):kspFill("",60)+' henkilöä')+'</td></tr>'
     +'</table>'
     +'<div class="sub">1. Luokkakohtainen perusvarustus</div>'
+    +'<div class="src" style="margin-bottom:2px">Säädökseen perustuva vähimmäisvarustus. '+(peruste?'Sovellettu peruste: '+esc(peruste)+'.':'Sovellettavaa vaatimusta ei ole kirjattu; taulukko on SM:n asetuksen 506/2011 mukainen vertailu, eikä vanhemman suojan vaatimusta päätellä pelkästä luokkamerkinnästä.')+'</div>'
     +'<table class="chk"><thead><tr><th>Varuste</th><th'+colCls("s1")+'>S1</th><th'+colCls("s2")+'>S2</th><th'+colCls("kallio")+'>Kalliosuoja</th><th'+colCls("vanha")+'>Vanha luokka*</th></tr></thead><tbody>'
     +cls1.map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td'+colCls("s1")+'>'+r[1]+'</td><td'+colCls("s2")+'>'+r[2]+'</td><td'+colCls("kallio")+'>'+r[3]+'</td><td'+colCls("vanha")+'>'+r[4]+'</td></tr>';}).join("")
     +'</tbody></table>'
     +'<div class="src">* Vanhoja luokkia ovat esimerkiksi K, C, S3 ja S6. Niiden varustus tarkastetaan aina rakentamisluvan aikaisten suunnitelmien ja määräysten mukaan.'+(cls?' Korostettu sarake: suojaluokka '+esc(luokka)+'.':'')+'</div>'
     +'<div class="sub">2. Kohteen laskettavat määrät</div>'
     +'<table class="chk">'+th(["Laskettava varuste","Määrä kohteessa","Tarkastus"])+'<tbody>'
-    +'<tr><td>Kuivakäymäläkalusteet ja -komerot</td><td class="d">'+kspFill("",50)+' kpl'+(wc?'<div class="src">tarve väh. '+wc+' kpl</div>':'')+'</td><td>'+tarkCell(["p05"])+'</td></tr>'
+    +'<tr><td>Kuivakäymäläkalusteet ja -komerot</td><td class="d">'+(wcN!=null?wcN+' kpl<div class="src">tarkastuksen merkinnästä</div>':kspFill("",50)+' kpl')+(wc&&cls!=="vanha"?'<div class="src">tarve väh. '+wc+' kalustetta ja '+wc+' komeroa</div>':'')+'</td><td>'+wcTark()+'</td></tr>'
     +'<tr><td>Varavesisäiliöiden yhteistilavuus</td><td class="d">'+(vesiL!=null?kspNum(vesiL)+' litraa<div class="src">tarkastuksen merkinnästä</div>':kspFill("",50)+' litraa')+(vesi?'<div class="src">'+vesi+'</div>':'')+'</td><td>'+vesiTark()+'</td></tr>'
     +'<tr><td>Kannelliset jäteastiat ja sisäpussit</td><td class="d">'+kspFill("",50)+' kpl</td><td>'+tarkCell(["p06"])+'</td></tr>'
     +'<tr><td>Sulkuteltta / sulkuhuoneen varusteet</td><td class="d">'+kspFill("",50)+' kpl</td><td>'+tarkCell([])+'</td></tr>'
     +'</tbody></table>'
     +'<div class="sub">Käyttöönotossa tarvittava irtaimisto – sovelletaan kaikkiin suojaluokkiin</div>'
+    +'<div class="src" style="margin-bottom:2px">Kohteen oma varautumisvarustus: määrät tarpeen ja riskinarvion mukaan, ei luokkakohtaista mitoitusta.</div>'
     +'<div class="sub2">3. Työkalut ja käyttöönotto</div>'
     +'<table class="chk">'+th(["Varuste","Määrä","Kunnossa / huomio"])+'<tbody>'
     +sec3.map(function(r){return '<tr><td>'+r[0]+'</td><td class="d">'+r[1]+'</td><td>'+okCell(r[2],r[3])+'</td></tr>';}).join("")
@@ -4453,6 +4481,7 @@ function kspPrintVarusteet(dev,ctx,p,entry){
     +'<tr><td class="k">Varusteiden säilytyspaikka</td><td>'+kspFill(p.varusteet,200)+'</td></tr>'
     +'<tr><td class="k">Muualla säilytettävät varusteet</td><td>'+kspFill("",200)+'</td></tr>'
     +'<tr><td class="k">Puutteet ja hankittavat varusteet</td><td>'+(puutteet.length?puutteet.join('<br>'):kspFill("",200))+'</td></tr>'
+    +(tarkistettavat.length?'<tr><td class="k">Tarkistettavat</td><td>'+tarkistettavat.join('<br>')+'</td></tr>':'')
     +'</table>'
     +'<div class="foot"><div class="sign"><div style="font-size:11px;color:#666">Tarkastanut</div><div class="line"></div></div>'
     +'<div class="sign"><div style="font-size:11px;color:#666">Päiväys</div><div class="line"></div>'+(entry?fmt(ck.date||entry.date):'')+'</div></div>'
@@ -4478,6 +4507,8 @@ function kspPrint(dev,ctx,p){
     +'<tr><td class="k">Osoite</td><td>'+v(ctx.address)+'</td><td class="k">Suojan sijainti</td><td>'+v(p.sijainti)+'</td></tr>'
     +'<tr><td class="k">Suojaluokka</td><td>'+v(p.luokka)+'</td><td class="k">Henkilömäärä</td><td>'+v(p.henkilot)+'</td></tr>'
     +'<tr><td class="k">Pinta-ala</td><td>'+v(p.pinta)+'</td><td class="k">Avainten säilytys</td><td>'+v(p.avaimet)+'</td></tr>'
+    +'<tr><td class="k">Rakennusvuosi</td><td>'+v(p.rakvuosi)+'</td><td class="k">Mitoitusperuste</td><td>'+(p.peruste?esc(p.peruste):'<span style="color:#8a5a00;font-weight:700">Ei kirjattu – tarkistettava</span>')+'</td></tr>'
+    +'<tr><td class="k">Vesipiste suojan sisällä</td><td>'+(p.vesipiste?esc(p.vesipiste):'Ei tiedossa')+'</td><td></td><td></td></tr>'
     +'<tr><td class="k">Sisäänkäynnit</td><td>'+v(p.sisaan)+'</td><td class="k">Varapoistumistie</td><td>'+v(p.vara)+'</td></tr>'
     +'</table>'
     +'<div class="sub">2. Vastuuhenkilöt</div>'
