@@ -1168,7 +1168,7 @@
       <div id="kspKohdistus"></div>
       <div class="field"><label>Käyttöönottoryhmä (nimet)</label><textarea class="f" id="enKspRyhma" rows="2" placeholder="esim. asukasvapaaehtoiset A- ja B-portaista"></textarea></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">3. Käyttöönoton käynnistys</div>
-      <div class="field"><label>Määräyksen vastaanottaja</label><input class="f" id="enKspVastaanottaja" placeholder="esim. suojan johtaja, sijaisena varajohtaja"></div>
+      <div class="field"><label>Määräyksen vastaanottaja</label><input class="f" id="enKspVastaanottaja" placeholder="esim. väestönsuojan hoitaja, sijaisena varahenkilö"></div>
       <div class="field"><label>Hälytys ja tiedottaminen</label><textarea class="f" id="enKspHalytys" rows="2" placeholder="esim. puhelin- ja tekstiviestiketju, porrastiedote"></textarea></div>
       <div class="field"><label>Kokoontumispaikka</label><input class="f" id="enKspKokoontuminen" placeholder="esim. A-portaan aula"></div>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">4. Tehtävät 72 tunnin aikana</div>
@@ -4110,14 +4110,46 @@ const KSP_ROLES=[
 const KSP_ROLES_OLD={johtaja:{l:"Suojan johtaja"},varajohtaja:{l:"Varajohtaja",to:"varahenkilo"},tekninen:{l:"Tekninen vastuuhenkilö / huolto"},isannoitsija:{l:"Isännöitsijä"}};
 const KSP_AIKA={v1:{a:"0–2 h",h:"Vastuuhenkilö"},v2:{a:"2–12 h",h:"Tyhjennysryhmä"},v3:{a:"12–24 h",h:"Tekniikkaryhmä"},v4:{a:"24–48 h",h:"Varusteluryhmä"},v5:{a:"48–60 h",h:"Suojanhoitaja"},v6:{a:"60–72 h",h:"Vastuuhenkilö"}};
 const KSP_RESURSSIT=["Pääsyn avaaminen","Tilojen tyhjentäminen","Rakenteet ja sulkulaitteet","Ilmanvaihto ja ylipaine","Vesi ja viemäröinti","Sähkö ja valaistus","Varustelu ja tilajako","Koekäyttö ja loppukatselmus"];
+// Rooli = lista henkilöitä, nimi ja puhelin aina parina. Vanha muoto {n,p} muunnetaan yhdeksi henkilöksi.
+function kspHenkilot(v){
+  var l=Array.isArray(v&&v.henkilot)?v.henkilot:((v&&(v.n||v.p))?[{n:v.n||"",p:v.p||""}]:[]);
+  return l.map(function(h){return {n:(h.n||"").trim(),p:(h.p||"").trim()};}).filter(function(h){return h.n||h.p;});
+}
+function kspHenkiloRow(roleId,h){
+  return '<div class="ksr-h" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px">'
+    +'<input class="f ksr-n" placeholder="Nimi" aria-label="Nimi" value="'+esc(h.n||"")+'" style="flex:2;min-width:160px">'
+    +'<input class="f ksr-p" type="tel" placeholder="Puhelin" aria-label="Puhelin" value="'+esc(h.p||"")+'" style="flex:1;min-width:120px">'
+    +'<button type="button" class="btn ghost ksr-x" style="padding:2px 10px" aria-label="Poista henkilö" onclick="kspPoistaHenkilo(this,\''+roleId+'\')">×</button></div>';
+}
+function kspRenderRole(roleId,henkilot){
+  var box=document.getElementById("ksr_"+roleId+"_list");if(!box)return;
+  var l=henkilot&&henkilot.length?henkilot:[{n:"",p:""}];
+  box.innerHTML=l.map(function(h){return kspHenkiloRow(roleId,h);}).join("");
+  kspEiKoske(roleId);
+}
+function kspRoleHenkilot(roleId){
+  return Array.prototype.map.call(document.querySelectorAll("#ksr_"+roleId+"_list .ksr-h"),function(el){
+    return {n:el.querySelector(".ksr-n").value.trim(),p:el.querySelector(".ksr-p").value.trim()};
+  }).filter(function(h){return h.n||h.p;});
+}
+function kspLisaaHenkilo(roleId){
+  var box=document.getElementById("ksr_"+roleId+"_list");if(!box)return;
+  box.insertAdjacentHTML("beforeend",kspHenkiloRow(roleId,{n:"",p:""}));kspEiKoske(roleId);saveKspDraft();
+}
+function kspPoistaHenkilo(btn,roleId){
+  var row=btn.closest(".ksr-h");if(!row)return;
+  var box=row.parentNode;row.remove();
+  if(!box.querySelector(".ksr-h"))box.insertAdjacentHTML("beforeend",kspHenkiloRow(roleId,{n:"",p:""}));
+  kspEiKoske(roleId);saveKspDraft();
+}
 function kspMigrate(p){
   p=JSON.parse(JSON.stringify(p||{}));
   var r=p.roolit||{},out={},kd=(p.kohdistamatta||[]).slice();
-  KSP_ROLES.forEach(function(x){if(r[x.id])out[x.id]=r[x.id];});
+  KSP_ROLES.forEach(function(x){var v=r[x.id];if(!v)return;out[x.id]={ek:!!v.ek,henkilot:kspHenkilot(v)};});
   Object.keys(KSP_ROLES_OLD).forEach(function(k){
     var v=r[k];if(!v||(!v.n&&!v.p))return;
     var o=KSP_ROLES_OLD[k];
-    if(o.to&&!(out[o.to]&&(out[o.to].n||out[o.to].p)))out[o.to]={n:v.n||"",p:v.p||""};
+    if(o.to&&!(out[o.to]&&out[o.to].henkilot.length))out[o.to]={ek:false,henkilot:[{n:v.n||"",p:v.p||""}]};
     else kd.push({l:o.l,n:v.n||"",p:v.p||""});
   });
   p.roolit=out;p.kohdistamatta=kd;
@@ -4148,15 +4180,25 @@ function kspCollectKohdistus(){
 function kspKohdista(i,roleId){
   if(!roleId)return;
   var list=kspCollectKohdistus(),x=list[i];if(!x)return;
-  var n=document.getElementById("ksr_"+roleId+"_n"),ph=document.getElementById("ksr_"+roleId+"_p"),ek=document.getElementById("ksr_"+roleId+"_e");
-  var join=function(a,b){a=(a||"").trim();b=(b||"").trim();if(!b)return a;if(!a)return b;return a.split(" / ").indexOf(b)>=0?a:a+" / "+b;};
-  n.value=join(n.value,x.n);ph.value=join(ph.value,x.p);if(ek){ek.checked=false;kspEiKoske(roleId);}
+  var ek=document.getElementById("ksr_"+roleId+"_e");if(ek&&ek.checked){ek.checked=false;}
+  var box=document.getElementById("ksr_"+roleId+"_list");
+  var nyt=kspRoleHenkilot(roleId);
+  var sama=nyt.some(function(h){return h.n===(x.n||"").trim()&&h.p===(x.p||"").trim();});
+  if(!sama){
+    var tyhja=Array.prototype.find.call(box.querySelectorAll(".ksr-h"),function(el){return !el.querySelector(".ksr-n").value.trim()&&!el.querySelector(".ksr-p").value.trim();});
+    if(tyhja){tyhja.querySelector(".ksr-n").value=x.n||"";tyhja.querySelector(".ksr-p").value=x.p||"";}
+    else box.insertAdjacentHTML("beforeend",kspHenkiloRow(roleId,{n:x.n||"",p:x.p||""}));
+  }
+  kspEiKoske(roleId);
   list.splice(i,1);kspRenderKohdistus(list);saveKspDraft();
 }
+
 function kspEiKoske(roleId){
-  var ek=document.getElementById("ksr_"+roleId+"_e");var on=ek&&ek.checked;
-  ["_n","_p"].forEach(function(s){var el=document.getElementById("ksr_"+roleId+s);if(el){el.disabled=on;el.style.opacity=on?".5":"";}});
+  var ek=document.getElementById("ksr_"+roleId+"_e");var on=!!(ek&&ek.checked);
+  document.querySelectorAll("#ksr_"+roleId+"_list input, #ksr_"+roleId+"_list button").forEach(function(el){el.disabled=on;el.style.opacity=on?".5":"";});
+  var add=ek&&ek.closest("div[style]")&&ek.closest("div[style]").parentNode.querySelector(".ksr-add");if(add){add.disabled=on;add.style.opacity=on?".5":"";}
 }
+
 const KSP_DRAFT_KEY="servalo_ksp_drafts";
 const KSP_LIITTEET=[
  {id:"asema",l:"Asemapiirros ja kulkureitit"},
@@ -4190,12 +4232,11 @@ function kspDefaults(d){
 }
 function kspRenderRows(){
   document.getElementById("kspRoolit").innerHTML=KSP_ROLES.map(function(r){
-    return '<div style="border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:6px">'
+    return '<div style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
       +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><label style="font-weight:600">'+esc(r.l)+' <span class="hint" style="font-weight:400">– '+esc(r.v)+'</span></label>'
       +'<label style="font-size:13px;white-space:nowrap;display:flex;gap:4px;align-items:center"><input type="checkbox" id="ksr_'+r.id+'_e" onchange="kspEiKoske(\''+r.id+'\')"> Ei koske</label></div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +'<input class="f" id="ksr_'+r.id+'_n" placeholder="Nimi" aria-label="'+esc(r.l)+': nimi" style="flex:2;min-width:170px">'
-      +'<input class="f" id="ksr_'+r.id+'_p" type="tel" placeholder="Puhelin" aria-label="'+esc(r.l)+': puhelin" style="flex:1;min-width:130px"></div></div>';
+      +'<div id="ksr_'+r.id+'_list"></div>'
+      +'<button type="button" class="btn ghost ksr-add" style="padding:3px 10px;font-size:12px;margin-top:4px" onclick="kspLisaaHenkilo(\''+r.id+'\')">＋ Lisää henkilö</button></div>';
   }).join("");
   document.getElementById("kspVaiheet").innerHTML=KV_VAIHE.map(function(it){
     return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
@@ -4215,7 +4256,7 @@ function kspRenderRows(){
 function collectKsp(){
   var o={};
   Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);o[k]=el?el.value:"";});
-  o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={n:document.getElementById("ksr_"+r.id+"_n").value,p:document.getElementById("ksr_"+r.id+"_p").value,ek:document.getElementById("ksr_"+r.id+"_e").checked};});
+  o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={ek:document.getElementById("ksr_"+r.id+"_e").checked,henkilot:kspRoleHenkilot(r.id)};});
   o.kohdistamatta=kspCollectKohdistus();
   o.vaiheet={};KV_VAIHE.forEach(function(it){var g=function(x){return document.getElementById("ksv_"+it.id+"_"+x).value;};o.vaiheet[it.id]={a:g("a"),v:g("v"),h:g("h"),o:g("o")};});
   o.liitteet={};KSP_LIITTEET.forEach(function(it){o.liitteet[it.id]=document.getElementById("ksl_"+it.id).checked;});
@@ -4224,7 +4265,7 @@ function collectKsp(){
 function fillKsp(p){
   p=kspMigrate(p);
   Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);if(el)el.value=p[k]||"";});
-  KSP_ROLES.forEach(function(r){var v=p.roolit[r.id]||{};document.getElementById("ksr_"+r.id+"_n").value=v.n||"";document.getElementById("ksr_"+r.id+"_p").value=v.p||"";document.getElementById("ksr_"+r.id+"_e").checked=!!v.ek;kspEiKoske(r.id);});
+  KSP_ROLES.forEach(function(r){var v=p.roolit[r.id]||{};document.getElementById("ksr_"+r.id+"_e").checked=!!v.ek;kspRenderRole(r.id,v.henkilot);});
   kspRenderKohdistus(p.kohdistamatta);
   KV_VAIHE.forEach(function(it){var v=p.vaiheet[it.id]||{};["a","v","h","o"].forEach(function(x){document.getElementById("ksv_"+it.id+"_"+x).value=v[x]||"";});});
   KSP_LIITTEET.forEach(function(it){document.getElementById("ksl_"+it.id).checked=!!(p.liitteet&&p.liitteet[it.id]);});
@@ -4568,7 +4609,10 @@ function kspPrint(dev,ctx,p){
   p=kspMigrate(p);
   var roolit=KSP_ROLES.map(function(r){var x=p.roolit[r.id]||{};
     if(x.ek)return '<tr style="color:#888"><td>'+esc(r.l)+'</td><td colspan="2">Ei koske</td><td>'+esc(r.v)+'</td></tr>';
-    return '<tr><td>'+esc(r.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td><td>'+esc(r.v)+'</td></tr>';}).join("");
+    var hs=x.henkilot&&x.henkilot.length?x.henkilot:[{n:"",p:""}];
+    return hs.map(function(h,i){
+      return '<tr>'+(i===0?'<td rowspan="'+hs.length+'">'+esc(r.l)+'</td>':'')+'<td>'+v(h.n)+'</td><td class="d">'+v(h.p)+'</td>'+(i===0?'<td rowspan="'+hs.length+'">'+esc(r.v)+'</td>':'')+'</tr>';
+    }).join("");}).join("");
   var kohd=(p.kohdistamatta||[]).map(function(x){return '<tr><td>'+esc(x.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td><td style="color:#8a5a00">Kohdistamatta</td></tr>';}).join("");
   var vaiheet=KV_VAIHE.map(function(it,i){var x=p.vaiheet[it.id]||{};
     return '<tr><td class="d">'+v(x.a)+'</td><td>'+esc(it.l)+(x.o?'<div style="font-size:11px;color:#444;margin-top:2px">'+esc(x.o)+'</div>':'')+'</td><td>'+v(x.v)+'</td><td>'+v(x.h)+'</td></tr>';}).join("");
