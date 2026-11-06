@@ -1133,6 +1133,59 @@
 </div>
 
 <!-- DEVICE FILE MODAL -->
+<div class="overlay" id="kspOverlay">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-h"><span>Väestönsuojan käyttöönottosuunnitelma</span><span class="x" onclick="closeOverlay('kspOverlay')">×</span></div>
+    <div class="modal-b" oninput="saveKspDraft()" onchange="saveKspDraft()">
+      <input type="hidden" id="enKspDevId">
+      <p class="hint" style="margin:0 0 8px">Perustiedot esitäytetään asiakkaalta, laitteelta ja viimeisimmästä väestönsuojan tarkastuksesta. Suunnitelma tallentuu laitteelle, ja sitä voi päivittää myöhemmin.</p>
+      <div style="font-weight:700;margin:2px 0 6px;color:#c1121f">1. Suojan perustiedot</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:150px"><label>Suojaluokka</label><input class="f" id="enKspLuokka" placeholder="esim. S1"></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Henkilömäärä</label><input class="f" id="enKspHenkilot" placeholder="esim. 102 henk."></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Pinta-ala m²</label><input class="f" id="enKspPinta" placeholder="esim. 77 m²"></div>
+      </div>
+      <div class="field"><label>Suojan sijainti</label><input class="f" id="enKspSijainti" placeholder="esim. A-portaan kellarikerros"></div>
+      <div class="field"><label>Sisäänkäynnit</label><input class="f" id="enKspSisaan" placeholder="esim. A-portaan kellarikäytävä"></div>
+      <div class="field"><label>Varapoistumistie</label><input class="f" id="enKspVara" placeholder="esim. poistumisputki pihalle"></div>
+      <div class="field"><label>Avainten säilytys</label><input class="f" id="enKspAvaimet" placeholder="esim. isännöitsijä ja huoltoyhtiön avainkaappi"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">2. Vastuuhenkilöt</div>
+      <div id="kspRoolit"></div>
+      <div class="field"><label>Käyttöönottoryhmä (nimet)</label><textarea class="f" id="enKspRyhma" rows="2" placeholder="esim. asukasvapaaehtoiset A- ja B-portaista"></textarea></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">3. Käyttöönoton käynnistys</div>
+      <div class="field"><label>Määräyksen vastaanottaja</label><input class="f" id="enKspVastaanottaja" placeholder="esim. suojan johtaja, sijaisena varajohtaja"></div>
+      <div class="field"><label>Hälytys ja tiedottaminen</label><textarea class="f" id="enKspHalytys" rows="2" placeholder="esim. puhelin- ja tekstiviestiketju, porrastiedote"></textarea></div>
+      <div class="field"><label>Kokoontumispaikka</label><input class="f" id="enKspKokoontuminen" placeholder="esim. A-portaan aula"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">4. Tehtävät 72 tunnin aikana</div>
+      <p class="hint" style="margin:0 0 8px">Samat vaiheet kuin käyttöönottotarkastuksessa. Kirjaa jokaiselle vastuuhenkilö ja kohdekohtaiset ohjeet.</p>
+      <div id="kspVaiheet"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">5. Tyhjennys, tilajako ja varustus</div>
+      <div class="field"><label>Irtaimiston sijoituspaikka</label><input class="f" id="enKspIrtaimisto" placeholder="esim. ulkovarasto / jäteaitaus"></div>
+      <div class="field"><label>Tilajako (oleskelu, makuu, käymälät)</label><textarea class="f" id="enKspTilajako" rows="2"></textarea></div>
+      <div class="field"><label>Vesi, käymälät ja jätehuolto</label><textarea class="f" id="enKspVesi" rows="2"></textarea></div>
+      <div class="field"><label>Varusteiden säilytyspaikka</label><input class="f" id="enKspVarusteet" placeholder="esim. suojan varustekaappi"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">6. Liitteet</div>
+      <div id="kspLiitteet" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
+      <div class="field"><label>Muut liitteet</label><input class="f" id="enKspMuutLiitteet"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">7. Ylläpito</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:150px"><label>Laadittu</label><input class="f" id="enKspLaadittu" type="date"></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Seuraava päivitys</label><input class="f" id="enKspSeuraava" type="date"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:150px"><label>Laatija</label><input class="f" id="enKspLaatija"></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Hyväksyjä (omistaja / isännöitsijä)</label><input class="f" id="enKspHyvaksyja"></div>
+      </div>
+      <div id="kspPaivitetty" class="hint"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeOverlay('kspOverlay')">Peruuta</button>
+      <button class="btn ghost" onclick="saveKsp(false)">Tallenna</button>
+      <button class="btn orange" onclick="saveKsp(true)">Tallenna + tulosta</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="fileOverlay">
   <div class="modal" style="max-width:480px">
     <div class="modal-h"><span>Lisää tiedosto</span><span class="x" onclick="closeOverlay('fileOverlay')">×</span></div>
@@ -1981,7 +2034,7 @@ function deviceMainTab(d){
     </div></div>
     <div class="panel"><div class="panel-h">Tarkastukset</div><div class="panel-b" style="padding:0">
       ${entryRows(d.inspections,d.id,'inspections')}
-      <div class="mini-add" style="justify-content:space-between"><button class="btn ghost req-edit" style="padding:5px 12px;font-size:12px" onclick="openInspectionPk('${d.id}')">📋 Luo pöytäkirja</button>${d.group==="Paloilmoitin"?`<button class="btn ghost req-edit" style="padding:5px 12px;font-size:12px" onclick="openSiirtoTodistus('${d.id}')">📄 Asennustodistus</button>`:``}<button class="iconbtn req-edit" onclick="openEntry('${d.id}','inspections')">＋</button></div>
+      <div class="mini-add" style="justify-content:space-between"><button class="btn ghost req-edit" style="padding:5px 12px;font-size:12px" onclick="openInspectionPk('${d.id}')">📋 Luo pöytäkirja</button>${d.group==="Paloilmoitin"?`<button class="btn ghost req-edit" style="padding:5px 12px;font-size:12px" onclick="openSiirtoTodistus('${d.id}')">📄 Asennustodistus</button>`:``}${d.group==="V\u00e4est\u00f6nsuoja"?`<button class="btn ghost req-edit" style="padding:5px 12px;font-size:12px" title="${d.ksp&&d.ksp.paivitetty?'Päivitetty '+fmt(d.ksp.paivitetty):'Ei vielä laadittu'}" onclick="openKsp('${d.id}')">🛡 Käyttöönottosuunnitelma${d.ksp?' ✓':''}</button>`:``}<button class="iconbtn req-edit" onclick="openEntry('${d.id}','inspections')">＋</button></div>
     </div></div>
     <div class="panel"><div class="panel-h">Korjaukset</div><div class="panel-b" style="padding:0">
       ${(d.repairsLog&&d.repairsLog.length)?entryRows(d.repairsLog,d.id,'repairsLog'):(d.repairs?`<div style="padding:10px 14px">${d.repairs} korjausta kirjattu</div>`:'<p class="empty">Ei merkintöjä</p>')}
@@ -3820,6 +3873,167 @@ function saveEntryDraft(){
 function clearEntryDraft(devId,type){
   var all=readDrafts();delete all[entryDraftKey(devId,type)];
   try{localStorage.setItem(DRAFT_KEY,JSON.stringify(all));}catch(e){}
+}
+const KSP_DRAFT_KEY="servalo_ksp_drafts";
+const KSP_ROLES=[
+ {id:"johtaja",l:"Suojan johtaja"},
+ {id:"varajohtaja",l:"Varajohtaja"},
+ {id:"tekninen",l:"Tekninen vastuuhenkilö / huolto"},
+ {id:"isannoitsija",l:"Isännöitsijä"}
+];
+const KSP_LIITTEET=[
+ {id:"pohja",l:"Pohjapiirustus (suoja, sisäänkäynnit, varapoistumistie)"},
+ {id:"asukasohje",l:"Asukkaiden yleisohje"},
+ {id:"varusteet",l:"Varusteluettelo (viimeisin tarkastus)"},
+ {id:"laitteet",l:"Laitteiden käyttöohjeet (ilmanvaihto, ovet, läpiviennit)"}
+];
+const KSP_FIELDS={luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
+function readKspDrafts(){try{return JSON.parse(localStorage.getItem(KSP_DRAFT_KEY)||"{}");}catch(e){return {};}}
+function writeKspDrafts(all){try{localStorage.setItem(KSP_DRAFT_KEY,JSON.stringify(all));}catch(e){}}
+function kspLastVss(d){
+  var l=(d&&d.inspections)||[];
+  for(var i=0;i<l.length;i++){if(l[i]&&l[i].pohja==="Väestönsuojan tarkastus"&&l[i].checklist)return l[i].checklist;}
+  return null;
+}
+function kspDefaults(d){
+  var v=kspLastVss(d)||{};
+  return {
+    luokka:v.luokka||"",henkilot:v.henkilot||"",pinta:v.pinta||"",
+    sijainti:d.locDetail||siteName(d.locId)||"",
+    laadittu:today(),laatija:currentUser?currentUser.name:"",
+    roolit:{tekninen:{n:v.huoltomies||"",p:""},isannoitsija:{n:v.isannoitsija||"",p:""}},
+    hyvaksyja:v.omistaja||v.isannoitsija||"",
+    vaiheet:{},liitteet:{asukasohje:true}
+  };
+}
+function kspRenderRows(){
+  document.getElementById("kspRoolit").innerHTML=KSP_ROLES.map(function(r){
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'
+      +'<div class="field" style="flex:2;min-width:170px"><label>'+esc(r.l)+'</label><input class="f" id="ksr_'+r.id+'_n" placeholder="Nimi"></div>'
+      +'<div class="field" style="flex:1;min-width:130px"><label>Puhelin</label><input class="f" id="ksr_'+r.id+'_p" type="tel"></div></div>';
+  }).join("");
+  document.getElementById("kspVaiheet").innerHTML=KV_VAIHE.map(function(it){
+    return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
+      +'<label style="font-weight:600;display:block;margin-bottom:4px">'+esc(it.l)+'</label>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<input class="f" id="ksv_'+it.id+'_v" placeholder="Vastuuhenkilö" style="flex:0 0 190px">'
+      +'<input class="f" id="ksv_'+it.id+'_o" placeholder="Kohdekohtainen ohje" style="flex:1;min-width:150px">'
+      +'</div></div>';
+  }).join("");
+  document.getElementById("kspLiitteet").innerHTML=KSP_LIITTEET.map(function(it){
+    return '<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="ksl_'+it.id+'"> '+esc(it.l)+'</label>';
+  }).join("");
+}
+function collectKsp(){
+  var o={};
+  Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);o[k]=el?el.value:"";});
+  o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={n:document.getElementById("ksr_"+r.id+"_n").value,p:document.getElementById("ksr_"+r.id+"_p").value};});
+  o.vaiheet={};KV_VAIHE.forEach(function(it){o.vaiheet[it.id]={v:document.getElementById("ksv_"+it.id+"_v").value,o:document.getElementById("ksv_"+it.id+"_o").value};});
+  o.liitteet={};KSP_LIITTEET.forEach(function(it){o.liitteet[it.id]=document.getElementById("ksl_"+it.id).checked;});
+  return o;
+}
+function fillKsp(p){
+  p=p||{};
+  Object.keys(KSP_FIELDS).forEach(function(k){var el=document.getElementById(KSP_FIELDS[k]);if(el)el.value=p[k]||"";});
+  KSP_ROLES.forEach(function(r){var v=(p.roolit&&p.roolit[r.id])||{};document.getElementById("ksr_"+r.id+"_n").value=v.n||"";document.getElementById("ksr_"+r.id+"_p").value=v.p||"";});
+  KV_VAIHE.forEach(function(it){var v=(p.vaiheet&&p.vaiheet[it.id])||{};document.getElementById("ksv_"+it.id+"_v").value=v.v||"";document.getElementById("ksv_"+it.id+"_o").value=v.o||"";});
+  KSP_LIITTEET.forEach(function(it){document.getElementById("ksl_"+it.id).checked=!!(p.liitteet&&p.liitteet[it.id]);});
+}
+function openKsp(devId){
+  if(!can("devices_edit"))return;
+  var d=db.devices.find(function(x){return x.id===devId;});if(!d)return;
+  document.getElementById("enKspDevId").value=devId;
+  kspRenderRows();
+  var dr=readKspDrafts()[devId];
+  fillKsp(dr||d.ksp||kspDefaults(d));
+  var info=document.getElementById("kspPaivitetty");
+  info.textContent=(dr?"Palautettu tallentamaton luonnos. ":"")+(d.ksp&&d.ksp.paivitetty?"Viimeksi tallennettu "+fmt(d.ksp.paivitetty)+(d.ksp.paivittaja?" ("+d.ksp.paivittaja+")":"")+".":"Suunnitelmaa ei ole vielä tallennettu.");
+  show("kspOverlay");
+}
+function saveKspDraft(){
+  var id=document.getElementById("enKspDevId").value;if(!id)return;
+  var all=readKspDrafts();all[id]=collectKsp();writeKspDrafts(all);
+}
+function clearKspDraft(id){var all=readKspDrafts();delete all[id];writeKspDrafts(all);}
+function saveKsp(print){
+  var devId=document.getElementById("enKspDevId").value;
+  var d=db.devices.find(function(x){return x.id===devId;});if(!d)return;
+  var p=collectKsp();
+  p.paivitetty=today();p.paivittaja=currentUser?currentUser.name:"";
+  d.ksp=p;d.updated=today();save();clearKspDraft(devId);closeOverlay("kspOverlay");renderDevTab();
+  if(print)kspPrint(d,pkCtxFor(d),p);
+}
+function kspPrint(dev,ctx,p){
+  ctx=ctx||{name:"",address:""};p=p||{};
+  var w=window.open("","_blank");
+  if(!w){alert("Salli ponnahdusikkunat tulostusta varten.");return;}
+  var dash='<span style="color:#bbb">–</span>';
+  var v=function(x){return x?esc(x).replace(/\n/g,"<br>"):dash;};
+  var roolit=KSP_ROLES.map(function(r){var x=(p.roolit&&p.roolit[r.id])||{};
+    return '<tr><td>'+esc(r.l)+'</td><td>'+v(x.n)+'</td><td class="d">'+v(x.p)+'</td></tr>';}).join("");
+  var vaiheet=KV_VAIHE.map(function(it,i){var x=(p.vaiheet&&p.vaiheet[it.id])||{};
+    return '<tr><td>'+esc(it.l)+'</td><td class="v">'+v(x.v)+'</td><td>'+(x.o?esc(x.o):"")+'</td></tr>';}).join("");
+  var liitteet=KSP_LIITTEET.filter(function(it){return p.liitteet&&p.liitteet[it.id];}).map(function(it){return '<li>'+esc(it.l)+'</li>';});
+  if(p.muutLiitteet)liitteet.push('<li>'+esc(p.muutLiitteet)+'</li>');
+  var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Väestönsuojan käyttöönottosuunnitelma</title>'
+    +'<style>'
+    +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}'
+    +'h1{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.4px;margin:0}'
+    +'.brand{font-family:Georgia,serif;font-size:26px;font-weight:700;color:#c1121f;letter-spacing:3px}'
+    +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c1121f;padding-bottom:12px}'
+    +'.meta{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}'
+    +'.meta td{padding:4px 6px;border-bottom:1px solid #eee;vertical-align:top}.meta td.k{color:#666;width:150px}'
+    +'.sub{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;margin:18px 0 4px}'
+    +'table.chk{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}'
+    +'table.chk th{background:#c1121f;color:#fff;font-family:Georgia,serif;text-align:left;padding:6px 8px;font-size:11px}'
+    +'table.chk td{padding:5px 8px;border-bottom:1px solid #e6e6e6;vertical-align:top}'
+    +'table.chk td.v{width:150px}table.chk td.d{width:120px;white-space:nowrap}'
+    +'ul.liit{font-size:12px;margin:6px 0 0 18px;padding:0;line-height:1.6}'
+    +'.note{font-size:11px;color:#444;background:#faf5f5;border:1px solid #eddede;border-radius:6px;padding:8px 10px;margin:12px 0;line-height:1.5}'
+    +'.foot{display:flex;justify-content:space-between;gap:24px;margin-top:22px}'
+    +'.sign{min-width:230px;font-size:12px}.sign .line{border-bottom:1px solid #333;height:20px;margin-bottom:2px}'
+    +'.company{margin-top:22px;border-top:2px solid #c1121f;padding-top:10px;font-size:11px;color:#333;line-height:1.55}'
+    +'.company .n{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;letter-spacing:1px}'
+    +'@media print{button{display:none}.sub{break-after:avoid;page-break-after:avoid}h1{break-after:avoid;page-break-after:avoid}table{break-inside:auto}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.foot,.sign,.company,.note{break-inside:avoid;page-break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="head"><div><div style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" width="30" height="30" fill="#c1121f" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/></svg><div class="brand">SAVUKS</div></div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
+    +'<div style="text-align:right"><h1>Käyttöönottosuunnitelma</h1><div style="font-size:12px;color:#666">Väestönsuoja</div></div></div>'
+    +'<div class="sub">1. Suojan perustiedot</div><table class="meta">'
+    +'<tr><td class="k">Kohde / asiakas</td><td>'+v(ctx.name)+'</td><td class="k">Laitetunnus</td><td>'+v(dev.tag)+'</td></tr>'
+    +'<tr><td class="k">Osoite</td><td>'+v(ctx.address)+'</td><td class="k">Suojan sijainti</td><td>'+v(p.sijainti)+'</td></tr>'
+    +'<tr><td class="k">Suojaluokka</td><td>'+v(p.luokka)+'</td><td class="k">Henkilömäärä</td><td>'+v(p.henkilot)+'</td></tr>'
+    +'<tr><td class="k">Pinta-ala</td><td>'+v(p.pinta)+'</td><td class="k">Avainten säilytys</td><td>'+v(p.avaimet)+'</td></tr>'
+    +'<tr><td class="k">Sisäänkäynnit</td><td>'+v(p.sisaan)+'</td><td class="k">Varapoistumistie</td><td>'+v(p.vara)+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">2. Vastuuhenkilöt</div>'
+    +'<table class="chk"><thead><tr><th>Tehtävä</th><th>Nimi</th><th>Puhelin</th></tr></thead><tbody>'+roolit+'</tbody></table>'
+    +'<table class="meta"><tr><td class="k">Käyttöönottoryhmä</td><td>'+v(p.ryhma)+'</td></tr></table>'
+    +'<div class="sub">3. Käyttöönoton käynnistys</div><table class="meta">'
+    +'<tr><td class="k">Määräyksen vastaanottaja</td><td>'+v(p.vastaanottaja)+'</td></tr>'
+    +'<tr><td class="k">Hälytys ja tiedottaminen</td><td>'+v(p.halytys)+'</td></tr>'
+    +'<tr><td class="k">Kokoontumispaikka</td><td>'+v(p.kokoontuminen)+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">4. Tehtävät 72 tunnin aikana</div>'
+    +'<table class="chk"><thead><tr><th>Vaihe</th><th>Vastuuhenkilö</th><th>Kohdekohtainen ohje</th></tr></thead><tbody>'+vaiheet+'</tbody></table>'
+    +'<div class="sub">5. Tyhjennys, tilajako ja varustus</div><table class="meta">'
+    +'<tr><td class="k">Irtaimiston sijoituspaikka</td><td>'+v(p.irtaimisto)+'</td></tr>'
+    +'<tr><td class="k">Tilajako</td><td>'+v(p.tilajako)+'</td></tr>'
+    +'<tr><td class="k">Vesi, käymälät ja jätehuolto</td><td>'+v(p.vesi)+'</td></tr>'
+    +'<tr><td class="k">Varusteiden säilytyspaikka</td><td>'+v(p.varusteet)+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">6. Liitteet</div>'+(liitteet.length?'<ul class="liit">'+liitteet.join("")+'</ul>':'<div style="font-size:12px">'+dash+'</div>')
+    +'<div class="sub">7. Ylläpito</div><table class="meta">'
+    +'<tr><td class="k">Laadittu</td><td>'+(p.laadittu?fmt(p.laadittu):dash)+'</td><td class="k">Päivitetty</td><td>'+(p.paivitetty?fmt(p.paivitetty):dash)+'</td></tr>'
+    +'<tr><td class="k">Laatija</td><td>'+v(p.laatija)+'</td><td class="k">Seuraava päivitys</td><td>'+(p.seuraava?fmt(p.seuraava):dash)+'</td></tr>'
+    +'</table>'
+    +'<div class="note">Suoja on pystyttävä ottamaan käyttöön 72 tunnin kuluessa viranomaisen määräyksestä. Suunnitelma säilytetään helposti saatavilla, ja se päivitetään, kun vastuuhenkilöt tai suojan järjestelyt muuttuvat. Asukkaiden yleisohje jaetaan erillisenä liitteenä.</div>'
+    +'<div class="foot"><div class="sign"><div style="font-size:11px;color:#666">Laatija</div><div class="line"></div>'+esc(p.laatija||"")+'</div>'
+    +'<div class="sign"><div style="font-size:11px;color:#666">Hyväksyjä (omistaja / isännöitsijä)</div><div class="line"></div>'+esc(p.hyvaksyja||"")+'</div></div>'
+    +'<div class="company"><span class="n">Savuks Oy</span> &nbsp; puh. 044 3665638 &nbsp; info@savuks.com &nbsp; www.savuks.com<br>Santalankulmantie 8, 21290 Rusko &nbsp; Y-tunnus 3465682-5</div>'
+    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>'
+    +'</body></html>';
+  w.document.write(html);
+  w.document.close();
 }
 function pkCtxFor(d){var c=d&&d.customerId?custById(d.customerId):null;return {name:c?c.name:"",address:(c&&c.address)||""};}
 function laitePk(devs,ctx){
