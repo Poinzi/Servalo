@@ -1175,6 +1175,11 @@
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">6. Liitteet</div>
       <div id="kspLiitteet" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
       <div class="field"><label>Muut liitteet</label><input class="f" id="enKspMuutLiitteet"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px">
+        <button type="button" class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="kspPrintLiite('irtaimisto')">🖨 Irtaimiston sijoitussuunnitelma</button>
+        <button type="button" class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="kspPrintLiite('varusteet')">🖨 Varusteluettelo</button>
+      </div>
+      <p class="hint" style="margin:2px 0 0">Liitteet tulostuvat lomakkeen nykyisillä tiedoilla. Varusteluettelo esitäytetään viimeisimmästä tallennetusta väestönsuojan tarkastuksesta; puuttuvat tiedot jäävät täydennettäviksi.</p>
       <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">7. Ylläpito</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Laadittu</label><input class="f" id="enKspLaadittu" type="date"></div>
@@ -4093,10 +4098,14 @@ const KSP_ROLES=[
  {id:"isannoitsija",l:"Isännöitsijä"}
 ];
 const KSP_LIITTEET=[
- {id:"pohja",l:"Pohjapiirustus (suoja, sisäänkäynnit, varapoistumistie)"},
- {id:"asukasohje",l:"Asukkaiden yleisohje"},
- {id:"varusteet",l:"Varusteluettelo (viimeisin tarkastus)"},
- {id:"laitteet",l:"Laitteiden käyttöohjeet (ilmanvaihto, ovet, läpiviennit)"}
+ {id:"asema",l:"Asemapiirros ja kulkureitit"},
+ {id:"pohja",l:"Väestönsuojan pohjapiirros ja tilajako"},
+ {id:"laitteet",l:"Laitteiden käyttö- ja huolto-ohjeet"},
+ {id:"raportti",l:"Viimeisin tarkastus- ja huoltoraportti"},
+ {id:"varusteet",l:"Varusteluettelo ja valokuvat"},
+ {id:"irtaimisto",l:"Tyhjennettävän irtaimiston sijoitussuunnitelma"},
+ {id:"luettelot",l:"Asukas- ja vastuuhenkilöluettelot asianmukaisesti suojattuina"},
+ {id:"asukasohje",l:"Asukkaiden yleisohje (erillinen jaettava liite)"}
 ];
 const KSP_FIELDS={luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
 function readKspDrafts(){try{return JSON.parse(localStorage.getItem(KSP_DRAFT_KEY)||"{}");}catch(e){return {};}}
@@ -4114,7 +4123,7 @@ function kspDefaults(d){
     laadittu:today(),laatija:currentUser?currentUser.name:"",
     roolit:{tekninen:{n:v.huoltomies||"",p:""},isannoitsija:{n:v.isannoitsija||"",p:""}},
     hyvaksyja:v.omistaja||v.isannoitsija||"",
-    vaiheet:{},liitteet:{asukasohje:true}
+    vaiheet:{},liitteet:{asukasohje:true,varusteet:true,irtaimisto:true}
   };
 }
 function kspRenderRows(){
@@ -4174,6 +4183,247 @@ function saveKsp(print){
   d.ksp=p;d.updated=today();save();clearKspDraft(devId);closeOverlay("kspOverlay");renderDevTab();
   if(print)kspPrint(d,pkCtxFor(d),p);
 }
+function kspDocStart(title,h1,sub){
+  return '<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>'+esc(title)+'</title>'
+    +'<style>'
+    +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}'
+    +'h1{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.4px;margin:0}'
+    +'.brand{font-family:Georgia,serif;font-size:26px;font-weight:700;color:#c1121f;letter-spacing:3px}'
+    +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c1121f;padding-bottom:12px}'
+    +'.meta{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}'
+    +'.meta td{padding:4px 6px;border-bottom:1px solid #eee;vertical-align:top}.meta td.k{color:#666;width:150px}'
+    +'.sub{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;margin:18px 0 4px}'
+    +'.sub2{font-family:Georgia,serif;font-weight:700;color:#7a0b13;font-size:12.5px;margin:12px 0 2px}'
+    +'table.chk{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}'
+    +'table.chk th{background:#c1121f;color:#fff;font-family:Georgia,serif;text-align:left;padding:6px 8px;font-size:11px}'
+    +'table.chk td{padding:5px 8px;border-bottom:1px solid #e6e6e6;vertical-align:top}'
+    +'table.chk td.v{width:150px}table.chk td.d{width:120px;white-space:nowrap}'
+    +'table.chk th.sel,table.chk td.sel{background:#fbe9ea;color:#1b1b1b;font-weight:700}table.chk th.sel{color:#7a0b13}'
+    +'ul.liit{font-size:12px;margin:6px 0 0 18px;padding:0;line-height:1.6}'
+    +'.lead{font-size:12px;line-height:1.5;margin:6px 0}'
+    +'.fill{display:inline-block;min-width:90px;border-bottom:1px dotted #888;height:13px;vertical-align:bottom}'
+    +'.src{font-size:10.5px;color:#666;margin-top:2px}'
+    +'.note{font-size:11px;color:#444;background:#faf5f5;border:1px solid #eddede;border-radius:6px;padding:8px 10px;margin:12px 0;line-height:1.5}'
+    +'.foot{display:flex;justify-content:space-between;gap:24px;margin-top:22px}'
+    +'.sign{min-width:230px;font-size:12px}.sign .line{border-bottom:1px solid #333;height:20px;margin-bottom:2px}'
+    +'.company{margin-top:22px;border-top:2px solid #c1121f;padding-top:10px;font-size:11px;color:#333;line-height:1.55}'
+    +'.company .n{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;letter-spacing:1px}'
+    +'@media print{button{display:none}.sub,.sub2{break-after:avoid;page-break-after:avoid}h1{break-after:avoid;page-break-after:avoid}table{break-inside:auto}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.foot,.sign,.company,.note{break-inside:avoid;page-break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div class="head"><div><div style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" width="30" height="30" fill="#c1121f" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/></svg><div class="brand">SAVUKS</div></div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
+    +'<div style="text-align:right"><h1>'+h1+'</h1><div style="font-size:12px;color:#666">'+esc(sub)+'</div></div></div>';
+}
+function kspDocEnd(){
+  return '<div class="company"><span class="n">Savuks Oy</span> &nbsp; puh. 044 3665638 &nbsp; info@savuks.com &nbsp; www.savuks.com<br>Santalankulmantie 8, 21290 Rusko &nbsp; Y-tunnus 3465682-5</div>'
+    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>'
+    +'</body></html>';
+}
+function kspFill(x,w){return x?esc(x).replace(/\n/g,"<br>"):'<span class="fill"'+(w?' style="min-width:'+w+'px"':'')+'></span>';}
+function kspBlankRows(n,cols){var r="";for(var i=0;i<n;i++){r+='<tr>'+cols.map(function(c){return '<td>'+(typeof c==="function"?c(i):c)+'</td>';}).join("")+'</tr>';}return r;}
+function kspPrintLiite(kind){
+  var devId=document.getElementById("enKspDevId").value;
+  var d=db.devices.find(function(x){return x.id===devId;});if(!d)return;
+  var p=collectKsp();
+  if(kind==="irtaimisto")kspPrintIrtaimisto(d,pkCtxFor(d),p);
+  else kspPrintVarusteet(d,pkCtxFor(d),p,kspLastVssEntry(d));
+}
+function kspLastVssEntry(d){
+  var l=(d&&d.inspections)||[];
+  for(var i=0;i<l.length;i++){if(l[i]&&l[i].pohja==="Väestönsuojan tarkastus"&&l[i].checklist)return l[i];}
+  return null;
+}
+function kspOpen(){var w=window.open("","_blank");if(!w)alert("Salli ponnahdusikkunat tulostusta varten.");return w;}
+function kspPrintIrtaimisto(dev,ctx,p){
+  var w=kspOpen();if(!w)return;
+  p=p||{};
+  var v2=(p.vaiheet&&p.vaiheet.v2&&p.vaiheet.v2.v)||"";
+  var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
+  var html=kspDocStart("Tyhjennettävän irtaimiston sijoitussuunnitelma","Tyhjennettävän irtaimiston<br>sijoitussuunnitelma","Väestönsuojan käyttöönoton liite")
+    +'<table class="meta">'
+    +'<tr><td class="k">Taloyhtiö</td><td>'+kspFill(ctx.name)+'</td><td class="k">Laitetunnus</td><td>'+kspFill(dev.tag)+'</td></tr>'
+    +'<tr><td class="k">Osoite</td><td>'+kspFill(ctx.address)+'</td><td class="k">Väestönsuojan sijainti</td><td>'+kspFill(p.sijainti)+'</td></tr>'
+    +'<tr><td class="k">Normaaliajan käyttötarkoitus</td><td>'+kspFill("")+'</td><td class="k">Suunnitelman laatija</td><td>'+kspFill(p.laatija)+'</td></tr>'
+    +'<tr><td class="k">Päiväys / versio</td><td>'+(p.laadittu?fmt(p.laadittu):kspFill(""))+' / '+kspFill("",50)+'</td><td></td><td></td></tr>'
+    +'</table>'
+    +'<div class="note"><b>Tavoite:</b> väestönsuoja voidaan tyhjentää turvallisesti ja määräajassa ilman, että irtaimisto tukkii kulku-, poistumis- tai pelastusreittejä.</div>'
+    +'<div class="sub">1. Käyttö ja täyttöajankohta</div>'
+    +'<p class="lead">Suunnitelma laaditaan valmiiksi normaalioloissa. Käyttöönoton aikana kirjataan toteutuneet määrät, ajat, poikkeamat ja lopulliset sijoituspaikat.</p>'
+    +'<table class="chk">'+th(["Merkintä","Täyttöajankohta"])+'<tbody>'
+    +'<tr><td class="v"><b>ESITÄYTETÄÄN</b></td><td>Kohde, vastuut, siirtoreitit, vastaanottopaikat, kalusto, arvioidut määrät ja erityiskäsittely.</td></tr>'
+    +'<tr><td class="v"><b>KÄYTTÖÖNOTOSSA</b></td><td>Aloitus- ja valmistumisajat, toteutuneet määrät, suorittajat, poikkeamat ja vastaanottopaikan kuittaus.</td></tr>'
+    +'</tbody></table>'
+    +'<div class="sub">2. Tyhjennyksen perustiedot</div><table class="meta">'
+    +'<tr><td class="k">Tyhjennettävä kokonaispinta-ala</td><td>'+kspFill(p.pinta)+'</td></tr>'
+    +'<tr><td class="k">Varastokomeroiden / tilojen määrä</td><td>'+kspFill("")+' kpl, tunnukset '+kspFill("",160)+'</td></tr>'
+    +'<tr><td class="k">Arvioitu irtaimiston määrä</td><td>'+kspFill("")+' m³ / kuormat / lavat</td></tr>'
+    +'<tr><td class="k">Tyhjennyksen tavoiteaika</td><td>'+kspFill("",60)+' tuntia</td></tr>'
+    +'<tr><td class="k">Arvioitu henkilötarve</td><td>'+kspFill("",60)+' henkilöä / vuoro</td></tr>'
+    +'<tr><td class="k">Tyhjennyksen johtaja ja varahenkilö</td><td>'+kspFill(v2,200)+'</td></tr>'
+    +'<tr><td class="k">Ensisijainen sijoituspaikka</td><td>'+kspFill(p.irtaimisto,200)+'</td></tr>'
+    +'<tr><td class="k">Varasijoituspaikka</td><td>'+kspFill("",200)+'</td></tr>'
+    +'<tr><td class="k">Avaimet ja pääsyoikeudet</td><td>'+kspFill(p.avaimet,200)+'</td></tr>'
+    +'<tr><td class="k">Sijoituspaikan lupa / sopimus</td><td>vahvistettu '+kspFill("",80)+' / vastuuhenkilö '+kspFill("",120)+'</td></tr>'
+    +'</table>'
+    +'<div class="sub2">2.1 Sijoituspaikan hyväksymiskriteerit</div><ul class="liit">'
+    +['Sijoituspaikka on käytettävissä myös poikkeusoloissa ja sinne on sovittu pääsy.','Siirtoreitti ei risteä väestönsuojaan siirtyvien henkilöiden pääreitin kanssa tai risteäminen hallitaan.','Irtaimisto ei tuki pelastus-, huolto-, ajoneuvo- tai poistumisreittejä.','Sijoittaminen ei aiheuta palokuorman, sortuman, vuodon, ilkivallan tai ympäristövahingon vaaraa.','Tavarat voidaan erotella, merkitä ja tarvittaessa palauttaa omistajille.','Säältä tai kosteudelta suojattava omaisuus voidaan suojata asianmukaisesti.'].map(function(t){return '<li>'+t+'</li>';}).join("")+'</ul>'
+    +'<div class="sub2">2.2 Sijoitusalueiden jako</div><table class="chk">'+th(["Alue","Käyttötarkoitus","Sijainti / rajaus","Enimmäismäärä"])+'<tbody>'
+    +[["A","Säilytettävä kuiva irtaimisto"],["B","Ulkosäilytykseen soveltuva irtaimisto"],["C","Omistajalle luovutettava / noudettava"],["D","Poistoon tai kierrätykseen menevä"],["E","Erityiskäsittelyä vaativa"]].map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+kspFill("",140)+'</td><td>'+kspFill("",70)+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub">3. Irtaimiston inventointi ja sijoitus</div>'
+    +'<p class="lead">Täytetään etukäteen tila- tai varastokomerokohtaisesti. Yksi rivi voi kuvata yhden komeron, huoneen tai yhtenäisen tavararyhmän. Toimenpide: siirrä / nouda / poista. Sijoitusalue: A–E.</p>'
+    +'<table class="chk">'+th(["Nro / tila","Omistaja / ryhmä","Sisältö ja arvio","Toimenpide","Sijoitusalue","Merkintä"])+'<tbody>'
+    +kspBlankRows(10,[function(i){return String(i+1);},"","","","",""])+'</tbody></table>'
+    +'<div class="sub2">3.1 Etusijajärjestys</div><table class="chk">'+th(["Prioriteetti","Tyhjennettävä kokonaisuus","Peruste","Arvioitu kesto"])+'<tbody>'
+    +[["1","Ovien, luukkujen, ilmanvaihdon, venttiilien, sähkötaulujen ja poistumisreittien edustat","Mahdollistaa teknisen käyttöönoton"],["2","Työskentely- ja kulkureitit","Mahdollistaa turvallisen materiaalivirran"],["3","Varsinainen suojatila ja tilajaon alueet","Mahdollistaa varustelun"],["4","Muut suojaan kuulumattomat tavarat","Loppusiivous ja tarkastus"]].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+kspFill("",40)+' h</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub2">3.2 Erityiskäsittely</div><table class="chk">'+th(["Tavaralaji","Menettely","Vastuuhenkilö / vastaanottaja"])+'<tbody>'
+    +[["Palavat nesteet, kaasut ja kemikaalit","Älä sijoita tavallisen irtaimiston joukkoon. Tunnista, eristä ja toimita hyväksyttyyn käsittelyyn."],["Akut, paristot ja sähkölaitteet","Ehkäise oikosulku, vaurio ja kastuminen; erottele tarvittaessa."],["Arvoesineet ja asiakirjat","Luovuta omistajalle tai siirrä lukittuun, kuitattuun säilytykseen."],["Kylmässä tai kosteudessa vaurioituva","Siirrä kuivaan sisätilaan tai suojaa hyväksytyllä tavalla."],["Jäte ja pilaantunut tavara","Lajittele ja toimita jätehuoltoon; dokumentoi poisto."]].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+kspFill("",110)+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub">4. Siirtoreitti, resurssit ja turvallisuus</div>'
+    +'<div class="sub2">4.1 Reittisuunnitelma</div><table class="chk">'+th(["Reitin osa","Kuvaus / sijainti","Leveys / rajoite","Turvatoimi"])+'<tbody>'
+    +[["Lähtöpiste",p.sijainti||""],["Sisäinen kulkureitti",""],["Lastauspaikka",""],["Kuljetusreitti",""],["Vastaanottopaikka",p.irtaimisto||""]].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+kspFill(r[1],140)+'</td><td>'+kspFill("",70)+'</td><td>'+kspFill("",90)+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<p class="lead"><b>Liitä suunnitelmaan pohjapiirros tai asemapiirros, johon merkitään lähtöalueet, kulkusuunta, lastauspaikka, sijoitusalueet A–E sekä vapaana pidettävät reitit.</b></p>'
+    +'<div class="sub2">4.2 Henkilöt ja kalusto</div><table class="chk">'+th(["Tehtävä","Vastuuhenkilö","Henkilömäärä","Kalusto / välineet"])+'<tbody>'
+    +[["Tyhjennyksen johto","Puhelin, suunnitelma, tehtäväkirja",v2],["Lajittelu ja merkintä","Tarrat, tussit, luettelot, kuvausväline"],["Kantaminen / siirto","Nokkakärryt, lavavaunut, kantohihnat"],["Kuljetus","Ajoneuvo / peräkärry / lavat"],["Vastaanotto ja sijoitus","Aluerajaukset, peitteet, kuittaus"],["Turvallisuus ja liikenteen ohjaus","Liivit, valot, rajausvälineet"]].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+kspFill(r[2]||"",110)+'</td><td>'+kspFill("",40)+'</td><td>'+r[1]+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub2">4.3 Turvallisuusohjeet</div><ul class="liit">'
+    +['Työ aloitetaan turvallisuus- ja tehtäväjaolla; yksintyöskentelyä vältetään.','Raskaat, terävät, rikkoutuvat tai vuotavat esineet tunnistetaan ennen siirtoa.','Nostoissa käytetään apuvälineitä ja riittävää henkilömäärää.','Palo-ovet, poistumisreitit, sähkötaulut, venttiilit ja sammutuskalusto pidetään vapaina koko työn ajan.','Havaittu vaarallinen aine, sähkövaara, vuoto tai rakennevaurio keskeyttää kyseisen työvaiheen.'].map(function(t){return '<li>'+t+'</li>';}).join("")+'</ul>'
+    +'<div class="sub">5. Käyttöönoton aikainen tehtävä- ja tilannekirja</div><table class="chk">'+th(["Aika","Tehtävä / alue","Tekijät","Määrä / kuormat","Poikkeama / jatkotoimi"])+'<tbody>'
+    +kspBlankRows(9,["klo "+'<span class="fill" style="min-width:36px"></span>',"","","",""])+'</tbody></table>'
+    +'<div class="sub2">5.1 Vastaanotto- ja loppukuittaus</div><table class="chk">'+th(["Tarkastettava asia","Kyllä / ei","Huomio"])+'<tbody>'
+    +['Kaikki suunnitelman mukaiset tilat on tyhjennetty.','Ovet, luukut, laitteet, venttiilit ja kulkureitit ovat vapaina.','Irtaimisto on sijoitettu alueille A–E ja merkitty.','Vaaralliset aineet ja jätteet on käsitelty erillisen menettelyn mukaan.','Vastaanottopaikka ja kulkureitit ovat turvallisia.','Omistajille luovutettavat tavarat ja poikkeamat on dokumentoitu.','Väestönsuojan loppusiivous on tehty.'].map(function(t){return '<tr><td>'+t+'</td><td class="d">☐ kyllä &nbsp;☐ ei</td><td>'+kspFill("",100)+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<table class="chk" style="margin-top:12px">'+th(["Hyväksyntä","Nimi","Päiväys ja aika","Allekirjoitus"])+'<tbody>'
+    +['Tyhjennyksen johtaja','Vastaanottopaikan vastuuhenkilö','Väestönsuojan hoitaja / taloyhtiön edustaja'].map(function(t){return '<tr><td>'+t+'</td><td style="height:26px"></td><td></td><td></td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub">6. Liitteet</div><ul class="liit">'
+    +['Pohjapiirros: tyhjennettävät tilat ja siirtoreitti','Asemapiirros: lastauspaikka ja sijoitusalueet A–E','Valokuvat ennen tyhjennystä ja sen jälkeen','Omistaja- tai varastokomerokohtainen inventointiluettelo','Sijoituspaikan käyttöä koskeva lupa tai sopimus','Jäte- ja vaarallisten aineiden käsittelyä koskevat tositteet'].map(function(t){return '<li>'+t+'</li>';}).join("")+'</ul>'
+    +kspDocEnd();
+  w.document.write(html);w.document.close();
+}
+function kspParseNum(x){var m=String(x||"").replace(",",".").match(/\d+(\.\d+)?/);return m?parseFloat(m[0]):0;}
+function kspSuojaluokka(l){
+  l=String(l||"").trim().toUpperCase();
+  if(!l)return "";
+  if(/KALLIO/.test(l))return "kallio";
+  if(/^S\s*1\b/.test(l))return "s1";
+  if(/^S\s*2\b/.test(l))return "s2";
+  return "vanha";
+}
+function kspPrintVarusteet(dev,ctx,p,entry){
+  var w=kspOpen();if(!w)return;
+  p=p||{};
+  var ck=(entry&&entry.checklist)||{};
+  var prod=ck.prod||{};
+  var luokka=ck.luokka||p.luokka||"";
+  var pinta=ck.pinta||p.pinta||"";
+  var henk=ck.henkilot||p.henkilot||"";
+  var cls=kspSuojaluokka(luokka);
+  var ala=kspParseNum(pinta);
+  var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
+  var lbl=function(id){var it=VSS_PROD.find(function(x){return x.id===id;});return it?it.l:id;};
+  var expired=function(v){return v&&v.d&&v.d<today();};
+  // Lähdetiedot tarkastuksesta: tila, päiväys ja huomio
+  var srcTxt=function(ids){
+    return ids.map(function(id){var v=prod[id];if(!v||(!v.s&&!v.d&&!v.i))return "";
+      return esc(lbl(id))+': '+esc(v.s||"–")+(v.d?' ('+(expired(v)?'vanhentunut ':'')+fmt(v.d)+')':'')+(v.i?' – '+esc(v.i):'');}).filter(Boolean).join('<br>');
+  };
+  var state=function(ids){
+    var ss=ids.map(function(id){return prod[id]||{};}).filter(function(v){return v.s;});
+    if(!ss.length)return "";
+    if(ss.some(function(v){return v.s==="Puuttuu"||v.s==="Uusittava"||expired(v);}))return "puute";
+    if(ss.every(function(v){return v.s==="Ei koske";}))return "eikoske";
+    return "ok";
+  };
+  var okCell=function(ids){
+    var st=state(ids),src=srcTxt(ids);
+    var box=st==="ok"?'☑ kunnossa':(st==="puute"?'☐ <b style="color:#c1121f">puute</b>':(st==="eikoske"?'– ei koske':'☐ <span class="fill" style="min-width:110px"></span>'));
+    return box+(src?'<div class="src">'+src+'</div>':'');
+  };
+  var tarkCell=function(ids){
+    var st=state(ids);
+    return (st==="ok"?'☑':'☐')+' kunnossa &nbsp;'+(st==="puute"?'☑':'☐')+' puuttuu'+(srcTxt(ids)?'<div class="src">'+srcTxt(ids)+'</div>':'');
+  };
+  var colCls=function(c){return cls===c?' class="sel"':'';};
+  var wc=ala&&cls&&cls!=="vanha"?Math.ceil(ala/20):0;
+  var vesi="";
+  if(ala&&cls==="s1")vesi="tarve väh. "+Math.round(ala*15)+" l (vesipiste sisällä) tai "+Math.round(ala*40)+" l";
+  else if(ala&&(cls==="s2"||cls==="kallio"))vesi="tarve väh. "+Math.round(ala*15)+" l";
+  var cls1=[
+    ["Sulkutila","Sulkuteltta tai sulkuhuone","Sulkuhuone","Sulkuhuone jokaiselle sisääntulolle","Alkuperäisten suunnitelmien mukaan"],
+    ["Kuivakäymälät","1 kaluste ja komero / alkava 20 m²","1 kaluste ja komero / alkava 20 m²","1 kaluste ja komero / alkava 20 m²","Rakentamisajan vaatimuksen mukaan"],
+    ["Varavesi","15 l/m², jos vesipiste sisällä; muutoin 40 l/m²","15 l/m²","15 l/m²","Suunnitelmien ja rakentamisajan vaatimuksen mukaan"],
+    ["Jätehuolto","Kannelliset astiat ja sisäpussit","Kannelliset astiat ja sisäpussit","Kannelliset astiat ja sisäpussit","Tarpeellinen määrä"],
+    ["Viestiyhteys","Matkaviestimen käytön mahdollistava järjestelmä tai puhelinpiste","Sama","Sama","Tarkasta nykyinen toimivuus"],
+    ["Merkinnät","VSS-opasteet ja suojan tunnus","VSS-opasteet ja suojan tunnus","VSS-opasteet ja suojan tunnus","VSS-opasteet ja suojan tunnus"]
+  ];
+  var sec3=[
+    ["Tyhjennys- ja purkutyökalut (sorkkarauta, vasara, kirves, taltta)","Tarpeen mukaan",["p07"]],
+    ["Leikkaus- ja sahausvälineet (voimaleikkuri, käsi- ja rautasaha)","Tarpeen mukaan",[]],
+    ["Käsityökalut (ruuvitaltat, jakoavain, puukko)","1 sarja / suoja",[]],
+    ["Lapio, köysi sekä kiinnitys- ja suojaustarvikkeet","Tarpeen mukaan",["p07"]],
+    ["Vesisäiliöiden täyttö- ja puhdistusvälineet","1 sarja / suoja",["p02"]]
+  ];
+  var sec4=[
+    ["Paristo- tai varavirtakäyttöinen radio","Vähintään 1 / suoja",["p15"]],
+    ["Otsa- ja taskulamput sekä varaparistot","Tarpeen mukaan",["p13","p14"]],
+    ["Ensiapuvälineet","Suojan henkilömäärän mukaan",["p08","p09"]],
+    ["Alkusammutusvälineet","Riskinarvion mukaan",["p17"]],
+    ["Lepo- ja istumajärjestelyt","Henkilömäärän mukaan",[]],
+    ["Puhdistus-, hygienia- ja jätesäkit","Henkilömäärän mukaan",["p06"]],
+    ["Varusteet ulkona käyntiin laskeuma- tai säteilytilanteessa","Tehtävien mukaan",["p10","p12","p18"]],
+    ["Laitteiden käyttö-, huolto- ja kokoamisohjeet","1 sarja / suoja",[]]
+  ];
+  var muut=["p03","p04","p11","p16"].filter(function(id){var v=prod[id];return v&&(v.s||v.d||v.i);});
+  var puutteet=VSS_PROD.filter(function(it){var v=prod[it.id];return v&&(v.s==="Puuttuu"||v.s==="Uusittava"||expired(v));})
+    .map(function(it){var v=prod[it.id];return esc(it.l)+' – '+esc(expired(v)&&v.s!=="Puuttuu"&&v.s!=="Uusittava"?'vanhentunut '+fmt(v.d):v.s)+(v.i?' ('+esc(v.i)+')':'');});
+  var lahde=entry?'Esitäytetty viimeisimmästä tallennetusta väestönsuojan tarkastuksesta '+fmt(ck.date||entry.date)+(ck.laji?' ('+esc(ck.laji)+')':'')+'. Tyhjät kentät täydennetään kohteessa.'
+    :'Laitteelle ei ole tallennettu väestönsuojan tarkastusta. Kentät täydennetään kohteessa.';
+  var html=kspDocStart("Väestönsuojan varusteluettelo","Väestönsuojan varusteluettelo","Liite")
+    +'<p class="lead">Valitse kohteen suojaluokka ja tarkasta vain sitä koskeva sarake. Määrät perustuvat suojan varsinaiseen pinta-alaan ja alkuperäisiin suunnitelmiin.</p>'
+    +'<div class="note">'+lahde+'</div>'
+    +'<table class="meta">'
+    +'<tr><td class="k">Taloyhtiö ja osoite</td><td>'+kspFill([ctx.name,ctx.address].filter(Boolean).join(", "))+'</td></tr>'
+    +'<tr><td class="k">Väestönsuojan sijainti</td><td>'+kspFill(p.sijainti||dev.locDetail||siteName(dev.locId)||"")+'</td></tr>'
+    +'<tr><td class="k">Suojaluokka / rakennusvuosi</td><td>'+kspFill(luokka,60)+' / '+kspFill("",60)+'</td></tr>'
+    +'<tr><td class="k">Varsinainen suoja-ala / henkilömäärä</td><td>'+(pinta?esc(pinta):kspFill("",60)+' m²')+' / '+(henk?esc(henk):kspFill("",60)+' henkilöä')+'</td></tr>'
+    +'</table>'
+    +'<div class="sub">1. Luokkakohtainen perusvarustus</div>'
+    +'<table class="chk"><thead><tr><th>Varuste</th><th'+colCls("s1")+'>S1</th><th'+colCls("s2")+'>S2</th><th'+colCls("kallio")+'>Kalliosuoja</th><th'+colCls("vanha")+'>Vanha luokka*</th></tr></thead><tbody>'
+    +cls1.map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td'+colCls("s1")+'>'+r[1]+'</td><td'+colCls("s2")+'>'+r[2]+'</td><td'+colCls("kallio")+'>'+r[3]+'</td><td'+colCls("vanha")+'>'+r[4]+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="src">* Vanhoja luokkia ovat esimerkiksi K, C, S3 ja S6. Niiden varustus tarkastetaan aina rakentamisluvan aikaisten suunnitelmien ja määräysten mukaan.'+(cls?' Korostettu sarake: suojaluokka '+esc(luokka)+'.':'')+'</div>'
+    +'<div class="sub">2. Kohteen laskettavat määrät</div>'
+    +'<table class="chk">'+th(["Laskettava varuste","Määrä kohteessa","Tarkastus"])+'<tbody>'
+    +'<tr><td>Kuivakäymäläkalusteet ja -komerot</td><td class="d">'+kspFill("",50)+' kpl'+(wc?'<div class="src">tarve väh. '+wc+' kpl</div>':'')+'</td><td>'+tarkCell(["p05"])+'</td></tr>'
+    +'<tr><td>Varavesisäiliöiden yhteistilavuus</td><td class="d">'+kspFill("",50)+' litraa'+(vesi?'<div class="src">'+vesi+'</div>':'')+'</td><td>'+tarkCell(["p01"])+'</td></tr>'
+    +'<tr><td>Kannelliset jäteastiat ja sisäpussit</td><td class="d">'+kspFill("",50)+' kpl</td><td>'+tarkCell(["p06"])+'</td></tr>'
+    +'<tr><td>Sulkuteltta / sulkuhuoneen varusteet</td><td class="d">'+kspFill("",50)+' kpl</td><td>'+tarkCell([])+'</td></tr>'
+    +'</tbody></table>'
+    +'<div class="sub">Käyttöönotossa tarvittava irtaimisto – sovelletaan kaikkiin suojaluokkiin</div>'
+    +'<div class="sub2">3. Työkalut ja käyttöönotto</div>'
+    +'<table class="chk">'+th(["Varuste","Määrä","Kunnossa / huomio"])+'<tbody>'
+    +sec3.map(function(r){return '<tr><td>'+r[0]+'</td><td class="d">'+r[1]+'</td><td>'+okCell(r[2])+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +'<div class="sub2">4. Käytön aikainen varustus</div>'
+    +'<table class="chk">'+th(["Varuste","Määrä","Kunnossa / huomio"])+'<tbody>'
+    +sec4.map(function(r){return '<tr><td>'+r[0]+'</td><td class="d">'+r[1]+'</td><td>'+okCell(r[2])+'</td></tr>';}).join("")
+    +'</tbody></table>'
+    +(muut.length?'<div class="sub2">Muut tarkastuksessa kirjatut varusteet</div><table class="chk">'+th(["Varuste","Kunnossa / huomio"])+'<tbody>'
+      +muut.map(function(id){return '<tr><td>'+esc(lbl(id))+'</td><td>'+okCell([id])+'</td></tr>';}).join("")+'</tbody></table>':'')
+    +'<div class="sub">5. Säilytys ja hyväksyntä</div>'
+    +'<table class="meta">'
+    +'<tr><td class="k">Varusteiden säilytyspaikka</td><td>'+kspFill(p.varusteet,200)+'</td></tr>'
+    +'<tr><td class="k">Muualla säilytettävät varusteet</td><td>'+kspFill("",200)+'</td></tr>'
+    +'<tr><td class="k">Puutteet ja hankittavat varusteet</td><td>'+(puutteet.length?puutteet.join('<br>'):kspFill("",200))+'</td></tr>'
+    +'</table>'
+    +'<div class="foot"><div class="sign"><div style="font-size:11px;color:#666">Tarkastanut</div><div class="line"></div></div>'
+    +'<div class="sign"><div style="font-size:11px;color:#666">Päiväys</div><div class="line"></div>'+(entry?fmt(ck.date||entry.date):'')+'</div></div>'
+    +'<div class="note"><b>Huomio:</b> Luettelo on käyttöönottosuunnitelman tarkistusliite. Suojan alkuperäiset piirustukset, laitekohtaiset ohjeet ja rakentamisluvan aikaiset vaatimukset ratkaisevat kohteen lopullisen varustuksen.</div>'
+    +kspDocEnd();
+  w.document.write(html);w.document.close();
+}
 function kspPrint(dev,ctx,p){
   ctx=ctx||{name:"",address:""};p=p||{};
   var w=window.open("","_blank");
@@ -4186,29 +4436,7 @@ function kspPrint(dev,ctx,p){
     return '<tr><td>'+esc(it.l)+'</td><td class="v">'+v(x.v)+'</td><td>'+(x.o?esc(x.o):"")+'</td></tr>';}).join("");
   var liitteet=KSP_LIITTEET.filter(function(it){return p.liitteet&&p.liitteet[it.id];}).map(function(it){return '<li>'+esc(it.l)+'</li>';});
   if(p.muutLiitteet)liitteet.push('<li>'+esc(p.muutLiitteet)+'</li>');
-  var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Väestönsuojan käyttöönottosuunnitelma</title>'
-    +'<style>'
-    +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}'
-    +'h1{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.4px;margin:0}'
-    +'.brand{font-family:Georgia,serif;font-size:26px;font-weight:700;color:#c1121f;letter-spacing:3px}'
-    +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c1121f;padding-bottom:12px}'
-    +'.meta{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}'
-    +'.meta td{padding:4px 6px;border-bottom:1px solid #eee;vertical-align:top}.meta td.k{color:#666;width:150px}'
-    +'.sub{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;margin:18px 0 4px}'
-    +'table.chk{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}'
-    +'table.chk th{background:#c1121f;color:#fff;font-family:Georgia,serif;text-align:left;padding:6px 8px;font-size:11px}'
-    +'table.chk td{padding:5px 8px;border-bottom:1px solid #e6e6e6;vertical-align:top}'
-    +'table.chk td.v{width:150px}table.chk td.d{width:120px;white-space:nowrap}'
-    +'ul.liit{font-size:12px;margin:6px 0 0 18px;padding:0;line-height:1.6}'
-    +'.note{font-size:11px;color:#444;background:#faf5f5;border:1px solid #eddede;border-radius:6px;padding:8px 10px;margin:12px 0;line-height:1.5}'
-    +'.foot{display:flex;justify-content:space-between;gap:24px;margin-top:22px}'
-    +'.sign{min-width:230px;font-size:12px}.sign .line{border-bottom:1px solid #333;height:20px;margin-bottom:2px}'
-    +'.company{margin-top:22px;border-top:2px solid #c1121f;padding-top:10px;font-size:11px;color:#333;line-height:1.55}'
-    +'.company .n{font-family:Georgia,serif;font-weight:700;color:#c1121f;font-size:14px;letter-spacing:1px}'
-    +'@media print{button{display:none}.sub{break-after:avoid;page-break-after:avoid}h1{break-after:avoid;page-break-after:avoid}table{break-inside:auto}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.foot,.sign,.company,.note{break-inside:avoid;page-break-inside:avoid}}'
-    +'</style></head><body>'
-    +'<div class="head"><div><div style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" width="30" height="30" fill="#c1121f" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/></svg><div class="brand">SAVUKS</div></div><div style="font-size:11px;color:#666">Paloturvallisuuspalvelut</div></div>'
-    +'<div style="text-align:right"><h1>Käyttöönottosuunnitelma</h1><div style="font-size:12px;color:#666">Väestönsuoja</div></div></div>'
+  var html=kspDocStart("Väestönsuojan käyttöönottosuunnitelma","Käyttöönottosuunnitelma","Väestönsuoja")
     +'<div class="sub">1. Suojan perustiedot</div><table class="meta">'
     +'<tr><td class="k">Kohde / asiakas</td><td>'+v(ctx.name)+'</td><td class="k">Laitetunnus</td><td>'+v(dev.tag)+'</td></tr>'
     +'<tr><td class="k">Osoite</td><td>'+v(ctx.address)+'</td><td class="k">Suojan sijainti</td><td>'+v(p.sijainti)+'</td></tr>'
@@ -4240,9 +4468,7 @@ function kspPrint(dev,ctx,p){
     +'<div class="note">Suoja on pystyttävä ottamaan käyttöön 72 tunnin kuluessa viranomaisen määräyksestä. Suunnitelma säilytetään helposti saatavilla, ja se päivitetään, kun vastuuhenkilöt tai suojan järjestelyt muuttuvat. Asukkaiden yleisohje jaetaan erillisenä liitteenä.</div>'
     +'<div class="foot"><div class="sign"><div style="font-size:11px;color:#666">Laatija</div><div class="line"></div>'+esc(p.laatija||"")+'</div>'
     +'<div class="sign"><div style="font-size:11px;color:#666">Hyväksyjä (omistaja / isännöitsijä)</div><div class="line"></div>'+esc(p.hyvaksyja||"")+'</div></div>'
-    +'<div class="company"><span class="n">Savuks Oy</span> &nbsp; puh. 044 3665638 &nbsp; info@savuks.com &nbsp; www.savuks.com<br>Santalankulmantie 8, 21290 Rusko &nbsp; Y-tunnus 3465682-5</div>'
-    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>'
-    +'</body></html>';
+    +kspDocEnd();
   w.document.write(html);
   w.document.close();
 }
