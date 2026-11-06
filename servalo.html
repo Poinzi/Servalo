@@ -1059,6 +1059,7 @@
     <div class="modal-h"><span>Väestönsuojan tarkastus</span><span class="x" onclick="closeOverlay('vssOverlay')">×</span></div>
     <div class="modal-b" oninput="saveVsDraft()" onchange="saveVsDraft()">
       <input type="hidden" id="enVsDevId">
+      <input type="file" id="tkFile" accept="image/*" capture="environment" style="display:none" onchange="tkPicked(this)">
       <div style="font-weight:700;margin:2px 0 6px;color:#c1121f">Tarkastuksen tiedot</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Päiväys</label><input class="f" id="enVsDate" type="date"></div>
@@ -1112,8 +1113,15 @@
         <p class="hint" style="margin:0 0 8px">Näkyy vain käyttöönottotarkastuksessa. K = kunnossa / P = puute / E = ei sovellu.</p>
         <div style="font-weight:700;margin:12px 0 4px">72 h käyttövalmius</div>
         <div id="kvCheck"></div>
+        <div style="font-weight:700;margin:12px 0 4px">Tekniikan koekäyttö</div>
+        <p class="hint" style="margin:0 0 6px">Ovet, ilmanvaihto, ylipaine, vesi, viemäri, sähkö ja viestintä laiteohjeiden mukaan.</p>
+        <div id="kvTek"></div>
         <div style="font-weight:700;margin:12px 0 4px">Käyttöönoton vaiheet</div>
         <div id="kvVaihe"></div>
+        <div style="font-weight:700;margin:12px 0 4px">Puutteet ja korjaavat toimenpiteet</div>
+        <p class="hint" style="margin:0 0 6px">Kriittinen puute estää turvallisen käyttöönoton.</p>
+        <div id="kvPuutteet"></div>
+        <button type="button" class="btn ghost" style="width:100%;margin:4px 0 6px;border-style:dashed" onclick="kvAddPuute()">＋ Lisää puute</button>
         <div style="font-weight:700;margin:12px 0 4px">Loppukatselmus</div>
         <div id="kvLoppu"></div>
         <div style="font-weight:700;margin:12px 0 4px">Käyttövalmiuspäätös</div>
@@ -3467,13 +3475,15 @@ function kvRowsHtml(arr,pfx,opts){
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<select class="f" id="'+pfx+it.id+'_s" style="flex:0 0 130px">'+opts+'</select>'
       +'<input class="f" id="'+pfx+it.id+'_i" placeholder="Havainto" style="flex:1;min-width:150px">'
-      +'</div></div>';
+      +'</div>'+tkStrip(pfx+it.id)+'</div>';
   }).join("");
 }
 function renderKv(){
   document.getElementById("kvCheck").innerHTML=kvRowsHtml(KV_CHECK,"kvc_",kvChkOpts());
   document.getElementById("kvVaihe").innerHTML=kvRowsHtml(KV_VAIHE,"kvv_",kvVaiheOpts());
   document.getElementById("kvLoppu").innerHTML=kvRowsHtml(KV_LOPPU,"kvl_",kvChkOpts());
+  document.getElementById("kvTek").innerHTML=kvRowsHtml(KV_TEK,"kvt_",kvChkOpts());
+  kvRenderPuutteet([]);
 }
 function collectKvArr(arr,pfx){
   var o={};
@@ -3488,6 +3498,8 @@ function collectKv(){
     check:collectKvArr(KV_CHECK,"kvc_"),
     vaihe:collectKvArr(KV_VAIHE,"kvv_"),
     loppu:collectKvArr(KV_LOPPU,"kvl_"),
+    tek:collectKvArr(KV_TEK,"kvt_"),
+    puutteet:kvCollectPuutteet(),
     hyv:(document.getElementById("enKvHyv")||{}).value||"",
     ehd:(document.getElementById("enKvEhd")||{}).value||"",
     aika:(document.getElementById("enKvAika")||{}).value||"",
@@ -3507,6 +3519,8 @@ function restoreKv(kv){
   restoreKvArr(KV_CHECK,"kvc_",kv.check);
   restoreKvArr(KV_VAIHE,"kvv_",kv.vaihe);
   restoreKvArr(KV_LOPPU,"kvl_",kv.loppu);
+  restoreKvArr(KV_TEK,"kvt_",kv.tek);
+  if(kv.puutteet)kvRenderPuutteet(kv.puutteet);
   if(kv.hyv!=null&&document.getElementById("enKvHyv"))document.getElementById("enKvHyv").value=kv.hyv;
   if(kv.ehd!=null&&document.getElementById("enKvEhd"))document.getElementById("enKvEhd").value=kv.ehd;
   if(kv.aika!=null&&document.getElementById("enKvAika"))document.getElementById("enKvAika").value=kv.aika;
@@ -3526,6 +3540,13 @@ function kvAvoimetYhteenveto(ans){
   if(kv.check)KV_CHECK.forEach(function(it){
     var v=kv.check[it.id];if(v&&v.s==="P")rows.push([it.l,"PUUTE (72 h)",v.i||""]);
   });
+  if(kv.tek)KV_TEK.forEach(function(it){
+    var v=kv.tek[it.id];if(v&&v.s==="P")rows.push([it.l,"PUUTE (koekäyttö)",v.i||""]);
+  });
+  (kv.puutteet||[]).forEach(function(p,i){
+    if(!p.kuvaus&&!p.toimenpide)return;
+    rows.push(["Puute "+(i+1)+": "+(p.kuvaus||""),(p.luokka||"Muu").toUpperCase(),[p.toimenpide,p.vastuu,p.aika].filter(Boolean).join(" · ")]);
+  });
   return rows;
 }
 function kvPrintHtml(ans){
@@ -3537,17 +3558,20 @@ function kvPrintHtml(ans){
     if(v==="E"||v==="Ei koske")return '<span style="color:#888">'+esc(v)+'</span>';
     return v?esc(v):'<span style="color:#bbb">–</span>';
   };
-  var tbl=function(arr,data){
+  var tbl=function(arr,data,pfx){
     return arr.map(function(it){var v=(data&&data[it.id])||{};
-      return '<tr><td>'+esc(it.l)+'</td><td class="v">'+st(v.s||"")+'</td><td>'+(v.i?esc(v.i):"")+'</td></tr>';
+      return '<tr><td>'+esc(it.l)+'</td><td class="v">'+st(v.s||"")+'</td><td>'+(v.i?esc(v.i):"")+tkPrintImgs(pfx+it.id,ans.kuvat)+'</td></tr>';
     }).join("");
   };
   var h='<div class="sub">Käyttöönottovalmius (72 h)</div>'
-    +'<table class="chk"><thead><tr><th>Valmiuden kohta</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_CHECK,kv.check)+'</tbody></table>'
+    +'<table class="chk"><thead><tr><th>Valmiuden kohta</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_CHECK,kv.check,'kvc_')+'</tbody></table>'
+    +'<div class="sub">Tekniikan koekäyttö</div>'
+    +'<table class="chk"><thead><tr><th>Kohde</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_TEK,kv.tek,'kvt_')+'</tbody></table>'
     +'<div class="sub">Käyttöönoton vaiheet</div>'
-    +'<table class="chk"><thead><tr><th>Vaihe</th><th>Tila</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_VAIHE,kv.vaihe)+'</tbody></table>'
+    +'<table class="chk"><thead><tr><th>Vaihe</th><th>Tila</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_VAIHE,kv.vaihe,'kvv_')+'</tbody></table>'
+    +kvPuutteetPrint(kv.puutteet,ans.kuvat)
     +'<div class="sub">Loppukatselmus</div>'
-    +'<table class="chk"><thead><tr><th>Hyväksymiskriteeri</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_LOPPU,kv.loppu)+'</tbody></table>';
+    +'<table class="chk"><thead><tr><th>Hyväksymiskriteeri</th><th>K/P/E</th><th>Havainto</th></tr></thead><tbody>'+tbl(KV_LOPPU,kv.loppu,'kvl_')+'</tbody></table>';
   var av=kvAvoimetYhteenveto(ans);
   if(av.length){
     h+='<div class="sub">Avoimet puutteet (vaikutus 72 h valmiuteen)</div>'
@@ -3561,6 +3585,180 @@ function kvPrintHtml(ans){
     +'<tr><td class="k">Käyttövalmiuden ajankohta</td><td>'+(kv.aika?esc(kv.aika.replace("T"," ")):'–')+'</td><td class="k">Avoimet tehtävät</td><td>'+(kv.avoimet?esc(kv.avoimet):'–')+'</td></tr>'
     +'</table>';
   return h;
+}
+let _vsKuvat={};
+let _tkCache={};
+let _tkTarget=null;
+let _tkFlushing=false;
+const KV_TEK=[
+ {id:"t1",l:"Suojaovi / kaasutiivis ovi: runko, saranat, salvat, tiivisteet"},
+ {id:"t2",l:"Luukut ja varauloskäynti: avattavuus ja reitti"},
+ {id:"t3",l:"Läpiviennit ja kohdekohtaiset sulku-/tiivistysosat"},
+ {id:"t4",l:"Ilmanvaihto: silmä- ja toimintatarkastus (kanavat, venttiilit, suodattimet)"},
+ {id:"t5",l:"Ilmanvaihto: koekäyttö (ääni, värinä, ilmavirta)"},
+ {id:"t6",l:"Ylipaineen toteaminen (mittaus / toimintakoe)"},
+ {id:"t7",l:"Vedenottopiste ja vesiastiat"},
+ {id:"t8",l:"Viemärin sulku- / padotusventtiili"},
+ {id:"t9",l:"Kuivakäymälät, jätehuolto ja hygienia"},
+ {id:"t10",l:"Sähkönsyöttö ja ryhmäkeskus (ei pätevyyttä vaativia töitä itse)"},
+ {id:"t11",l:"Kiinteä valaistus ja varavalaistus"},
+ {id:"t12",l:"Viestintä: paristoradio, kanavat, sisäinen viestintä"}
+];
+const KV_PUU_LUOKAT=["Kriittinen","Merkittävä","Muu"];
+function tkKeySafe(k){return String(k).replace(/[^A-Za-z0-9_-]/g,"_");}
+function tkClean(m){
+  var o={};
+  Object.keys(m||{}).forEach(function(k){
+    var a=(m[k]||[]).map(function(r){return r.id?{id:r.id}:(r.data?{data:r.data}:null);}).filter(Boolean);
+    if(a.length)o[k]=a;
+  });
+  return o;
+}
+function tkStrip(key){return '<div class="tk-strip" id="tks_'+tkKeySafe(key)+'" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center">'+tkStripInner(key)+'</div>';}
+function tkStripInner(key){
+  var arr=_vsKuvat[key]||[];
+  var h=arr.map(function(r,i){
+    var src=r.data||(r.id&&_tkCache[r.id])||"";
+    return '<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#f1f3f5">'
+      +(src?'<img src="'+src+'" alt="Kuva" style="width:100%;height:100%;object-fit:cover;display:block">':'<div style="font-size:10px;color:#888;padding:20px 4px;text-align:center">ladataan…</div>')
+      +(r.id?'':'<span title="Odottaa lähetystä palvelimelle" style="position:absolute;left:2px;bottom:2px;background:#b26a00;color:#fff;font-size:10px;border-radius:4px;padding:0 3px">⏳</span>')
+      +'<button type="button" aria-label="Poista kuva" onclick="tkRemove(\''+key+'\','+i+')" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1;cursor:pointer">×</button></div>';
+  }).join("");
+  return h+'<button type="button" class="btn ghost" style="padding:4px 10px;font-size:12px" onclick="tkAdd(\''+key+'\')">📷 Kuva</button>';
+}
+function tkRender(key){var el=document.getElementById("tks_"+tkKeySafe(key));if(el)el.innerHTML=tkStripInner(key);}
+function tkRenderAll(){
+  document.querySelectorAll("#vssOverlay .tk-strip").forEach(function(el){
+    var key=el.id.slice(4);el.innerHTML=tkStripInner(key);
+  });
+  var miss=[];Object.keys(_vsKuvat).forEach(function(k){(_vsKuvat[k]||[]).forEach(function(r){if(r.id&&!_tkCache[r.id])miss.push(r.id);});});
+  if(miss.length)tkFetch(miss).then(function(){Object.keys(_vsKuvat).forEach(tkRender);});
+}
+function tkAdd(key){_tkTarget=key;var fi=document.getElementById("tkFile");fi.value="";fi.click();}
+function tkResize(file){
+  return new Promise(function(res,rej){
+    var rd=new FileReader();
+    rd.onerror=function(){rej(new Error("luku"));};
+    rd.onload=function(){
+      var img=new Image();
+      img.onerror=function(){rej(new Error("kuva"));};
+      img.onload=function(){
+        var max=1100,w=img.width,h=img.height;
+        if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
+        var c=document.createElement("canvas");c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        res(c.toDataURL("image/jpeg",0.7));
+      };
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+function tkUpload(key,dataUrl){
+  var devId=(document.getElementById("enVsDevId")||{}).value||"";
+  return fetch("/api/tkuva",{method:"POST",headers:apiHeaders(),body:JSON.stringify({laite_id:devId,kohta:tkKeySafe(key),dataUrl:dataUrl})})
+    .then(function(r){return r.ok?r.json():null;}).then(function(j){return (j&&j.id)||null;}).catch(function(){return null;});
+}
+function tkPicked(inp){
+  var fl=inp.files&&inp.files[0],key=_tkTarget;if(!fl||!key)return;
+  tkResize(fl).then(function(dataUrl){
+    var ref={data:dataUrl};
+    (_vsKuvat[key]=_vsKuvat[key]||[]).push(ref);
+    tkRender(key);saveVsDraft();
+    tkUpload(key,dataUrl).then(function(id){
+      if(!id)return;
+      _tkCache[id]=dataUrl;delete ref.data;ref.id=id;
+      tkRender(key);saveVsDraft();
+    });
+  }).catch(function(){alert("Kuvan käsittely epäonnistui.");});
+}
+function tkRemove(key,i){
+  var arr=_vsKuvat[key]||[];var r=arr[i];if(!r)return;
+  if(r.id)fetch("/api/tkuva/"+encodeURIComponent(r.id),{method:"DELETE",headers:apiHeaders()}).catch(function(){});
+  arr.splice(i,1);if(!arr.length)delete _vsKuvat[key];
+  tkRender(key);saveVsDraft();
+}
+function tkPendingCount(){var n=0;Object.keys(_vsKuvat).forEach(function(k){(_vsKuvat[k]||[]).forEach(function(r){if(!r.id&&r.data)n++;});});return n;}
+function tkFlush(){
+  var jobs=[];
+  Object.keys(_vsKuvat).forEach(function(k){(_vsKuvat[k]||[]).forEach(function(r){
+    if(r.id||!r.data)return;
+    jobs.push(tkUpload(k,r.data).then(function(id){if(id){_tkCache[id]=r.data;delete r.data;r.id=id;}}));
+  });});
+  return Promise.all(jobs).then(function(){saveVsDraft();return tkPendingCount();});
+}
+function tkFetch(ids){
+  var need=ids.filter(function(id){return !_tkCache[id];});
+  if(!need.length)return Promise.resolve();
+  var chunks=[];for(var i=0;i<need.length;i+=50)chunks.push(need.slice(i,i+50));
+  return Promise.all(chunks.map(function(c){
+    return fetch("/api/tkuvat?ids="+c.map(encodeURIComponent).join(","),{headers:apiHeaders()})
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(list){(list||[]).forEach(function(x){_tkCache[x.id]=x.dataUrl;});})
+      .catch(function(){});
+  }));
+}
+function tkPrintImgs(key,kuvat){
+  var arr=(kuvat&&kuvat[tkKeySafe(key)])||[];
+  if(!arr.length)return "";
+  return '<div class="tkimgs">'+arr.map(function(r){
+    return r.id?'<img width="150" alt="Kuva" data-tk="'+esc(r.id)+'"'+(_tkCache[r.id]?' src="'+_tkCache[r.id]+'"':'')+'>':(r.data?'<img width="150" alt="Kuva" src="'+r.data+'">':'');
+  }).join("")+'</div>';
+}
+function tkFillPrint(w,kuvat){
+  var ids=[];Object.keys(kuvat||{}).forEach(function(k){(kuvat[k]||[]).forEach(function(r){if(r.id)ids.push(r.id);});});
+  if(!ids.length)return;
+  tkFetch(ids).then(function(){
+    try{w.document.querySelectorAll("img[data-tk]").forEach(function(im){var u=_tkCache[im.getAttribute("data-tk")];if(u)im.src=u;});}catch(e){}
+  });
+}
+function tkWordScript(fname){
+  return '<script>function vssWord(){var d=document.documentElement.cloneNode(true);'
+    +'d.querySelectorAll("button,script").forEach(function(e){e.remove();});'
+    +'var h="<html xmlns:o=\'urn:schemas-microsoft-com:office:office\' xmlns:w=\'urn:schemas-microsoft-com:office:word\' xmlns=\'http://www.w3.org/TR/REC-html40\'>"+d.innerHTML+"</html>";'
+    +'var b=new Blob(["\\ufeff"+h],{type:"application/msword"});var a=document.createElement("a");'
+    +'a.href=URL.createObjectURL(b);a.download='+JSON.stringify(fname)+';document.body.appendChild(a);a.click();a.remove();}<\/script>';
+}
+function kvPuuUid(){return "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function kvRenderPuutteet(list){
+  var box=document.getElementById("kvPuutteet");if(!box)return;
+  box.innerHTML=(list||[]).map(function(p,i){
+    var uid=p.uid||kvPuuUid();
+    var col=p.luokka==="Kriittinen"?"#a30000":(p.luokka==="Merkittävä"?"#c1121f":"#b26a00");
+    return '<div class="kv-puu" data-uid="'+esc(uid)+'" style="border:1px solid var(--line);border-left:4px solid '+col+';border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><b style="color:#555">Puute '+(i+1)+'</b>'
+      +'<select class="f pu-l" style="flex:0 0 150px" onchange="kvRenderPuutteet(kvCollectPuutteet())">'+KV_PUU_LUOKAT.map(function(l){return '<option'+((p.luokka||"Muu")===l?' selected':'')+'>'+l+'</option>';}).join("")+'</select>'
+      +'<button type="button" class="btn ghost" style="padding:2px 10px" aria-label="Poista puute" onclick="kvRemovePuute(\''+esc(uid)+'\')">🗑</button></div>'
+      +'<textarea class="f pu-k" rows="2" placeholder="Puute / riski">'+esc(p.kuvaus||"")+'</textarea>'
+      +'<textarea class="f pu-t" rows="2" placeholder="Korjaava toimenpide" style="margin-top:6px">'+esc(p.toimenpide||"")+'</textarea>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+      +'<input class="f pu-v" placeholder="Vastuu" style="flex:1;min-width:140px" value="'+esc(p.vastuu||"")+'">'
+      +'<input class="f pu-a" placeholder="Määräaika / tila" style="flex:1;min-width:140px" value="'+esc(p.aika||"")+'"></div>'
+      +tkStrip("pu_"+uid)+'</div>';
+  }).join("");
+}
+function kvCollectPuutteet(){
+  return Array.prototype.map.call(document.querySelectorAll("#kvPuutteet .kv-puu"),function(el){
+    var g=function(c){var x=el.querySelector(c);return x?x.value:"";};
+    return {uid:el.getAttribute("data-uid"),luokka:g(".pu-l"),kuvaus:g(".pu-k"),toimenpide:g(".pu-t"),vastuu:g(".pu-v"),aika:g(".pu-a")};
+  });
+}
+function kvAddPuute(){var l=kvCollectPuutteet();l.push({uid:kvPuuUid(),luokka:"Muu"});kvRenderPuutteet(l);saveVsDraft();}
+function kvRemovePuute(uid){
+  var key="pu_"+uid;
+  (_vsKuvat[key]||[]).forEach(function(r){if(r.id)fetch("/api/tkuva/"+encodeURIComponent(r.id),{method:"DELETE",headers:apiHeaders()}).catch(function(){});});
+  delete _vsKuvat[key];
+  kvRenderPuutteet(kvCollectPuutteet().filter(function(p){return p.uid!==uid;}));saveVsDraft();
+}
+function kvPuutteetPrint(list,kuvat){
+  list=(list||[]).filter(function(p){return p.kuvaus||p.toimenpide||p.vastuu||p.aika||(kuvat&&kuvat["pu_"+p.uid]);});
+  var h='<div class="sub">Puutteet ja korjaavat toimenpiteet</div>';
+  if(!list.length)return h+'<div style="font-size:12px;margin:4px 0">Ei kirjattuja puutteita.</div>';
+  return h+'<table class="chk"><thead><tr><th>Nro</th><th>Luokka</th><th>Puute / riski</th><th>Toimenpide</th><th>Vastuu</th><th>Määräaika</th></tr></thead><tbody>'
+    +list.map(function(p,i){
+      var cls=p.luokka==="Kriittinen"?"puu-krit":(p.luokka==="Merkittävä"?"puu-merk":"");
+      return '<tr><td>'+(i+1)+'</td><td class="'+cls+'">'+esc(p.luokka||"Muu")+'</td><td>'+esc(p.kuvaus||"")+tkPrintImgs("pu_"+p.uid,kuvat)+'</td><td>'+esc(p.toimenpide||"")+'</td><td>'+esc(p.vastuu||"")+'</td><td>'+esc(p.aika||"")+'</td></tr>';
+    }).join("")+'</tbody></table>';
 }
 let _vsPhoto=null;
 const VSS_CHECK=[
@@ -3606,7 +3804,7 @@ function vsCheckHtml(){
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<select class="f" id="vsc_'+it.id+'_s" style="flex:0 0 160px">'+vsCheckOpts()+'</select>'
       +'<input class="f" id="vsc_'+it.id+'_i" placeholder="Havainnot / toimenpiteet" style="flex:1;min-width:160px">'
-      +'</div></div>';
+      +'</div>'+tkStrip('vsc_'+it.id)+'</div>';
   }).join("");
 }
 function vsProdHtml(){
@@ -3648,7 +3846,7 @@ function collectVss(){
     tyot:document.getElementById("enVsTyot").value,
     lisa:document.getElementById("enVsLisa").value,
     edustaja:document.getElementById("enVsEdustaja").value,
-    check:chk,prod:prod,photo:_vsPhoto,kv:collectKv()
+    check:chk,prod:prod,photo:_vsPhoto,kv:collectKv(),kuvat:tkClean(_vsKuvat)
   };
 }
 var VS_FIELDS=["enVsDate","enVsLaji","enVsNro","enVsPrev","enVsOmistaja","enVsIsannoitsija","enVsHuoltomies","enVsLohko","enVsYksikko","enVsLuokka","enVsHenkilot","enVsPinta","enVsTkTehty","enVsTkTulos","enVsTkPaine","enVsTkKesto","enVsTkValine","enVsTkSeur","enVsArvio","enVsTyot","enVsLisa","enVsEdustaja"];
@@ -3679,7 +3877,7 @@ function openVssPk(devId){
   document.getElementById("enVsTkValine").value="U-putkimittari";
   ["enKvHyv","enKvEhd","enKvAika","enKvAvoimet"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var pf=document.getElementById("enVsPhoto"),pp=document.getElementById("enVsPhotoPrev"),ff=document.getElementById("enVsFile");
-  if(pf)pf.value="";if(pp)pp.innerHTML="";if(ff)ff.value="";_vsPhoto=null;
+  if(pf)pf.value="";if(pp)pp.innerHTML="";if(ff)ff.value="";_vsPhoto=null;_vsKuvat={};
   var dr=readVsDrafts()[devId];
   if(dr){
     Object.keys(VS_MAP).forEach(function(k){
@@ -3688,14 +3886,24 @@ function openVssPk(devId){
     if(dr.check)VSS_CHECK.forEach(function(it){var v=dr.check[it.id];if(!v)return;var se=document.getElementById("vsc_"+it.id+"_s"),ie=document.getElementById("vsc_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(ie&&v.i!=null)ie.value=v.i;});
     if(dr.prod)VSS_PROD.forEach(function(it){var v=dr.prod[it.id];if(!v)return;var se=document.getElementById("vsp_"+it.id+"_s"),de=document.getElementById("vsp_"+it.id+"_d"),ie=document.getElementById("vsp_"+it.id+"_i");if(se&&v.s!=null)se.value=v.s;if(de&&v.d!=null)de.value=v.d;if(ie&&v.i!=null)ie.value=v.i;});
     if(dr.kv)restoreKv(dr.kv);
+    if(dr.kuvat)_vsKuvat=dr.kuvat;
     if(dr.photo){_vsPhoto=dr.photo;if(pp)pp.innerHTML='<img src="'+dr.photo.data+'" style="max-width:160px;max-height:160px;border:1px solid var(--line);border-radius:6px"><div class="hint">Palautettu tallentamaton kuva</div>';}
   }
+  tkRenderAll();
   updateKvVisibility();
   show("vssOverlay");
 }
 function saveVssPk(){
   var devId=document.getElementById("enVsDevId").value;
   var d=db.devices.find(function(x){return x.id===devId;});if(!d)return;
+  if(!_tkFlushing&&tkPendingCount()){
+    _tkFlushing=true;
+    tkFlush().then(function(left){
+      if(left)alert(left+" kuvaa ei saatu palvelimelle. Ne tallennettiin tähän laitteeseen pöytäkirjan mukana.");
+      try{saveVssPk();}finally{_tkFlushing=false;}
+    });
+    return;
+  }
   var ans=collectVss();
   var entry={date:ans.date,pohja:"Väestönsuojan tarkastus",comment:(ans.lisa||"").trim(),checklist:ans};
   if(_vsPhoto)entry.photo=_vsPhoto;
@@ -3751,7 +3959,7 @@ function vssPk(dev,ctx,ans){
   };
   var crows=VSS_CHECK.map(function(it){
     var v=(ans.check&&ans.check[it.id])||{};
-    return '<tr><td>'+esc(it.l)+'</td><td class="v">'+cstat(v.s||"")+'</td><td>'+(v.i?esc(v.i):"")+'</td></tr>';
+    return '<tr><td>'+esc(it.l)+'</td><td class="v">'+cstat(v.s||"")+'</td><td>'+(v.i?esc(v.i):"")+tkPrintImgs('vsc_'+it.id,ans.kuvat)+'</td></tr>';
   }).join("");
   var prows=VSS_PROD.map(function(it){
     var v=(ans.prod&&ans.prod[it.id])||{};
@@ -3767,6 +3975,7 @@ function vssPk(dev,ctx,ans){
   var luok="Luokitus: OK = kunnossa · HUOLTO = huoltotarve · PUUTE = korjattava puute · VAARATILANNE = välitön vaara / käyttökelvoton.";
   var laki="Tarkastus perustuu SPEK 2024 -ohjeeseen ja RT 92-11173-S1 -korttiin sekä pelastuslakiin (379/2011 §71–75) ja valtioneuvoston asetukseen väestönsuojista (409/2011). Annetut korjaussuositukset perustuvat mainittuun lainsäädäntöön ja asetuksiin.";
   var html='<!DOCTYPE html><html lang="fi"><head><meta charset="utf-8"><title>Väestönsuojan tarkastuspöytäkirja</title>'
+    +'<style>.tkimgs{margin-top:4px}.tkimgs img{width:150px;height:112px;object-fit:cover;margin:4px 4px 0 0;border:1px solid #ccc;border-radius:4px;background:#f3f3f3}.puu-krit{color:#a30000;font-weight:800}.puu-merk{color:#c1121f;font-weight:700}</style>'
     +'<style>'
     +'body{font-family:"Trebuchet MS",Verdana,Geneva,sans-serif;color:#1b1b1b;margin:26px;max-width:760px}'
     +'h1{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.4px;margin:0}'
@@ -3829,10 +4038,12 @@ function vssPk(dev,ctx,ans){
     +'<div><div style="font-size:11px;color:#666">Tarkastuksen laatija / tekijä</div><div class="line"></div>'+esc(worker)+'</div></div>'
     +'<div class="sign"><div><div style="font-size:11px;color:#666">Päivämäärä</div><div class="line"></div>'+fmt(ans.date||today())+'</div></div></div>'
     +'<div class="company"><span class="n">Savuks Oy</span> &nbsp; puh. 044 3665638 &nbsp; info@savuks.com &nbsp; www.savuks.com<br>Santalankulmantie 8, 21290 Rusko &nbsp; Y-tunnus 3465682-5</div>'
-    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button></p>'
+    +'<p style="margin-top:20px"><button onclick="window.print()" style="background:#c1121f;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">🖨 Tulosta / Tallenna PDF</button> <button onclick="vssWord()" style="background:#2b579a;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">⬇ Word</button></p>'
+    +tkWordScript('VSS_poytakirja_'+String(dev.tag||dev.id||'vss').replace(/[^A-Za-z0-9_-]/g,'_')+'_'+(ans.date||today())+'.doc')
     +'</body></html>';
   w.document.write(html);
   w.document.close();
+  tkFillPrint(w,ans.kuvat);
 }
 const DRAFT_KEY="servalo_entry_drafts";
 let _draftPhoto=null;

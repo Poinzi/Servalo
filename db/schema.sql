@@ -51,6 +51,20 @@ CREATE TABLE IF NOT EXISTS huolto_kontaktit (
 
 CREATE INDEX IF NOT EXISTS huolto_kontaktit_kohde_id_idx ON huolto_kontaktit(kohde_id);
 
+-- Tarkastuslomakkeiden rivikohtaiset kuvat (VSS-pöytäkirja). laite_id = sovelluksen laitteen id,
+-- kohta = lomakkeen rivi (esim. vsc_o1, kvc_k4, pu_<uid>). Ei viiteavaimia: laitteet elävät sovelluksessa.
+CREATE TABLE IF NOT EXISTS tarkastus_kuvat (
+  id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  laite_id text NOT NULL,
+  kohta    text NOT NULL,
+  mime     text NOT NULL,
+  data     bytea NOT NULL,
+  luoja    text,
+  luotu    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS tarkastus_kuvat_laite_idx ON tarkastus_kuvat(laite_id);
+
 CREATE TABLE IF NOT EXISTS liitteet (
   id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   koodi    text REFERENCES koodit(koodi) ON DELETE CASCADE,

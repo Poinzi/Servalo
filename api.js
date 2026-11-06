@@ -52,6 +52,8 @@ function verifyToken(token) {
 // poistot (kontakti/kohdista). huolto: luku + liitekuvat (lisää/poista).
 function permit(method, p, rooli) {
   if (rooli === "admin") return true;
+  // Tarkastuskuvat: vain admin ja kenttä (luku, lisäys, poisto).
+  if (p.startsWith("/api/tkuva")) return rooli === "kentta";
   if (method === "GET") return rooli === "kentta" || rooli === "huolto";
   const liitePost = method === "POST" && p === "/api/liite";
   const liiteDel = method === "DELETE" && /^\/api\/liite\/[0-9a-f-]{36}$/i.test(p);
@@ -215,7 +217,7 @@ async function handle(req, res) {
     }
 
     // Kirjautuneiden reitit: rooli-portti + reittikohtaiset oikeudet
-    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite") || p.startsWith("/api/kontakti")) {
+    if (p.startsWith("/api/kohteet") || p.startsWith("/api/kohdista") || p.startsWith("/api/raportti") || p.startsWith("/api/liite") || p.startsWith("/api/kontakti") || p.startsWith("/api/tkuva")) {
       const who = resolveActor();
       if (!who) { sendJson(res, 401, { error: "auth required" }); return; }
       if (!permit(method, p, who.rooli)) { sendJson(res, 403, { error: "forbidden", rooli: who.rooli }); return; }
@@ -380,6 +382,45 @@ async function handle(req, res) {
     if (method === "DELETE" && mLiite) {
       const q = await db.query("DELETE FROM liitteet WHERE id=$1 RETURNING id", [mLiite[1]]);
       if (!q.rows.length) return sendJson(res, 404, { error: "unknown liite" });
+      return sendJson(res, 200, { ok: true, id: q.rows[0].id });
+    }
+
+    // POST /api/tkuva (auth: tallenna tarkastuslomakkeen rivikuva)
+    if (method === "POST" && p === "/api/tkuva") {
+      const body = await readBody(req, 1024 * 1024 * 6); // max ~6 MB
+      const laiteId = String(body.laite_id || "").trim();
+      const kohta = String(body.kohta || "").trim();
+      const dataUrl = String(body.dataUrl || "");
+      if (!laiteId || laiteId.length > 100) return sendJson(res, 400, { error: "laite_id required" });
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(kohta)) return sendJson(res, 400, { error: "invalid kohta" });
+      const m = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      if (!m) return sendJson(res, 400, { error: "invalid dataUrl" });
+      const buf = Buffer.from(m[2], "base64");
+      if (!buf.length) return sendJson(res, 400, { error: "empty image" });
+      const ins = await db.query(
+        "INSERT INTO tarkastus_kuvat (laite_id, kohta, mime, data, luoja) VALUES ($1,$2,$3,$4,$5) RETURNING id, luotu",
+        [laiteId, kohta, m[1], buf, userId || null]
+      );
+      return sendJson(res, 201, { id: ins.rows[0].id, luotu: ins.rows[0].luotu });
+    }
+
+    // GET /api/tkuvat?ids=<uuid>,<uuid> (auth: hae kuvat data-URL:eina, max 60 kerralla)
+    if (method === "GET" && p === "/api/tkuvat") {
+      const ids = String(url.searchParams.get("ids") || "").split(",").map((x) => x.trim())
+        .filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 60);
+      if (!ids.length) return sendJson(res, 200, []);
+      const q = await db.query(
+        "SELECT id, mime, encode(data,'base64') AS b64 FROM tarkastus_kuvat WHERE id = ANY($1::uuid[])",
+        [ids]
+      );
+      return sendJson(res, 200, q.rows.map((r) => ({ id: r.id, dataUrl: "data:" + r.mime + ";base64," + r.b64 })));
+    }
+
+    // DELETE /api/tkuva/:id (auth)
+    const mTk = p.match(/^\/api\/tkuva\/([0-9a-f-]{36})$/i);
+    if (method === "DELETE" && mTk) {
+      const q = await db.query("DELETE FROM tarkastus_kuvat WHERE id=$1 RETURNING id", [mTk[1]]);
+      if (!q.rows.length) return sendJson(res, 404, { error: "unknown kuva" });
       return sendJson(res, 200, { ok: true, id: q.rows[0].id });
     }
 
