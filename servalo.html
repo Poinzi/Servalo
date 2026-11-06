@@ -1171,15 +1171,45 @@
       <div class="field"><label>Määräyksen vastaanottaja</label><input class="f" id="enKspVastaanottaja" placeholder="esim. väestönsuojan hoitaja, sijaisena varahenkilö"></div>
       <div class="field"><label>Hälytys ja tiedottaminen</label><textarea class="f" id="enKspHalytys" rows="2" placeholder="esim. puhelin- ja tekstiviestiketju, porrastiedote"></textarea></div>
       <div class="field"><label>Kokoontumispaikka</label><input class="f" id="enKspKokoontuminen" placeholder="esim. A-portaan aula"></div>
-      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">4. Tehtävät 72 tunnin aikana</div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">4. Ennakkoon varmistettava käyttövalmius</div>
+      <p class="hint" style="margin:0 0 8px">K = kunnossa, P = puute, E = ei sovellu kohteeseen. P-merkinnät siirtyvät tulosteessa kohdan 8 puutelistalle.</p>
+      <div id="kspEnnakko"></div>
+      <div style="font-weight:700;margin:10px 0 4px">4.1 72 tunnin valmiusarvio</div>
+      <div class="field"><label>Arvio</label><select class="f" id="enKspArvio"><option value=""></option><option>Käyttöönotettavissa 72 tunnissa</option><option>Käyttöönotettavissa ehdollisesti</option><option>Ei käyttöönotettavissa 72 tunnissa</option></select></div>
+      <div class="field"><label>Perustelu (ehdollisessa ehdot ja korvaavat toimet, kielteisessä kriittiset esteet)</label><textarea class="f" id="enKspArvioPer" rows="2"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:2;min-width:170px"><label>Arvion tekijä</label><input class="f" id="enKspArvioTekija"></div>
+        <div class="field" style="flex:1;min-width:150px"><label>Päiväys</label><input class="f" id="enKspArvioPvm" type="date"></div>
+      </div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">5. Käyttöönoton 72 tunnin vaiheistus</div>
       <p class="hint" style="margin:0 0 8px">Aikaikkunat ja hyväksyjät on esitäytetty Word-pohjan mukaan; muokkaa ne kohteelle sopiviksi. Kesto, henkilö- ja kalustotarve arvioidaan käsin tulosteen resurssitaulukkoon.</p>
       <div id="kspVaiheet"></div>
-      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">5. Tyhjennys, tilajako ja varustus</div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">6. Vaihekohtaiset työohjeet</div>
+      <p class="hint" style="margin:0 0 8px">Työohjeiden tehtävälistat (6.1–6.6) tulostuvat Word-pohjan mukaisina. Tähän kirjataan etukäteen kohdekohtaiset ratkaisut; vastuu, valmistuminen ja tulokset merkitään tulosteeseen käyttöönoton aikana.</p>
+      <div style="font-weight:700;margin:6px 0 4px">6.3 Ilmanvaihtolaitteisto</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:170px"><label>Laitemalli</label><input class="f" id="enKspIvMalli" placeholder="esim. Temet ..."></div>
+        <div class="field" style="flex:1;min-width:170px"><label>Käyttöohjeen sijainti</label><input class="f" id="enKspIvOhje" placeholder="esim. suojan ohjekansio"></div>
+      </div>
+      <div class="field"><label>Toimintatilat</label><input class="f" id="enKspIvTilat" placeholder="esim. normaali / suodatus / käsikäyttö"></div>
+      <div style="font-weight:700;margin:10px 0 4px">6.4 Vesi, viemäröinti ja hygienia – kohdekohtainen ratkaisu</div>
+      <div id="kspRatk64"></div>
+      <div style="font-weight:700;margin:10px 0 4px">6.6 Tilajako ja varustelu</div>
+      <div id="kspTila66"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">7. Tyhjennys, tilajako ja varustus (yhteenveto)</div>
       <div class="field"><label>Irtaimiston sijoituspaikka</label><input class="f" id="enKspIrtaimisto" placeholder="esim. ulkovarasto / jäteaitaus"></div>
       <div class="field"><label>Tilajako (oleskelu, makuu, käymälät)</label><textarea class="f" id="enKspTilajako" rows="2"></textarea></div>
       <div class="field"><label>Vesi, käymälät ja jätehuolto</label><textarea class="f" id="enKspVesi" rows="2"></textarea></div>
       <div class="field"><label>Varusteiden säilytyspaikka</label><input class="f" id="enKspVarusteet" placeholder="esim. suojan varustekaappi"></div>
-      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">6. Liitteet</div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">8. Puutteet, riskit ja korjaavat toimenpiteet</div>
+      <p class="hint" style="margin:0 0 6px">Kriittinen puute estää turvallisen käyttöönoton tai keskeisen suojaustoiminnon. Merkittävä hidastaa käyttöönottoa tai heikentää toimintakykyä. Muu korjataan normaalissa ylläpidossa.</p>
+      <div id="kspPuutteet"></div>
+      <button type="button" class="btn ghost" style="width:100%;margin:2px 0 8px;border-style:dashed" onclick="kspAddPuute()">＋ Lisää puute</button>
+      <div style="font-weight:700;margin:6px 0 4px">8.2 Riskit käyttöönoton aikana – vastuuhenkilöt</div>
+      <div id="kspRiskit"></div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">9. Loppukatselmus ja hyväksyntä</div>
+      <p class="hint" style="margin:0 0 6px">Hyväksymiskriteerit, käyttövalmiuspäätös ja allekirjoitukset täytetään tulosteeseen käyttöönoton yhteydessä. Allekirjoittajien nimet esitäytetään vastuurooleista.</p>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">10. Liitteet</div>
       <div id="kspLiitteet" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
       <div class="field"><label>Muut liitteet</label><input class="f" id="enKspMuutLiitteet"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px">
@@ -1187,7 +1217,7 @@
         <button type="button" class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="kspPrintLiite('varusteet')">🖨 Varusteluettelo</button>
       </div>
       <p class="hint" style="margin:2px 0 0">Liitteet tulostuvat lomakkeen nykyisillä tiedoilla. Varusteluettelo esitäytetään viimeisimmästä tallennetusta väestönsuojan tarkastuksesta; puuttuvat tiedot jäävät täydennettäviksi.</p>
-      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">7. Ylläpito</div>
+      <div style="font-weight:700;margin:14px 0 4px;color:#c1121f">11. Ylläpito</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="field" style="flex:1;min-width:150px"><label>Laadittu</label><input class="f" id="enKspLaadittu" type="date"></div>
         <div class="field" style="flex:1;min-width:150px"><label>Seuraava päivitys</label><input class="f" id="enKspSeuraava" type="date"></div>
@@ -4199,6 +4229,192 @@ function kspEiKoske(roleId){
   var add=ek&&ek.closest("div[style]")&&ek.closest("div[style]").parentNode.querySelector(".ksr-add");if(add){add.disabled=on;add.style.opacity=on?".5":"";}
 }
 
+const KSP_ENNAKKO=[
+ {id:"e1",l:"Kulku suojaan esteetön; avaimet saatavilla"},
+ {id:"e2",l:"Suojan ovet, luukut, salvat ja tiivisteet ehjät"},
+ {id:"e3",l:"Läpiviennit ja sulkulaitteet tunnistettu"},
+ {id:"e4",l:"Ilmanvaihto- ja suodatuslaitteisto huollettu ja koekäytetty"},
+ {id:"e5",l:"Ylipaineen mittaus- ja varolaitteet kunnossa"},
+ {id:"e6",l:"Sähkö, valaistus ja varavalaistus kunnossa"},
+ {id:"e7",l:"Veden saanti, säilytysastiat ja jakelu suunniteltu"},
+ {id:"e8",l:"Viemäröinti ja padotus-/sulkuventtiilit tunnistettu"},
+ {id:"e9",l:"Varapoistumisreitti ja ulostulo käyttökelpoisia"},
+ {id:"e10",l:"Kuivakäymälät, jäteastiat ja hygieniatarvikkeet saatavilla"},
+ {id:"e11",l:"Työkalut, tiivistysmateriaalit ja käyttöohjeet saatavilla"},
+ {id:"e12",l:"Alkusammutus-, ensiapu- ja viestivälineet kunnossa"},
+ {id:"e13",l:"Normaaliajan irtaimiston poisto- ja sijoituspaikka sovittu"}
+];
+const KSP_TO61=["Avaa ja merkitse turvallinen kulkureitti suojaan.","Rajaa työalue ja varmista valaistus, työvälineet sekä henkilösuojaimet.","Kuvaa tilanne ennen tyhjennystä ja tunnista erityistä käsittelyä vaativa omaisuus.","Poista suojaan kuulumaton irtaimisto ennalta sovittuun paikkaan.","Poista palavat nesteet, kaasupullot ja muut vaaralliset aineet turvallisesti.","Pidä ovet, luukut, IV-laitteet, venttiilit, sähkötaulut ja poistumisreitit vapaina.","Puhdista tila ja tee silmämääräinen rakenne- ja kosteusvauriotarkastus."];
+const KSP_TO62=[["Suojaovi ja mahdollinen kaasutiivis ovi","Tarkasta runko, saranoiden liike, salvat ja tiivisteet. Puhdista tiivistyspinnat. Sulje laiteohjeen mukaisesti."],["Luukut ja varauloskäynti","Tarkasta avattavuus, reitti ja ulostulo. Poista esteet turvallisesti."],["Normaaliajan ilmanvaihtoaukot ja muut läpiviennit","Tunnista suljettavat kohdat ja asenna kohdekohtaiset sulku-/tiivistysosat ohjeen mukaan."],["Tilapäiset rakenteet","Asenna vain kohteen piirustusten ja hyväksyttyjen ohjeiden mukaiset rakenteet."]];
+const KSP_TO63=[["Laitteiston tunnistus","Kirjaa laitemalli, käyttöohjeen sijainti ja toimintatilat.","tunnistus"],["Silmä- ja toimintatarkastus","Tarkasta kanavat, venttiilit, suodattimet, letkut, liitokset, käsikäyttö ja sähkönsyöttö.","kpe"],["Käyttöasento","Aseta venttiilit ja sulut laitevalmistajan/kohteen käyttöohjeen mukaiseen asentoon.",""],["Koekäyttö","Käynnistä laite ohjeen mukaan. Tarkasta poikkeava ääni, värinä ja ilmavirta.",""],["Ylipaineen toteaminen","Tee kohteen laitteiston edellyttämä mittaus/toimintakoe ja kirjaa tulos.",""]];
+const KSP_TO64=[{id:"w1",l:"Vedenottopiste ja veden saatavuus",ph:"sijainti, liitäntä, käyttöohje"},{id:"w2",l:"Juoma- ja käyttöveden astiat",ph:"määrä, tilavuus, säilytys, puhtaus"},{id:"w3",l:"Viemärin sulku-/padotusventtiili",ph:"sijainti, tunnistus, käyttöohje"},{id:"w4",l:"Kuivakäymälät",ph:"määrä, sijainti, kokoaminen"},{id:"w5",l:"Jätehuolto",ph:"astiat, pussit, välivarastointi"},{id:"w6",l:"Käsihygienia ja puhdistus",ph:"tarvikkeet ja jakelu"}];
+const KSP_TO65=[["Sähkönsyöttö","Tunnista ryhmäkeskus ja suojan syötöt. Älä tee pätevyyttä vaativia sähkötöitä itse."],["Kiinteä valaistus","Testaa valaisimet ja kytkimet; varmista varalamput."],["Varavalaistus","Varaa paristo-/akkukäyttöisiä valaisimia ja latausratkaisuja."],["Radio ja viranomaisviestintä","Varaa paristokäyttöinen radio; kirjaa seurattavat kanavat/ohjeet."],["Sisäinen viestintä","Sovi ilmoitustaulu, tilannekirja ja viestinviejät."]];
+const KSP_TO66=[{id:"t1",l:"Sisääntulo ja vastaanotto"},{id:"t2",l:"Oleskelu- ja lepotila"},{id:"t3",l:"Ensiapupiste"},{id:"t4",l:"Veden jakelu"},{id:"t5",l:"Kuivakäymälät ja hygienia"},{id:"t6",l:"Jätehuolto"},{id:"t7",l:"Suojanhoitajan työpiste / viestintä"},{id:"t8",l:"Erityistä tukea tarvitsevien paikka"}];
+const KSP_RISKIT=[{id:"k1",l:"Nostot, siirrot ja ahtaat kulkureitit",h:"Työnjako, apuvälineet, reittien rajaus ja riittävä valaistus"},{id:"k2",l:"Sähkö- tai vesivahinko",h:"Syöttöjen tunnistus; pätevän ammattilaisen käyttö"},{id:"k3",l:"Puutteellinen ilmanvaihto tai ylipaine",h:"Koekäyttö ja mittaus laiteohjeen mukaan; vika rajataan"},{id:"k4",l:"Varapoistumistien tukkeutuminen",h:"Reitin tarkastus ja jatkuva vapaana pito"},{id:"k5",l:"Viestikatkos tai epäselvä johtaminen",h:"Nimetty johtaja, varahenkilö, tilannekirja ja viestirytmi"}];
+const KSP_LOPPU=["Suoja ja kulkureitit on tyhjennetty ja siivottu.","Ovet, luukut, varauloskäynti ja läpiviennit ovat käyttöasennossa.","Ilmanvaihto ja ylipaine on koekäytetty ja tulos kirjattu.","Vesi, viemäröinti, käymälät ja jätehuolto on järjestetty.","Sähkö, valaistus, varavalaistus ja viestivälineet toimivat.","Ensiapu, alkusammutus, hygienia ja muut varusteet ovat saatavilla.","Tilajako, opasteet ja henkilömäärä on tarkistettu.","Vastuut, vuorot ja viestintämenettely on vahvistettu.","Kriittisiä avoimia puutteita ei ole tai niiden menettely on hyväksytty."];
+const KSP_PUU_LUOKAT=["Kriittinen","Merkittävä","Muu"];
+function kspUid(){return "q"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function kspRenderTyoohjeet(){
+  document.getElementById("kspEnnakko").innerHTML=KSP_ENNAKKO.map(function(it,i){
+    return '<div class="field" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
+      +'<label style="font-weight:600;display:block;margin-bottom:4px">'+(i+1)+'. '+esc(it.l)+'</label>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<select class="f" id="kse_'+it.id+'_s" aria-label="K/P/E" style="flex:0 0 90px"><option value=""></option><option>K</option><option>P</option><option>E</option></select>'
+      +'<input class="f" id="kse_'+it.id+'_i" placeholder="Havainto ja tarvittava toimenpide" style="flex:2;min-width:170px">'
+      +'<input class="f" id="kse_'+it.id+'_v" placeholder="Vastuu / määräaika" style="flex:1;min-width:140px">'
+      +'</div></div>';
+  }).join("");
+  document.getElementById("kspRatk64").innerHTML=KSP_TO64.map(function(it){
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;align-items:flex-end">'
+      +'<div class="field" style="flex:2;min-width:180px;margin:0"><label>'+esc(it.l)+'</label><input class="f" id="ksw_'+it.id+'_k" placeholder="'+esc(it.ph)+'"></div>'
+      +'<div class="field" style="flex:1;min-width:130px;margin:0"><label>Vastuu</label><input class="f" id="ksw_'+it.id+'_v"></div></div>';
+  }).join("");
+  document.getElementById("kspTila66").innerHTML=KSP_TO66.map(function(it){
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;align-items:flex-end">'
+      +'<div class="field" style="flex:1;min-width:170px;margin:0"><label>'+esc(it.l)+'</label><input class="f" id="kst_'+it.id+'_s" placeholder="Sijainti / toteutus"></div>'
+      +'<div class="field" style="flex:1;min-width:170px;margin:0"><label>Tarvikkeet</label><input class="f" id="kst_'+it.id+'_t"></div></div>';
+  }).join("");
+  document.getElementById("kspRiskit").innerHTML=KSP_RISKIT.map(function(it){
+    return '<div class="field" style="margin-bottom:6px"><label>'+esc(it.l)+' <span class="hint" style="font-weight:400">– '+esc(it.h)+'</span></label><input class="f" id="ksk_'+it.id+'_v" placeholder="Vastuuhenkilö"></div>';
+  }).join("");
+  kspRenderPuutteet([]);
+}
+function kspRenderPuutteet(list){
+  var box=document.getElementById("kspPuutteet");if(!box)return;
+  box.innerHTML=(list||[]).map(function(p,i){
+    var uid=p.uid||kspUid();
+    var col=p.luokka==="Kriittinen"?"#a30000":(p.luokka==="Merkittävä"?"#c1121f":"#b26a00");
+    return '<div class="ksp-puu" data-uid="'+esc(uid)+'" style="border:1px solid var(--line);border-left:4px solid '+col+';border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><b style="color:#555">Puute '+(i+1)+'</b>'
+      +'<select class="f pq-l" style="flex:0 0 150px" aria-label="Luokka" onchange="kspRenderPuutteet(kspCollectPuutteet())">'+KSP_PUU_LUOKAT.map(function(l){return '<option'+((p.luokka||"Muu")===l?' selected':'')+'>'+l+'</option>';}).join("")+'</select>'
+      +'<button type="button" class="btn ghost" style="padding:2px 10px" aria-label="Poista puute" onclick="kspRemovePuute(\''+esc(uid)+'\')">×</button></div>'
+      +'<textarea class="f pq-k" rows="2" placeholder="Puute / riski">'+esc(p.kuvaus||"")+'</textarea>'
+      +'<textarea class="f pq-t" rows="2" placeholder="Korjaava toimenpide" style="margin-top:6px">'+esc(p.toimenpide||"")+'</textarea>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+      +'<input class="f pq-v" placeholder="Vastuu" style="flex:1;min-width:140px" value="'+esc(p.vastuu||"")+'">'
+      +'<input class="f pq-a" placeholder="Määräaika / tila" style="flex:1;min-width:140px" value="'+esc(p.aika||"")+'"></div></div>';
+  }).join("");
+}
+function kspCollectPuutteet(){
+  return Array.prototype.map.call(document.querySelectorAll("#kspPuutteet .ksp-puu"),function(el){
+    var g=function(c){var x=el.querySelector(c);return x?x.value:"";};
+    return {uid:el.getAttribute("data-uid"),luokka:g(".pq-l"),kuvaus:g(".pq-k"),toimenpide:g(".pq-t"),vastuu:g(".pq-v"),aika:g(".pq-a")};
+  });
+}
+function kspAddPuute(){var l=kspCollectPuutteet();l.push({uid:kspUid(),luokka:"Muu"});kspRenderPuutteet(l);saveKspDraft();}
+function kspRemovePuute(uid){kspRenderPuutteet(kspCollectPuutteet().filter(function(p){return p.uid!==uid;}));saveKspDraft();}
+function kspCollectTyoohjeet(o){
+  var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
+  o.ennakko={};KSP_ENNAKKO.forEach(function(it){o.ennakko[it.id]={s:g("kse_"+it.id+"_s"),i:g("kse_"+it.id+"_i"),v:g("kse_"+it.id+"_v")};});
+  o.ratk64={};KSP_TO64.forEach(function(it){o.ratk64[it.id]={k:g("ksw_"+it.id+"_k"),v:g("ksw_"+it.id+"_v")};});
+  o.tila66={};KSP_TO66.forEach(function(it){o.tila66[it.id]={s:g("kst_"+it.id+"_s"),t:g("kst_"+it.id+"_t")};});
+  o.riskit={};KSP_RISKIT.forEach(function(it){o.riskit[it.id]=g("ksk_"+it.id+"_v");});
+  o.puutteet=kspCollectPuutteet().filter(function(p){return p.kuvaus||p.toimenpide||p.vastuu||p.aika;});
+  return o;
+}
+function kspFillTyoohjeet(p){
+  var s=function(id,v){var el=document.getElementById(id);if(el)el.value=v||"";};
+  KSP_ENNAKKO.forEach(function(it){var x=(p.ennakko||{})[it.id]||{};s("kse_"+it.id+"_s",x.s);s("kse_"+it.id+"_i",x.i);s("kse_"+it.id+"_v",x.v);});
+  KSP_TO64.forEach(function(it){var x=(p.ratk64||{})[it.id]||{};s("ksw_"+it.id+"_k",x.k);s("ksw_"+it.id+"_v",x.v);});
+  KSP_TO66.forEach(function(it){var x=(p.tila66||{})[it.id]||{};s("kst_"+it.id+"_s",x.s);s("kst_"+it.id+"_t",x.t);});
+  KSP_RISKIT.forEach(function(it){s("ksk_"+it.id+"_v",(p.riskit||{})[it.id]);});
+  kspRenderPuutteet(p.puutteet||[]);
+}
+// Tulosteen osiot 4 (ennakko), 6 (työohjeet), 8 (puutteet ja riskit) ja 9 (loppukatselmus)
+function kspPrintEnnakko(p,v){
+  var rows=KSP_ENNAKKO.map(function(it){var x=(p.ennakko||{})[it.id]||{};
+    var st=x.s==="K"?'<span style="color:#1a7f37;font-weight:700">K</span>':(x.s==="P"?'<span style="color:#c1121f;font-weight:700">P</span>':(x.s==="E"?'<span style="color:#888">E</span>':'☐ K &nbsp;☐ P &nbsp;☐ E'));
+    return '<tr><td>'+esc(it.l)+'</td><td class="d">'+st+'</td><td>'+(x.i?esc(x.i):'')+'</td><td>'+(x.v?esc(x.v):'')+'</td></tr>';}).join("");
+  var a=p.arvio||"";
+  var ch=function(t){return (a===t?'☑':'☐')+' ';};
+  return '<div class="sub">4. Ennakkoon varmistettava käyttövalmius</div>'
+    +'<table class="chk"><thead><tr><th>Tarkastuskohde</th><th>K / P / E*</th><th>Havainto ja tarvittava toimenpide</th><th>Vastuu / määräaika</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="src">* K = kunnossa, P = puute, E = ei sovellu kohteeseen. Puutteet siirretään kohdan 8 toimenpidelistalle.</div>'
+    +'<div class="sub2">4.1 72 tunnin valmiusarvio</div>'
+    +'<table class="chk"><thead><tr><th>Arvio</th><th>Valinta</th><th>Perustelu</th></tr></thead><tbody>'
+    +'<tr><td>Käyttöönotettavissa 72 tunnissa</td><td class="d">'+ch("Käyttöönotettavissa 72 tunnissa")+'</td><td>'+(a==="Käyttöönotettavissa 72 tunnissa"&&p.arvioPer?esc(p.arvioPer):'')+'</td></tr>'
+    +'<tr><td>Käyttöönotettavissa ehdollisesti</td><td class="d">'+ch("Käyttöönotettavissa ehdollisesti")+'</td><td>'+(a==="Käyttöönotettavissa ehdollisesti"&&p.arvioPer?esc(p.arvioPer):'<span class="src">ehdot ja korvaavat toimet</span>')+'</td></tr>'
+    +'<tr><td>Ei käyttöönotettavissa 72 tunnissa</td><td class="d">'+ch("Ei käyttöönotettavissa 72 tunnissa")+'</td><td>'+(a==="Ei käyttöönotettavissa 72 tunnissa"&&p.arvioPer?esc(p.arvioPer):'<span class="src">kriittiset esteet</span>')+'</td></tr>'
+    +'<tr><td>Arvion tekijä ja päiväys</td><td colspan="2">'+(p.arvioTekija?esc(p.arvioTekija):kspFill("",140))+' / '+(p.arvioPvm?fmt(p.arvioPvm):kspFill("",80))+'</td></tr>'
+    +'</tbody></table>';
+}
+function kspPrintTyoohjeet(p){
+  var vs=function(id){var x=(p.vaiheet||{})[id]||{};return x.v||"";};
+  var vast=function(id){var x=vs(id);return x?'<div class="src">Vaiheen vastuuhenkilö (kohta 5): '+esc(x)+'</div>':'';};
+  var blank='<span class="fill" style="min-width:60px"></span>';
+  var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
+  var h='<div class="sub">6. Vaihekohtaiset työohjeet</div>'
+    +'<div class="sub2">6.1 Pääsyn varmistaminen ja tilojen tyhjennys</div>'+vast("v2")
+    +'<table class="chk">'+th(["Tehtävä","Vastuu","Valmis / aika","Huomio"])+'<tbody>'
+    +KSP_TO61.map(function(t){return '<tr><td>'+t+'</td><td></td><td class="d">☐ '+blank+'</td><td></td></tr>';}).join("")+'</tbody></table>'
+    +'<div class="sub2">6.2 Rakenteet, ovet, luukut ja läpiviennit</div>'+vast("v3")
+    +'<table class="chk">'+th(["Tehtävä","Tarkastus / käyttöönotto","Tulos"])+'<tbody>'
+    +KSP_TO62.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td class="d">☐ K ☐ P ☐ E</td></tr>';}).join("")+'</tbody></table>'
+    +'<div class="sub2">6.3 Ilmanvaihto ja ylipaine</div>'
+    +'<table class="chk">'+th(["Tehtävä","Menettely","Tulos / mittaus"])+'<tbody>'
+    +KSP_TO63.map(function(r){
+      var tulos=r[2]==="kpe"?'☐ K ☐ P ☐ E':(r[2]==="tunnistus"?[p.ivMalli?'Malli: '+esc(p.ivMalli):'',p.ivOhje?'Ohje: '+esc(p.ivOhje):'',p.ivTilat?'Tilat: '+esc(p.ivTilat):''].filter(Boolean).join('<br>')||blank:blank);
+      return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+tulos+'</td></tr>';}).join("")+'</tbody></table>'
+    +'<div class="sub2">6.4 Vesi, viemäröinti ja hygienia</div>'
+    +'<table class="chk">'+th(["Tehtävä","Kohdekohtainen ratkaisu","Vastuu / valmis"])+'<tbody>'
+    +KSP_TO64.map(function(it){var x=(p.ratk64||{})[it.id]||{};return '<tr><td>'+esc(it.l)+'</td><td>'+(x.k?esc(x.k):'<span class="src">'+esc(it.ph)+'</span>')+'</td><td>'+(x.v?esc(x.v)+' ':'')+'☐</td></tr>';}).join("")+'</tbody></table>'
+    +(p.vesi?'<div class="src">Aiempi kirjaus (vesi, käymälät ja jätehuolto): '+esc(p.vesi)+'</div>':'')
+    +'<div class="sub2">6.5 Sähkö, valaistus ja viestintä</div>'
+    +'<table class="chk">'+th(["Kohde","Toimenpide","Tulos"])+'<tbody>'
+    +KSP_TO65.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td class="d">☐ K ☐ P ☐ E</td></tr>';}).join("")+'</tbody></table>'
+    +'<div class="sub2">6.6 Tilajako ja varustelu</div>'+vast("v4")
+    +'<table class="chk">'+th(["Toiminto","Sijainti / toteutus","Tarvikkeet"])+'<tbody>'
+    +KSP_TO66.map(function(it){var x=(p.tila66||{})[it.id]||{};return '<tr><td>'+esc(it.l)+'</td><td>'+(x.s?esc(x.s):kspFill("",120))+'</td><td>'+(x.t?esc(x.t):kspFill("",120))+'</td></tr>';}).join("")+'</tbody></table>'
+    +(p.tilajako?'<div class="src">Aiempi kirjaus (tilajako): '+esc(p.tilajako)+'</div>':'');
+  return h;
+}
+function kspPuuteRivit(p){
+  var man=(p.puutteet||[]).filter(function(x){return x.kuvaus||x.toimenpide||x.vastuu||x.aika;});
+  var nimet=man.map(function(x){return (x.kuvaus||"").trim().toLowerCase();});
+  var auto=KSP_ENNAKKO.filter(function(it){var x=(p.ennakko||{})[it.id];return x&&x.s==="P";}).map(function(it){
+    var x=p.ennakko[it.id];var k=it.l+(x.i?": "+x.i:"");
+    return {kuvaus:k,luokka:"",toimenpide:x.i||"",vastuu:x.v||"",aika:"",auto:true};
+  }).filter(function(a){return nimet.indexOf(a.kuvaus.trim().toLowerCase())<0;});
+  return man.concat(auto);
+}
+function kspPrintPuutteet(p){
+  var rivit=kspPuuteRivit(p);
+  var tyhjat=Math.max(rivit.length?2:8,8-rivit.length);
+  var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
+  var h='<div class="sub">8. Puutteet, riskit ja korjaavat toimenpiteet</div>'
+    +'<div style="font-size:12px;margin:2px 0 4px">Kriittinen puute estää turvallisen käyttöönoton tai keskeisen suojaustoiminnon. Merkittävä puute hidastaa käyttöönottoa tai heikentää toimintakykyä. Muu puute korjataan osana normaalia ylläpitoa.</div>'
+    +'<table class="chk">'+th(["Nro","Puute / riski","Luokka","Korjaava toimenpide","Vastuu","Määräaika / tila"])+'<tbody>'
+    +rivit.map(function(x,i){
+      var cls=x.luokka==="Kriittinen"?' style="color:#a30000;font-weight:800"':(x.luokka==="Merkittävä"?' style="color:#c1121f;font-weight:700"':'');
+      return '<tr><td>'+(i+1)+'</td><td>'+esc(x.kuvaus||"")+(x.auto?'<div class="src">kohdasta 4 (P)</div>':'')+'</td><td'+cls+'>'+(x.luokka?esc(x.luokka):'<span class="src">kriittinen / merkittävä / muu</span>')+'</td><td>'+(x.auto?'':esc(x.toimenpide||""))+'</td><td>'+esc(x.vastuu||"")+'</td><td>'+esc(x.aika||"")+'</td></tr>';
+    }).join("")
+    +(function(){var r="";for(var i=0;i<tyhjat;i++)r+='<tr><td>'+(rivit.length+i+1)+'</td><td style="height:22px"></td><td></td><td></td><td></td><td></td></tr>';return r;})()
+    +'</tbody></table>'
+    +'<div class="sub2">8.1 Kriittisen puutteen käsittely</div><ul class="liit">'
+    +['Keskeytä vaarallinen työ ja rajaa vaara-alue.','Ilmoita puutteesta välittömästi käyttöönoton johtajalle.','Hanki pätevä huolto- tai korjauspalvelu; älä tee luvanvaraista työtä itse.','Kirjaa vaikutus 72 tunnin valmiuteen sekä mahdollinen viranomaiselta varmistettava menettely.','Tee korjauksen jälkeen toiminta- tai käyttökoe ja dokumentoi hyväksyntä.'].map(function(t){return '<li>'+t+'</li>';}).join("")+'</ul>'
+    +'<div class="sub2">8.2 Riskit käyttöönoton aikana</div>'
+    +'<table class="chk">'+th(["Riski","Hallintatoimi","Vastuuhenkilö"])+'<tbody>'
+    +KSP_RISKIT.map(function(it){var x=(p.riskit||{})[it.id]||"";return '<tr><td>'+esc(it.l)+'</td><td>'+esc(it.h)+'</td><td>'+(x?esc(x):kspFill("",100))+'</td></tr>';}).join("")+'</tbody></table>';
+  return h;
+}
+function kspPrintLoppu(p){
+  var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
+  var eka=function(id){var r=(p.roolit||{})[id]||{};if(r.ek)return "";var h=(r.henkilot||[])[0];return h&&h.n?h.n:"";};
+  return '<div class="sub">9. Loppukatselmus ja hyväksyntä</div>'
+    +'<table class="chk">'+th(["Hyväksymiskriteeri","K / P / E","Huomio"])+'<tbody>'
+    +KSP_LOPPU.map(function(t){return '<tr><td>'+t+'</td><td class="d">☐ K ☐ P ☐ E</td><td></td></tr>';}).join("")+'</tbody></table>'
+    +'<div class="keep"><div class="sub2">9.1 Käyttövalmiuspäätös</div>'
+    +'<table class="chk">'+th(["Päätös","Valinta / täsmennys"])+'<tbody>'
+    +'<tr><td>Väestönsuoja hyväksytään käyttövalmiiksi</td><td>☐ kyllä &nbsp;☐ ei</td></tr>'
+    +'<tr><td>Hyväksyntä on ehdollinen</td><td>☐ ei &nbsp;☐ kyllä, ehdot: <span class="fill" style="min-width:200px"></span></td></tr>'
+    +'<tr><td>Käyttövalmiuden ajankohta</td><td><span class="fill" style="min-width:140px"></span> <span class="src">pp.kk.vvvv klo</span></td></tr>'
+    +'<tr><td>Avoimet tehtävät</td><td><span class="fill" style="min-width:200px"></span> <span class="src">viittaus kohdan 8 numeroihin</span></td></tr>'
+    +'</tbody></table>'
+    +'<table class="chk" style="margin-top:8px">'+th(["Rooli","Nimi","Päiväys","Allekirjoitus"])+'<tbody>'
+    +'<tr><td>Taloyhtiön edustaja</td><td>'+esc(eka("taloyhtio"))+'</td><td style="height:30px"></td><td></td></tr>'
+    +'<tr><td>Väestönsuojan hoitaja / tarkastaja</td><td>'+esc(eka("hoitaja"))+'</td><td style="height:30px"></td><td></td></tr>'
+    +'</tbody></table></div>';
+}
 const KSP_DRAFT_KEY="servalo_ksp_drafts";
 const KSP_LIITTEET=[
  {id:"asema",l:"Asemapiirros ja kulkureitit"},
@@ -4210,7 +4426,7 @@ const KSP_LIITTEET=[
  {id:"luettelot",l:"Asukas- ja vastuuhenkilöluettelot asianmukaisesti suojattuina"},
  {id:"asukasohje",l:"Asukkaiden yleisohje (erillinen jaettava liite)"}
 ];
-const KSP_FIELDS={rakvuosi:"enKspRakvuosi",peruste:"enKspPeruste",vesipiste:"enKspVesipiste",luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
+const KSP_FIELDS={arvio:"enKspArvio",arvioPer:"enKspArvioPer",arvioTekija:"enKspArvioTekija",arvioPvm:"enKspArvioPvm",ivMalli:"enKspIvMalli",ivOhje:"enKspIvOhje",ivTilat:"enKspIvTilat",rakvuosi:"enKspRakvuosi",peruste:"enKspPeruste",vesipiste:"enKspVesipiste",luokka:"enKspLuokka",henkilot:"enKspHenkilot",pinta:"enKspPinta",sijainti:"enKspSijainti",sisaan:"enKspSisaan",vara:"enKspVara",avaimet:"enKspAvaimet",ryhma:"enKspRyhma",vastaanottaja:"enKspVastaanottaja",halytys:"enKspHalytys",kokoontuminen:"enKspKokoontuminen",irtaimisto:"enKspIrtaimisto",tilajako:"enKspTilajako",vesi:"enKspVesi",varusteet:"enKspVarusteet",muutLiitteet:"enKspMuutLiitteet",laadittu:"enKspLaadittu",seuraava:"enKspSeuraava",laatija:"enKspLaatija",hyvaksyja:"enKspHyvaksyja"};
 function readKspDrafts(){try{return JSON.parse(localStorage.getItem(KSP_DRAFT_KEY)||"{}");}catch(e){return {};}}
 function writeKspDrafts(all){try{localStorage.setItem(KSP_DRAFT_KEY,JSON.stringify(all));}catch(e){}}
 function kspLastVss(d){
@@ -4231,6 +4447,7 @@ function kspDefaults(d){
   };
 }
 function kspRenderRows(){
+  kspRenderTyoohjeet();
   document.getElementById("kspRoolit").innerHTML=KSP_ROLES.map(function(r){
     return '<div style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">'
       +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><label style="font-weight:600">'+esc(r.l)+' <span class="hint" style="font-weight:400">– '+esc(r.v)+'</span></label>'
@@ -4259,6 +4476,7 @@ function collectKsp(){
   o.roolit={};KSP_ROLES.forEach(function(r){o.roolit[r.id]={ek:document.getElementById("ksr_"+r.id+"_e").checked,henkilot:kspRoleHenkilot(r.id)};});
   o.kohdistamatta=kspCollectKohdistus();
   o.vaiheet={};KV_VAIHE.forEach(function(it){var g=function(x){return document.getElementById("ksv_"+it.id+"_"+x).value;};o.vaiheet[it.id]={a:g("a"),v:g("v"),h:g("h"),o:g("o")};});
+  kspCollectTyoohjeet(o);
   o.liitteet={};KSP_LIITTEET.forEach(function(it){o.liitteet[it.id]=document.getElementById("ksl_"+it.id).checked;});
   return o;
 }
@@ -4268,6 +4486,7 @@ function fillKsp(p){
   KSP_ROLES.forEach(function(r){var v=p.roolit[r.id]||{};document.getElementById("ksr_"+r.id+"_e").checked=!!v.ek;kspRenderRole(r.id,v.henkilot);});
   kspRenderKohdistus(p.kohdistamatta);
   KV_VAIHE.forEach(function(it){var v=p.vaiheet[it.id]||{};["a","v","h","o"].forEach(function(x){document.getElementById("ksv_"+it.id+"_"+x).value=v[x]||"";});});
+  kspFillTyoohjeet(p);
   KSP_LIITTEET.forEach(function(it){document.getElementById("ksl_"+it.id).checked=!!(p.liitteet&&p.liitteet[it.id]);});
 }
 function openKsp(devId){
@@ -4638,20 +4857,24 @@ function kspPrint(dev,ctx,p){
     +'<tr><td class="k">Hälytys ja tiedottaminen</td><td>'+v(p.halytys)+'</td></tr>'
     +'<tr><td class="k">Kokoontumispaikka</td><td>'+v(p.kokoontuminen)+'</td></tr>'
     +'</table>'
-    +'<div class="sub">4. Käyttöönoton 72 tunnin vaiheistus</div>'
+    +kspPrintEnnakko(p,v)
+    +'<div class="sub">5. Käyttöönoton 72 tunnin vaiheistus</div>'
     +'<div style="font-size:12px;margin:2px 0 4px">Aikataulu käynnistyy viranomaisen määräyksen tai taloyhtiön vastuuhenkilön päätöksen vastaanottamisesta. Tarkat työjärjestykset sovitetaan kohteen rakenteisiin ja laiteohjeisiin.</div>'
     +'<table class="chk"><thead><tr><th>Aika</th><th>Vaihe ja tehtävät</th><th>Vastuuhenkilö</th><th>Hyväksyntä</th></tr></thead><tbody>'+vaiheet+'</tbody></table>'
-    +'<div class="sub" style="font-size:13px">4.1 Kohdekohtainen aikataulu ja resurssit</div>'
+    +'<div class="sub" style="font-size:13px">5.1 Kohdekohtainen aikataulu ja resurssit</div>'
     +'<div style="font-size:12px;margin:2px 0 4px">Täytetään käsin. Työtunnit sekä henkilö-, kalusto- ja tarviketarve arvioidaan kohteessa.</div>'
     +'<table class="chk"><thead><tr><th>Työvaihe</th><th>Arvioitu kesto</th><th>Henkilöt</th><th>Kalusto</th><th>Tarvikkeet / ulkoinen apu</th><th>Valmis</th></tr></thead><tbody>'+resurssit+'</tbody></table>'
-    +'<div class="sub">5. Tyhjennys, tilajako ja varustus</div><table class="meta">'
+    +kspPrintTyoohjeet(p)
+    +'<div class="sub">7. Tyhjennys, tilajako ja varustus (yhteenveto)</div><table class="meta">'
     +'<tr><td class="k">Irtaimiston sijoituspaikka</td><td>'+v(p.irtaimisto)+'</td></tr>'
     +'<tr><td class="k">Tilajako</td><td>'+v(p.tilajako)+'</td></tr>'
     +'<tr><td class="k">Vesi, käymälät ja jätehuolto</td><td>'+v(p.vesi)+'</td></tr>'
     +'<tr><td class="k">Varusteiden säilytyspaikka</td><td>'+v(p.varusteet)+'</td></tr>'
     +'</table>'
-    +'<div class="sub">6. Liitteet</div>'+(liitteet.length?'<ul class="liit">'+liitteet.join("")+'</ul>':'<div style="font-size:12px">'+dash+'</div>')
-    +'<div class="sub">7. Ylläpito</div><table class="meta">'
+    +kspPrintPuutteet(p)
+    +kspPrintLoppu(p)
+    +'<div class="sub">10. Liitteet</div>'+(liitteet.length?'<ul class="liit">'+liitteet.join("")+'</ul>':'<div style="font-size:12px">'+dash+'</div>')
+    +'<div class="sub">11. Ylläpito</div><table class="meta">'
     +'<tr><td class="k">Laadittu</td><td>'+(p.laadittu?fmt(p.laadittu):dash)+'</td><td class="k">Päivitetty</td><td>'+(p.paivitetty?fmt(p.paivitetty):dash)+'</td></tr>'
     +'<tr><td class="k">Laatija</td><td>'+v(p.laatija)+'</td><td class="k">Seuraava päivitys</td><td>'+(p.seuraava?fmt(p.seuraava):dash)+'</td></tr>'
     +'</table>'
