@@ -213,13 +213,13 @@ for t in "function openInspectionPk" "function saveEntryDraft" "function clearEn
   grep -qF "$t" servalo.html && echo "OK: $t" || { echo "PUUTTUU: $t"; exit 1; }
 done
 
-echo "--- Malliyhtiön (IKASET/Tamrex ym.) tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "IKASET|Tamrex|Autismis|Turunen|Airiainen|Lintuhyt|Vatialantie" servalo.html; then
+echo "--- Malliyhtiön tunnisteet EIVÄT ole vuotaneet ---"
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Malliyhtiö: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 
@@ -244,4 +244,4 @@ echo "VALMIS."
 - Kuvan base64 talletetaan luonnokseen, koska selain ei salli tiedostokentän palauttamista
   ohjelmallisesti — näin otettu kuva ei katoa vaikka ikkuna sulkeutuisi.
 - Puhelinnumero kirjoitetaan välilyönnillä (`044 3665638`), joten kiellettyjen vahti ei
-  laukea (vahti tarkistaa välilyönnittömän `0443665638`-muodon).
+  laukea (vahti tarkistaa välilyönnittömän muodon).

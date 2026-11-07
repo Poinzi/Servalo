@@ -43,14 +43,14 @@ const db = require("./db");
 const crypto = require("crypto");
 
 // --- Rooliauth -------------------------------------------------------------
-const SECRET = process.env.AUTH_SECRET || "servalo-dev-secret";
+const SECRET = process.env.AUTH_SECRET || crypto.randomBytes(32).toString("hex");
 const ENFORCE = !!process.env.AUTH_SECRET; // vasta kun AUTH_SECRET on asetettu, pakotetaan roolit
 
 // Demokäyttäjät (fiktiivisiä). Vaihda salasanat ja aseta AUTH_SECRET tuotannossa.
 const USERS = {
-  admin:  { id: "u-admin",  nimi: "Pääkäyttäjä",     rooli: "admin",  salasana: "admin123" },
-  kentta: { id: "u-kentta", nimi: "Kenttäasentaja",  rooli: "kentta", salasana: "kentta123" },
-  huolto: { id: "u-huolto", nimi: "Huoltokumppani",  rooli: "huolto", salasana: "huolto123" },
+  admin:  { id: "u-admin",  nimi: "Pääkäyttäjä",     rooli: "admin",  salasana: process.env.SERVALO_PASS_ADMIN || "" },
+  kentta: { id: "u-kentta", nimi: "Kenttäasentaja",  rooli: "kentta", salasana: process.env.SERVALO_PASS_KENTTA || "" },
+  huolto: { id: "u-huolto", nimi: "Huoltokumppani",  rooli: "huolto", salasana: process.env.SERVALO_PASS_HUOLTO || "" },
 };
 
 function checkPassword(given, expected) {
@@ -211,7 +211,7 @@ console.log("TOKEN OK");
 '
 
 # 5) kielletyt merkkijonot
-if grep -rnE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" api.js; then
+if grep -rnE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" api.js; then
   echo "VAROITUS: tarkista osumat"; else echo "Ei kiellettyjä merkkijonoja"; fi
 ```
 
@@ -245,7 +245,7 @@ curl -s "$HOST/api/kohteet" -H "X-User-Id: kentta" | head -c 200; echo
 
 # 2) Kirjaudu -> saat tokenin
 TOKEN=$(curl -s "$HOST/api/login" -H "Content-Type: application/json" \
-  -d '{"kayttaja":"huolto","salasana":"huolto123"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+  -d '{"kayttaja":"huolto","salasana":"'"$SERVALO_PASS_HUOLTO"'"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 echo "token: ${TOKEN:0:24}..."
 
 # 3) Tokenilla luku onnistuu
@@ -256,7 +256,7 @@ curl -s "$HOST/api/kohteet" -H "Authorization: Bearer $TOKEN" | head -c 120; ech
 - `huolto`-token EI saa luoda kohdetta: `curl -s -X POST "$HOST/api/kohteet" -H "Authorization: Bearer $TOKEN" -d '{"nimi":"X"}'` → `403 forbidden`.
 - Pelkkä `X-User-Id` ilman tokenia → `401 auth required`.
 
-Demotunnukset (fiktiiviset): `admin/admin123`, `kentta/kentta123`, `huolto/huolto123`. **Vaihda salasanat** ennen tuotantoa muokkaamalla `USERS`-taulukkoa `api.js`:ssä.
+Tunnusten salasanat asetetaan ympäristömuuttujiin `SERVALO_PASS_ADMIN`, `SERVALO_PASS_KENTTA` ja `SERVALO_PASS_HUOLTO`. Salasanoja ei tallenneta koodiin eikä dokumentaatioon.
 
 ---
 

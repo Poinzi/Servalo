@@ -151,7 +151,7 @@ grep -qF 'function smokeListCard(c)' ohje24.html && echo "OK: julkinen varoitink
 grep -qF 'smokeListCard(c)+' ohje24.html && echo "OK: kortti kutsutaan asukasnäkymässä" || { echo "PUUTTUU: kutsu"; exit 1; }
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html ohje24.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html ohje24.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

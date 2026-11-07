@@ -307,12 +307,12 @@ for t in "function openSprinkPk" "function saveSprinkPk" "function sprinkPk" "fu
 done
 
 echo "--- Mallidokumentin tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "Caverion|38731042|0148519|RATAPIHANKATU|Aleksi Julin|L\xc3\xa4hdesm\xc3\xa4ki|Toiva Jonne|010 4071|Treen Areena|Areenahotelli|Julin" servalo.html; then
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Malliyhtiö: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

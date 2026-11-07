@@ -277,12 +277,12 @@ for t in "function openSiirtoTodistus" "function saveSiirtoTodistus" "function s
 done
 
 echo "--- Mallidokumentin (IDR/PAP/THV ym.) tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "IKASET|Tamrex|Autismis|Turunen|Airiainen|Lintuhyt|Lintula|Vatialantie|Kultavuoren|sami\.sevon|thv\.fi|valvomo@thv|Viinikankatu|V\xc3\xa4h\xc3\xa4heikkil|Vaasan h\xc3\xa4t\xc3\xa4keskus|9256/1340|022846999|0290001112|12246|153124|100804|180041|1569797" servalo.html; then
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Mallidokumentti: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

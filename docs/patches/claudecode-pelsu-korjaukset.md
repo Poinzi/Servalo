@@ -663,7 +663,7 @@ for s in "segHtml" "setScore" "class=\"segb" "data-k=\"ytunnus\"" "pickCover" "p
 done
 
 # c) ei kiellettyjä merkkijonoja
-if grep -rnE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" pelastussuunnitelma-tyokalu.html; then
+if grep -rnE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" pelastussuunnitelma-tyokalu.html; then
   echo "VAROITUS: tarkista osumat"; else echo "Ei kiellettyjä merkkijonoja"; fi
 ```
 

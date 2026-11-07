@@ -599,7 +599,7 @@
           <option value="supervisor">Työnjohtaja</option>
           <option value="worker">Asentaja</option>
           <option value="customer">Asiakas</option></select></div>
-        <div class="field"><label>Sähköposti</label><input class="f" id="uEmailF" type="email" placeholder="nimi@servalo.fi"></div>
+        <div class="field"><label>Sähköposti</label><input class="f" id="uEmailF" type="email" placeholder="nimi@servalo.example"></div>
       </div>
       <label class="rtoggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="uActiveF" checked> Aktiivinen (voi kirjautua)</label>
       <div class="field"><label>Toimipisterajaus</label><div id="uLocsWrap" style="max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px"></div><p class="hint">Valitse kohteet joihin k\u00e4ytt\u00e4j\u00e4 p\u00e4\u00e4see. Tyhj\u00e4 valinta = kaikki kohteet. P\u00e4\u00e4k\u00e4ytt\u00e4j\u00e4\u00e4 ei rajata.</p></div>
@@ -1348,18 +1348,18 @@ function seed(){
   const L=(id,parent,name,type,addr)=>({id,parent,name,type,addr:addr||""});
   const locs=[
     L("c1",null,"Servalo Oy","company"),
-    L("p1","c1","As Oy Niittyranta (2901455-3)","property"),
-    L("s1","p1","As Oy Niittyranta","site","Niittyrannankatu 4, 00980 Helsinki"),
-    L("p2","c1","Hoivakoti-säätiö sr (2748120-6)","property"),
-    L("s2","p2","As Oy Tampereen Puistokaari 1","site","Puistokaari 1, 33580 Tampere"),
-    L("s3","p2","Mäntyrinteen ryhmäkoti","site","Mäntyrinteenkatu 3, 33580 Tampere"),
-    L("s4","p2","Kuusivaaran asumisyksikkö","site","Kuusivaarantie 8, 33820 Tampere"),
-    L("s5","p2","Puistokaaren ryhmäkoti","site","Puistokaari 1, 33580 Tampere"),
-    L("s6","p2","Ryhmäkoti Harju","site","Harjukatu 4, 33840 Tampere"),
-    L("p3","c1","Varastokeskus Oyj (2655310-9)","property"),
-    L("s7","p3","Varastokeskus Tampere","site","Teollisuuskatu 1, 33100 Tampere"),
-    L("p4","c1","Kiinteistö Oy Tampereen Kongressihotelli (2890774-1)","property"),
-    L("s8","p4","Kongressihotelli","site","Keskuskatu 3, 33100 Tampere"),
+    L("p1","c1","As Oy Demo Niittyranta (0000001-9)","property"),
+    L("s1","p1","As Oy Demo Niittyranta","site","Esimerkkikatu 4, 00100 Helsinki"),
+    L("p2","c1","Demo Hoivasäätiö sr (0000002-7)","property"),
+    L("s2","p2","As Oy Demo Puistokaari","site","Esimerkkikatu 1, 33100 Tampere"),
+    L("s3","p2","Mäntyrinteen ryhmäkoti","site","Esimerkkikatu 3, 33100 Tampere"),
+    L("s4","p2","Kuusivaaran asumisyksikkö","site","Esimerkkikatu 8, 33100 Tampere"),
+    L("s5","p2","Puistokaaren ryhmäkoti","site","Esimerkkikatu 1, 33100 Tampere"),
+    L("s6","p2","Ryhmäkoti Harju","site","Esimerkkikatu 14, 33100 Tampere"),
+    L("p3","c1","Demo Varastokeskus Oy (0000003-5)","property"),
+    L("s7","p3","Varastokeskus Tampere","site","Esimerkkikatu 21, 33100 Tampere"),
+    L("p4","c1","Kiinteistö Oy Demo Kongressihotelli (0000004-3)","property"),
+    L("s8","p4","Kongressihotelli","site","Esimerkkikatu 30, 33100 Tampere"),
   ];
   const mkDev=(tag,target,make,group,locId,value,interval,last,next,req,rep,notes)=>({
     id:uid(),tag,target,make,group,locId,value,interval,delivery:"",
@@ -1367,7 +1367,7 @@ function seed(){
     serial:"",locDetail:"",rental:false,rentalPeriod:"",
     maintenances:last?[{date:last,comment:""},{date:yearBefore(last),comment:""}]:[],
     inspections:[],repairsLog:[],trained:[],requests:[],files:[],
-    expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038"
+    expert:"Mikko Esimerkki",manager:"Antti Esimerkki",ecom:"100803 / 180038"
   });
   // tuoteryhmä huoltosopimuskohteen mukaan
   const groupFor=t=>{
@@ -1454,28 +1454,28 @@ function seed(){
   // ----- esimerkkitiedot raportteja varten -----
   const byTag=n=>dev.find(d=>d.tag===n);
   const t1=byTag("601678"),t2=byTag("601671");
-  if(t1){t1.locDetail="1.Krs Tuulikaappi";t1.trained=[{name:"Petri Nieminen",date:"2025-03-13"}];}
-  if(t2){t2.locDetail="1.Krs Tuulikaappi";t2.trained=[{name:"Petri Nieminen",date:"2025-03-13"}];}
+  if(t1){t1.locDetail="1.Krs Tuulikaappi";t1.trained=[{name:"Petri Esimerkki",date:"2025-03-13"}];}
+  if(t2){t2.locDetail="1.Krs Tuulikaappi";t2.trained=[{name:"Petri Esimerkki",date:"2025-03-13"}];}
   const tx=byTag("X58238719038");if(tx){tx.target="Sopimustiedot";tx.isContract=true;tx.ecom="100880";tx.interval="1 vuosi";
-    tx.trained=[{name:"esa.lahtinen@varastokeskus.fi",date:"2025-02-05"}];
-    tx.contract={type:"Huolto",hoitaja:"Heli Rantanen, +358 40 555 7788",
-      commercial:{nimi:"Markku Salo",phone:"+358 40 555 1212",email:"kiinteistot@hoivakotisaatio.fi"},
-      technical:{nimi:"Heli Rantanen",phone:"+358 40 555 7788",email:"heli.rantanen@hoivakotisaatio.fi"},
+    tx.trained=[{name:"esa.esimerkki@varastokeskus.example",date:"2025-02-05"}];
+    tx.contract={type:"Huolto",hoitaja:"Heli Esimerkki, +358 40 000 0006",
+      commercial:{nimi:"Markku Esimerkki",phone:"+358 40 000 0002",email:"kiinteistot@hoivasaatio.example"},
+      technical:{nimi:"Heli Esimerkki",phone:"+358 40 000 0006",email:"heli.esimerkki@hoivasaatio.example"},
       hatakeskus:"Sisä-Suomen hätäkeskus, 112",linjavianvalvonta:"",
-      vartiointi:"Turvapalvelu Vartius Oy, +358 200 12345",valvomo:"Kohteen oma valvomo, ark. 8–16",
+      vartiointi:"Vartiointi Demo Oy, +358 40 000 0009",valvomo:"Kohteen oma valvomo, ark. 8–16",
       extra1:"Kohde odottaa käsisammuttimien huoltoraporttia.",extra2:"",extra3:""};}
   const ty=byTag("X75833644946");if(ty){ty.target="Sopimustiedot";ty.isContract=true;ty.ecom="100712";ty.interval="1 vuosi";
-    ty.trained=[{name:"Tomi Saarinen, tomi.saarinen@kongressihotelli.fi",date:"2026-04-21"}];
-    ty.contract={type:"Huolto",hoitaja:"Esa Lahtinen, +358 40 711 0220",
-      commercial:{nimi:"Anne Mäkinen",phone:"+358 20 7100 100",email:"huolto@varastokeskus.fi"},
-      technical:{nimi:"Esa Lahtinen",phone:"+358 40 711 0220",email:"esa.lahtinen@varastokeskus.fi"},
-      hatakeskus:"",linjavianvalvonta:"Linjavalvonta 24/7, +358 20 555 9000",
+    ty.trained=[{name:"Tomi Esimerkki, tomi.esimerkki@kongressihotelli.example",date:"2026-04-21"}];
+    ty.contract={type:"Huolto",hoitaja:"Esa Esimerkki, +358 40 000 0007",
+      commercial:{nimi:"Anne Esimerkki",phone:"+358 40 000 0003",email:"huolto@varastokeskus.example"},
+      technical:{nimi:"Esa Esimerkki",phone:"+358 40 000 0007",email:"esa.esimerkki@varastokeskus.example"},
+      hatakeskus:"",linjavianvalvonta:"Linjavalvonta 24/7, +358 40 000 0010",
       vartiointi:"",valvomo:"",extra1:"",extra2:"",extra3:""};}
   // huoltopyynnöt
   const r1=byTag("601698");
-  if(r1){r1.req=1;r1.locDetail="2.Krs sähköpääkeskus";r1.requests=[{requested:"2026-06-12",done:"",reason:"Vikailmoitus keskuksessa",comment:"Asiakas ilmoittanut vikavalosta",sentTo:"huolto@servalo.fi",status:"open"}];}
+  if(r1){r1.req=1;r1.locDetail="2.Krs sähköpääkeskus";r1.requests=[{requested:"2026-06-12",done:"",reason:"Vikailmoitus keskuksessa",comment:"Asiakas ilmoittanut vikavalosta",sentTo:"huolto@servalo.example",status:"open"}];}
   const r2=byTag("601622");
-  if(r2){r2.requests=[{requested:"2026-05-02",done:"2026-05-09",reason:"Vuosihuolto",comment:"Tehty, OK",sentTo:"huolto@servalo.fi",status:"done"}];}
+  if(r2){r2.requests=[{requested:"2026-05-02",done:"2026-05-09",reason:"Vuosihuolto",comment:"Tehty, OK",sentTo:"huolto@servalo.example",status:"done"}];}
   // vuokralaitteet
   const v1=byTag("601640");if(v1){v1.rental=true;v1.rentalStart="2026-01-01";v1.rentalMonths=12;v1.rentalMonthly=120;v1.rentalEnd="2026-12-31";v1.rentalBuyout=900;}
   const v2=byTag("601655");if(v2){v2.rental=true;v2.rentalStart="2026-06-01";v2.rentalMonths=12;v2.rentalMonthly=340;v2.rentalEnd="2027-05-31";v2.rentalBuyout=2400;}
@@ -1489,39 +1489,39 @@ function seed(){
   // ----- NFC-tunnisteet ja skannausloki (esimerkit) -----
   const nfc1=byTag("601698");
   if(nfc1){nfc1.nfcTag="NFC-601698";nfc1.nfcScans=[
-    {datetime:"12.06.2026 09:42",by:"Petri Nieminen",type:"Huoltokäynti",comment:"Vikavalon tarkistus"},
-    {datetime:"03.03.2026 13:15",by:"Petri Nieminen",type:"Tarkastus",comment:"Määräaikaistarkastus OK"}];}
+    {datetime:"12.06.2026 09:42",by:"Petri Esimerkki",type:"Huoltokäynti",comment:"Vikavalon tarkistus"},
+    {datetime:"03.03.2026 13:15",by:"Petri Esimerkki",type:"Tarkastus",comment:"Määräaikaistarkastus OK"}];}
   const nfc2=byTag("601678");
   if(nfc2){nfc2.nfcTag="NFC-601678";nfc2.nfcScans=[
-    {datetime:"13.03.2026 11:05",by:"Petri Nieminen",type:"Tunnistus",comment:""}];}
+    {datetime:"13.03.2026 11:05",by:"Petri Esimerkki",type:"Tunnistus",comment:""}];}
   // ----- linkitykset (keskus + siihen liittyvät laitteet) -----
   const lc=byTag("601698"),la=byTag("601696"),lb=byTag("601678");
   if(lc&&la&&lb){lc.links=[{targetId:la.id,relation:"Alakeskus"},{targetId:lb.id,relation:"Liittyy laitteeseen"}];}
   // ----- tiedostot (metatiedot; varsinaiset liitteet käyttäjä lisää) -----
   const f1=byTag("601698");
-  if(f1){f1.files=[{id:uid(),name:"Kayttoohje_Esmi_FX.pdf",category:"Käyttöohje",date:"2025-09-01",by:"Mikko Virtanen",data:""},
-    {id:uid(),name:"Huoltoraportti_2026-03.pdf",category:"Huoltoraportti",date:"2026-03-03",by:"Petri Nieminen",data:""}];}
+  if(f1){f1.files=[{id:uid(),name:"Kayttoohje_Esmi_FX.pdf",category:"Käyttöohje",date:"2025-09-01",by:"Mikko Esimerkki",data:""},
+    {id:uid(),name:"Huoltoraportti_2026-03.pdf",category:"Huoltoraportti",date:"2026-03-03",by:"Petri Esimerkki",data:""}];}
   // ----- asiakkaat (johdetaan kiinteistö-tason organisaatioista) -----
   const customers=[
-    {id:"p1",name:"As Oy Niittyranta",biz:"2901455-3",contact:"Pirjo Laine",email:"isannointi@niittyranta.fi",phone:"+358 9 123 4567",address:"Niittyrannankatu 4, 00980 Helsinki",status:"active",notes:"Isännöitsijä hoitaa sopimusasiat.",keys:"Yleisavain noudettavissa isännöitsijän toimistolta (Pirjo Laine, ark. 8–16). Reittiavain vartiointiliikkeestä koodilla.",created:"2024-08-21",
+    {id:"p1",name:"As Oy Demo Niittyranta",biz:"0000001-9",contact:"Pirjo Esimerkki",email:"isannointi@niittyranta.example",phone:"+358 40 000 0001",address:"Esimerkkikatu 4, 00100 Helsinki",status:"active",notes:"Isännöitsijä hoitaa sopimusasiat.",keys:"Yleisavain noudettavissa isännöitsijän toimistolta (Pirjo Esimerkki, ark. 8–16). Reittiavain vartiointiliikkeestä koodilla.",created:"2024-08-21",
       contacts:[
-        {id:uid(),nimi:"Pirjo Laine",titteli:"Isännöitsijä / Kaupallinen yhteyshenkilö",email:"isannointi@niittyranta.fi",phone:"+358 9 123 4567",invited:true,userId:"u6"},
-        {id:uid(),nimi:"Reijo Aalto",titteli:"Tekninen yhteyshenkilö",email:"reijo.aalto@niittyranta.fi",phone:"+358 40 222 3344",invited:false,userId:null}
+        {id:uid(),nimi:"Pirjo Esimerkki",titteli:"Isännöitsijä / Kaupallinen yhteyshenkilö",email:"isannointi@niittyranta.example",phone:"+358 40 000 0001",invited:true,userId:"u6"},
+        {id:uid(),nimi:"Reijo Esimerkki",titteli:"Tekninen yhteyshenkilö",email:"reijo.esimerkki@niittyranta.example",phone:"+358 40 000 0005",invited:false,userId:null}
       ]},
-    {id:"p2",name:"Hoivakoti-säätiö sr",biz:"2748120-6",contact:"Markku Salo",email:"kiinteistot@hoivakotisaatio.fi",phone:"+358 40 555 1212",address:"Puistokaari 1, 33580 Tampere",status:"active",notes:"Useita toimipisteitä Tampereella.",created:"2024-08-21",
+    {id:"p2",name:"Demo Hoivasäätiö sr",biz:"0000002-7",contact:"Markku Esimerkki",email:"kiinteistot@hoivasaatio.example",phone:"+358 40 000 0002",address:"Esimerkkikatu 1, 33100 Tampere",status:"active",notes:"Useita toimipisteitä Tampereella.",created:"2024-08-21",
       contacts:[
-        {id:uid(),nimi:"Markku Salo",titteli:"Kiinteistöpäällikkö / Kaupallinen yhteyshenkilö",email:"kiinteistot@hoivakotisaatio.fi",phone:"+358 40 555 1212",invited:false,userId:null},
-        {id:uid(),nimi:"Heli Rantanen",titteli:"Tekninen yhteyshenkilö",email:"heli.rantanen@hoivakotisaatio.fi",phone:"+358 40 555 7788",invited:false,userId:null}
+        {id:uid(),nimi:"Markku Esimerkki",titteli:"Kiinteistöpäällikkö / Kaupallinen yhteyshenkilö",email:"kiinteistot@hoivasaatio.example",phone:"+358 40 000 0002",invited:false,userId:null},
+        {id:uid(),nimi:"Heli Esimerkki",titteli:"Tekninen yhteyshenkilö",email:"heli.esimerkki@hoivasaatio.example",phone:"+358 40 000 0006",invited:false,userId:null}
       ]},
-    {id:"p3",name:"Varastokeskus Oyj",biz:"2655310-9",contact:"Anne Mäkinen",email:"huolto@varastokeskus.fi",phone:"+358 20 7100 100",address:"Teollisuuskatu 1, 33100 Tampere",status:"active",notes:"",created:"2024-08-21",
+    {id:"p3",name:"Demo Varastokeskus Oy",biz:"0000003-5",contact:"Anne Esimerkki",email:"huolto@varastokeskus.example",phone:"+358 40 000 0003",address:"Esimerkkikatu 21, 33100 Tampere",status:"active",notes:"",created:"2024-08-21",
       contacts:[
-        {id:uid(),nimi:"Anne Mäkinen",titteli:"Huoltopäällikkö / Kaupallinen yhteyshenkilö",email:"huolto@varastokeskus.fi",phone:"+358 20 7100 100",invited:false,userId:null},
-        {id:uid(),nimi:"Esa Lahtinen",titteli:"Tekninen yhteyshenkilö",email:"esa.lahtinen@varastokeskus.fi",phone:"+358 40 711 0220",invited:false,userId:null}
+        {id:uid(),nimi:"Anne Esimerkki",titteli:"Huoltopäällikkö / Kaupallinen yhteyshenkilö",email:"huolto@varastokeskus.example",phone:"+358 40 000 0003",invited:false,userId:null},
+        {id:uid(),nimi:"Esa Esimerkki",titteli:"Tekninen yhteyshenkilö",email:"esa.esimerkki@varastokeskus.example",phone:"+358 40 000 0007",invited:false,userId:null}
       ]},
-    {id:"p4",name:"Kiinteistö Oy Tampereen Kongressihotelli",biz:"2890774-1",contact:"Jukka Heikkilä",email:"yllapito@kongressihotelli.fi",phone:"+358 3 4000 200",address:"Keskuskatu 3, 33100 Tampere",status:"lead",notes:"Uusi kohde, sopimus neuvottelussa.",created:"2025-02-10",
+    {id:"p4",name:"Kiinteistö Oy Demo Kongressihotelli",biz:"0000004-3",contact:"Jukka Esimerkki",email:"yllapito@kongressihotelli.example",phone:"+358 40 000 0004",address:"Esimerkkikatu 30, 33100 Tampere",status:"lead",notes:"Uusi kohde, sopimus neuvottelussa.",created:"2025-02-10",
       contacts:[
-        {id:uid(),nimi:"Jukka Heikkilä",titteli:"Ylläpitopäällikkö / Kaupallinen yhteyshenkilö",email:"yllapito@kongressihotelli.fi",phone:"+358 3 4000 200",invited:false,userId:null},
-        {id:uid(),nimi:"Tomi Saarinen",titteli:"Tekninen yhteyshenkilö",email:"tomi.saarinen@kongressihotelli.fi",phone:"+358 44 400 0210",invited:false,userId:null}
+        {id:uid(),nimi:"Jukka Esimerkki",titteli:"Ylläpitopäällikkö / Kaupallinen yhteyshenkilö",email:"yllapito@kongressihotelli.example",phone:"+358 40 000 0004",invited:false,userId:null},
+        {id:uid(),nimi:"Tomi Esimerkki",titteli:"Tekninen yhteyshenkilö",email:"tomi.esimerkki@kongressihotelli.example",phone:"+358 40 000 0008",invited:false,userId:null}
       ]}
   ];
   // kytke jokainen laite asiakkaaseen toimipisteen yläkiinteistön kautta
@@ -1536,29 +1536,29 @@ function seed(){
   ];
   // ----- käyttäjät (admin / työnjohtaja / asentajat) -----
   const users=[
-    {id:"u1",name:"Anna Järvinen",role:"admin",email:"anna.jarvinen@servalo.fi",active:true,certs:[
+    {id:"u1",name:"Anna Esimerkki",role:"admin",email:"anna.esimerkki@servalo.example",active:true,certs:[
       {type:"Työturvallisuuskortti",issued:"2023-05-20",expires:"2028-05-20",file:null}]},
-    {id:"u2",name:"Laura Mäkelä",role:"supervisor",email:"laura.makela@servalo.fi",active:true,certs:[
+    {id:"u2",name:"Laura Esimerkki",role:"supervisor",email:"laura.esimerkki@servalo.example",active:true,certs:[
       {type:"Paloilmoitinliikkeen vastuuhenkilö (Kiwa)",issued:"2024-03-10",expires:"2029-03-10",file:null},
       {type:"Työturvallisuuskortti",issued:"2023-05-20",expires:"2028-05-20",file:null}]},
-    {id:"u3",name:"Mikko Virtanen",role:"worker",email:"mikko.virtanen@servalo.fi",active:true,certs:[
+    {id:"u3",name:"Mikko Esimerkki",role:"worker",email:"mikko.esimerkki@servalo.example",active:true,certs:[
       {type:"Tulityökortti",issued:"2021-08-15",expires:"2026-08-15",file:null},
       {type:"Työturvallisuuskortti",issued:"2024-09-01",expires:"2029-09-01",file:null},
       {type:"Paloilmoittimen hoitaja",issued:"2023-02-01",expires:"2028-02-01",file:null}]},
-    {id:"u4",name:"Sanna Koskinen",role:"worker",email:"sanna.koskinen@servalo.fi",active:true,certs:[
+    {id:"u4",name:"Sanna Esimerkki",role:"worker",email:"sanna.esimerkki@servalo.example",active:true,certs:[
       {type:"Työturvallisuuskortti",issued:"2021-04-01",expires:"2026-05-01",file:null},
       {type:"Ensiapu EA1",issued:"2024-06-10",expires:"2027-06-10",file:null}]},
-    {id:"u5",name:"Jani Lehtonen",role:"worker",email:"jani.lehtonen@servalo.fi",active:true,certs:[
+    {id:"u5",name:"Jani Esimerkki",role:"worker",email:"jani.esimerkki@servalo.example",active:true,certs:[
       {type:"Tulityökortti",issued:"2025-01-20",expires:"2030-01-20",file:null},
       {type:"Sähkötyöturvallisuus SFS 6002",issued:"2022-08-01",expires:"2026-08-01",file:null},
       {type:"Työturvallisuuskortti",issued:"2023-11-15",expires:"2028-11-15",file:null}]},
-    {id:"u6",name:"Pirjo Laine",role:"customer",email:"isannointi@niittyranta.fi",active:true,customerId:"p1"}
+    {id:"u6",name:"Pirjo Esimerkki",role:"customer",email:"isannointi@niittyranta.example",active:true,customerId:"p1"}
   ];
   // jaa laitteet asentajille (joka 4. jää osoittamatta työnjakoa varten)
   const wk=["u3","u4","u5"];
   dev.forEach((d,i)=>{d.assignedTo=(d.deleted||i%4===3)?null:wk[i%wk.length];});
   const settings={
-    company:{name:"Servalo Oy",email:"info@servalo.fi",phone:"+358 29 000 1112",web:"www.servalo.fi"},
+    company:{name:"Servalo Oy",email:"info@servalo.example",phone:"+358 40 000 0011",web:"www.servalo.example"},
     groups:["Savunpoisto","Poistumistievalaistus","Paloilmoitin","Näytteenotto","Linjalämpöilmaisin","Sprinkleri","Yhdistelmä","Kuulutus","Sammutusjärjestelmä","Käsisammutin","Paloposti","Väestönsuoja","Palovaroitin","Muu"],
     intervals:["6 kk","1 vuosi","2 vuotta","5 vuotta"]
   };
@@ -1573,14 +1573,14 @@ db.codes=db.codes||[];
 if(!Array.isArray(db.reports)){
   var _rdev=function(tag){var x=db.devices.find(function(d){return d.tag===tag;});return x?x.id:null;};
   db.reports=[
-    {id:uid(),created:"2026-06-18",by:"Mikko Virtanen",byId:"u3",customerId:"p1",deviceId:_rdev("601678"),work:"Vuosihuolto: paloilmoittimen ilmaisimet puhdistettu ja testattu, keskus OK.",status:"avoin",infoNote:"",invoicedDate:""},
-    {id:uid(),created:"2026-06-20",by:"Sanna Koskinen",byId:"u4",customerId:"p2",deviceId:_rdev("601698"),work:"Vikakäynti: vikavalon syy paikallistettu ja silmukka korjattu.",status:"lisatieto",infoNote:"Asiakkaan tilausnumero (PO) puuttuu — ei voi laskuttaa ennen kuin isännöitsijä toimittaa sen.",invoicedDate:""},
-    {id:uid(),created:"2026-06-10",by:"Jani Lehtonen",byId:"u5",customerId:"p3",deviceId:null,work:"Käsisammuttimien määräaikaishuolto, 6 kpl.",status:"laskutettu",infoNote:"",invoicedDate:"2026-06-15"}
+    {id:uid(),created:"2026-06-18",by:"Mikko Esimerkki",byId:"u3",customerId:"p1",deviceId:_rdev("601678"),work:"Vuosihuolto: paloilmoittimen ilmaisimet puhdistettu ja testattu, keskus OK.",status:"avoin",infoNote:"",invoicedDate:""},
+    {id:uid(),created:"2026-06-20",by:"Sanna Esimerkki",byId:"u4",customerId:"p2",deviceId:_rdev("601698"),work:"Vikakäynti: vikavalon syy paikallistettu ja silmukka korjattu.",status:"lisatieto",infoNote:"Asiakkaan tilausnumero (PO) puuttuu — ei voi laskuttaa ennen kuin isännöitsijä toimittaa sen.",invoicedDate:""},
+    {id:uid(),created:"2026-06-10",by:"Jani Esimerkki",byId:"u5",customerId:"p3",deviceId:null,work:"Käsisammuttimien määräaikaishuolto, 6 kpl.",status:"laskutettu",infoNote:"",invoicedDate:"2026-06-15"}
   ];
   save();
 }
 db.users=db.users||[];
-db.settings=db.settings||{company:{name:"Servalo Oy",email:"info@servalo.fi",phone:"+358 29 000 1112",web:"www.servalo.fi"},groups:[],intervals:["6 kk","1 vuosi","2 vuotta"]};
+db.settings=db.settings||{company:{name:"Servalo Oy",email:"info@servalo.example",phone:"+358 40 000 0011",web:"www.servalo.example"},groups:[],intervals:["6 kk","1 vuosi","2 vuotta"]};
 const cs=()=>db.settings.company;
 
 /* ---------- location helpers ---------- */
@@ -5268,7 +5268,7 @@ function saveDevice(){
   if(!data.tag)data.tag=genQrCode();
   if(id){const dv=db.devices.find(x=>x.id===id);logDeviceDiff(dv,data);Object.assign(dv,data);}
   else{const nd={id:uid(),created:today(),deleted:false,maintenances:[],inspections:[],repairsLog:[],trained:[],files:[],
-    expert:"Mikko Virtanen",manager:"Antti Korhonen",ecom:"100803 / 180038",...data};db.devices.unshift(nd);logHist("Luotu",nd,[]);}
+    expert:"Mikko Esimerkki",manager:"Antti Esimerkki",ecom:"100803 / 180038",...data};db.devices.unshift(nd);logHist("Luotu",nd,[]);}
   save();closeOverlay("devOverlay");
   renderList();renderSummary();if(document.getElementById("view-device").classList.contains("active"))renderDevTab();
 }
@@ -7687,9 +7687,9 @@ db.history=db.history||[];
 if(!db.history.length&&db.devices&&db.devices.length){
   const now=Date.now(),d0=db.devices[0],d1=db.devices[1]||db.devices[0];
   db.history=[
-    {id:uid(),ts:now-3600000*5,by:"Jari Mattila",action:"Päivitetty",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Seuraava määräaikaishuolto",from:fmt(d0.last||today()),to:fmt(d0.next||today())},{f:"Vastuuhenkilö",from:"–",to:"Eetu Nieminen"}]},
-    {id:uid(),ts:now-3600000*27,by:"Jari Mattila",action:"Huolto kuitattu",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(today())}]},
-    {id:uid(),ts:now-3600000*52,by:"Sanna Mäkinen",action:"Luotu",devId:d1.id,tag:d1.tag,target:d1.target,changes:[]}
+    {id:uid(),ts:now-3600000*5,by:"Ville Esimerkki",action:"Päivitetty",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Seuraava määräaikaishuolto",from:fmt(d0.last||today()),to:fmt(d0.next||today())},{f:"Vastuuhenkilö",from:"–",to:"Eetu Esimerkki"}]},
+    {id:uid(),ts:now-3600000*27,by:"Ville Esimerkki",action:"Huolto kuitattu",devId:d0.id,tag:d0.tag,target:d0.target,changes:[{f:"Viimeisin määräaikaishuolto",from:"–",to:fmt(today())}]},
+    {id:uid(),ts:now-3600000*52,by:"Sari Esimerkki",action:"Luotu",devId:d1.id,tag:d1.tag,target:d1.target,changes:[]}
   ];save();
 }
 function applyTitles(){
