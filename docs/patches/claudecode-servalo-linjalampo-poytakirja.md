@@ -281,12 +281,12 @@ for t in "function openLinjaPk" "function saveLinjaPk" "function linjaPk" "funct
 done
 
 echo "--- Mallidokumentin tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "184604|184564|601506|Nokia Areena|Monitoimiareena|2792951|100908|sami\.sevon|aleksi\.kivela|184939|Areenahotelli|2867838|100906|175529|175528|FINNTEK|Kurkelanhovi|Palvelukodit|3504419|15575|100569|150217|lassi\.laitinen" servalo.html; then
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Malliyhtiö: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

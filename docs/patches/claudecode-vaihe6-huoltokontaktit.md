@@ -269,7 +269,7 @@ for s in '"/api/kontakti"' "function addContact" "function deleteContact" "funct
 done
 
 # 4) kielletyt merkkijonot
-if grep -rnE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html ohje24.html api.js db.js server.js; then
+if grep -rnE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html ohje24.html api.js db.js server.js; then
   echo "VAROITUS: tarkista osumat"; else echo "Ei kiellettyjä merkkijonoja"; fi
 ```
 

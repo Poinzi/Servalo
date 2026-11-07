@@ -925,7 +925,7 @@ for t in "pickOpaste" "renderOpaste" "prev-opaste" "Tontin opaste" "varahenkilo"
 done
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" pelastussuunnitelma-tyokalu.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" pelastussuunnitelma-tyokalu.html; then
   echo "VIRHE: kielletty merkkijono"; exit 1
 else echo "Kielletyt: puhdas"; fi
 

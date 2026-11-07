@@ -5,7 +5,7 @@ validoi, tarkistaa kielletyt merkkijonot ja pushaa `main`-haaraan.
 
 ## Mitä tämä tekee
 Lisää uuden **tulostettavan / jaettavan tarkastuspöytäkirjan käsisammuttimille**
-(malli: liite2-ikaset, mutta omalla fontilla ja ulkoasulla + Savuksin tiedot alareunassa).
+(malli: toimitettu mallipohja, mutta omalla fontilla ja ulkoasulla + Savuksin tiedot alareunassa).
 
 - Pöytäkirja avautuu omaan tulostusikkunaan (kuten nykyinen huoltoraportti). Sen voi
   tulostaa tai tallentaa PDF:ksi ja jakaa asiakkaalle.
@@ -162,13 +162,13 @@ done
 echo "--- Sijainti ja Tarkastusväli vaihdettu (Sijainti ennen Tarkastusväliä otsikkorivillä) ---"
 grep -qF '<th>Sijainti</th><th>Merkki / Malli</th>' servalo.html && echo "OK: Sijainti alussa" || { echo "PUUTTUU"; exit 1; }
 
-echo "--- Malliyhtiön (IKASET/Tamrex ym.) tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "IKASET|Tamrex|Autismis|Turunen|Airiainen|Lintuhyt|Vatialantie" servalo.html; then
+echo "--- Malliyhtiön tunnisteet EIVÄT ole vuotaneet ---"
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Malliyhtiö: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 
@@ -185,7 +185,7 @@ echo "VALMIS."
 
 ## Huom
 - Puhelinnumero kirjoitetaan välilyönnillä (`044 3665638`) — täsmälleen kuten tarrassa.
-  Kiellettyjen merkkijonojen vahti tarkistaa välilyönnittömän `0443665638`-muodon, joten
+  Kiellettyjen merkkijonojen vahti tarkistaa välilyönnittömän muodon, joten
   raportti läpäisee vahdin, ja PAP/IDR-tunnisteet jäävät edelleen kiinni.
 - **Tyyppi** (Jauhe/Neste/CO2/Vaahto) päätellään mallinimestä; **Koeponn.** näytetään
   kentästä `pressureTest` (tyhjä kunnes lisäät sen — voi täyttää käsin tulosteeseen).

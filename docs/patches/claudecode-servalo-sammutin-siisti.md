@@ -142,7 +142,7 @@ echo "--- Vanhat harhaanjohtavat sarakkeet poistettu ---"
 grep -qF 'esc(d.pressureTest||"")' servalo.html && { echo "VIRHE: pressureTest-sarake yhä sammutinPk:ssa?"; } || echo "OK: pressureTest ei enää sammutinPk-riveissä"
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

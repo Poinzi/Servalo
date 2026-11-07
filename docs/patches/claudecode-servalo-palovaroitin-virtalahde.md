@@ -81,7 +81,7 @@ grep -qF 'if(d.power)return d.power' servalo.html && echo "OK: pöytäkirja luke
 grep -qF 'set("dPower",d?.power)' servalo.html && echo "OK: editDevice" || { echo "PUUTTUU: editDevice"; exit 1; }
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

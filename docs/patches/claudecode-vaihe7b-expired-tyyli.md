@@ -51,7 +51,7 @@ for s in ".pill.expired" ".dot.expired"; do
 done
 
 # 3) kielletyt merkkijonot
-if grep -rnE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" ohje24.html; then
+if grep -rnE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" ohje24.html; then
   echo "VAROITUS: tarkista osumat"; else echo "Ei kiellettyjä merkkijonoja"; fi
 ```
 

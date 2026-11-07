@@ -285,12 +285,12 @@ for t in "function openKuulutusPk" "function saveKuulutusPk" "function kuulutusP
 done
 
 echo "--- Mallidokumentin tunnisteet EIVÄT ole vuotaneet ---"
-if grep -niE "184939|Areenahotelli|2867838|100906|aleksi\.kivela|175529|175528|FINNTEK|Kurkelanhovi|Palvelukodit|3504419|15575|100569|150217|lassi\.laitinen|Autismis|Kultavuoren|sami\.sevon|153124|100804|180041|1569797|Lintula|thv\.fi|12246" servalo.html; then
+if grep -niE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: mallidokumentin tunniste vuoti — keskeytetään."; exit 1
 else echo "Malliyhtiö: puhdas"; fi
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

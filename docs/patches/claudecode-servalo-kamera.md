@@ -161,7 +161,7 @@ grep -qF 'getUserMedia' servalo.html && echo "OK: getUserMedia" || { echo "PUUTT
 grep -qF '📷 Ota kuva' servalo.html || grep -qF '\u{1F4F7} Ota kuva' servalo.html && echo "OK: nappi" || { echo "PUUTTUU"; exit 1; }
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

@@ -146,7 +146,7 @@ grep -qF '"/api/analyze"' servalo.html && echo "OK servalo.html: proxy-fetch" ||
 grep -qF 'id="aiKey"' servalo.html && { echo "VIRHE: avainkenttä jäi jäljelle."; exit 1; } || echo "OK: avainkenttä poistettu"
 
 echo "--- Kielletyt merkkijonot ---"
-if grep -nE "PAP Group|idrcloud|Prosero|Kramp|0929411|@pap\.fi|jari\.mattila@savuks\.fi|0443665638" servalo.html server.js; then
+if grep -nE -f "${SERVALO_KIELLETYT:?aseta SERVALO_KIELLETYT, ks. docs/patches/KIELLETYT.md}" servalo.html server.js; then
   echo "VIRHE: kielletty merkkijono löytyi — keskeytetään."; exit 1
 else echo "Kielletyt: puhdas"; fi
 

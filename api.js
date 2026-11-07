@@ -6,14 +6,17 @@ const db = require("./db");
 const crypto = require("crypto");
 
 // --- Rooliauth -------------------------------------------------------------
-const SECRET = process.env.AUTH_SECRET || "servalo-dev-secret";
+// Ilman AUTH_SECRETia käytetään prosessikohtaista satunnaisavainta (tokenit eivät säily uudelleenkäynnistyksen yli).
+const SECRET = process.env.AUTH_SECRET || crypto.randomBytes(32).toString("hex");
 const ENFORCE = !!process.env.AUTH_SECRET; // vasta kun AUTH_SECRET on asetettu, pakotetaan roolit
 
-// Demokäyttäjät (fiktiivisiä). Vaihda salasanat ja aseta AUTH_SECRET tuotannossa.
+// Tunnukset. Salasanoja ei pidetä koodissa: ne luetaan ympäristömuuttujista
+// SERVALO_PASS_ADMIN / SERVALO_PASS_KENTTA / SERVALO_PASS_HUOLTO.
+// Jos muuttujaa ei ole asetettu, kyseisellä tunnuksella ei voi kirjautua.
 const USERS = {
-  admin:  { id: "u-admin",  nimi: "Pääkäyttäjä",     rooli: "admin",  salasana: "admin123" },
-  kentta: { id: "u-kentta", nimi: "Kenttäasentaja",  rooli: "kentta", salasana: "kentta123" },
-  huolto: { id: "u-huolto", nimi: "Huoltokumppani",  rooli: "huolto", salasana: "huolto123" },
+  admin:  { id: "u-admin",  nimi: "Pääkäyttäjä",     rooli: "admin",  salasana: process.env.SERVALO_PASS_ADMIN || "" },
+  kentta: { id: "u-kentta", nimi: "Kenttäasentaja",  rooli: "kentta", salasana: process.env.SERVALO_PASS_KENTTA || "" },
+  huolto: { id: "u-huolto", nimi: "Huoltokumppani",  rooli: "huolto", salasana: process.env.SERVALO_PASS_HUOLTO || "" },
 };
 
 function checkPassword(given, expected) {
@@ -200,7 +203,7 @@ async function handle(req, res) {
       const kayttaja = String(body.kayttaja || "").trim().toLowerCase();
       const salasana = String(body.salasana || "");
       const u = USERS[kayttaja];
-      if (!u || !checkPassword(salasana, u.salasana)) {
+      if (!u || !u.salasana || !checkPassword(salasana, u.salasana)) {
         return sendJson(res, 401, { error: "vaara tunnus tai salasana" });
       }
       const exp = Date.now() + 1000 * 60 * 60 * 12; // 12 h
