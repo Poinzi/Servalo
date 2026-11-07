@@ -4581,10 +4581,13 @@ function kspPrintUlkoiset(p,v){
     +'<tr><td class="k">Määräys vastaanotettu</td><td><span class="fill" style="min-width:160px"></span> <span class="src">pp.kk.vvvv klo</span></td></tr>'
     +'</table>';
 }
-// Henkilömäärä hyväksytään summaan vain kokonaislukuna >= 0 (välilyönnit tuhaterottimina sallitaan). Muuten null = tarkistettava.
+// Henkilömäärä hyväksytään summaan vain kokonaislukuna >= 0: pelkät numerot tai oikein ryhmitelty
+// tuhaterotin (välilyönti, ohut tai sitova välilyönti kolmen numeron ryhmien välissä). Muuten null = tarkistettava.
 function kspHenkilomaara(m){
-  var t=String(m==null?"":m).replace(/[\s\u00a0]/g,"");
-  return /^\d+$/.test(t)?parseInt(t,10):null;
+  var t=String(m==null?"":m).trim();
+  if(/^\d+$/.test(t))return parseInt(t,10);
+  if(/^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/.test(t))return parseInt(t.replace(/[ \u00a0\u202f]/g,""),10);
+  return null;
 }
 function kspPrintTiedotus(p){
   var th=function(a){return '<thead><tr>'+a.map(function(x){return '<th>'+x+'</th>';}).join("")+'</tr></thead>';};
